@@ -29,12 +29,9 @@ doctest = false
 [lints.rust]
 
 [lints.clippy]
-derived_hash_with_manual_eq = "allow"
-new_without_default = "allow"
-missing_safety_doc = "allow"
 let_and_return = "allow"
 
-# [[example]]
-# name = "main"
-# path = "examples/main.rs"
-# harness = false
+[[example]]
+name = "minimal"
+path = "examples/minimal.rs"
+harness = false
