@@ -22,6 +22,9 @@ libtest = { package = "libtest-mimic", version = "0.8" }
 strum = { version = "0.27", features = ["derive"] }
 triomphe = { version = "0.1", optional = true }
 
+[dev-dependencies]
+speculoos = "0.13"
+
 [lib]
 test = false
 doctest = false

@@ -4,6 +4,9 @@ use std::borrow::Cow;
 
 pub type MaybeOwnedStr = Cow<'static, str>;
 
+/// See also: [Custom allocators](https://nical.github.io/posts/rust-custom-allocators.html)
+pub type Box<T> = std::boxed::Box<T>;
+
 #[cfg(feature = "triomphe")]
 pub type Arc<T> = triomphe::Arc<T>;
 
