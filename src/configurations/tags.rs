@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use crate::utils::aliases::{HashSet, MaybeOwnedStr};
 
-pub struct Tags(pub(crate) HashSet<Tag>);
+pub(crate) struct Tags(HashSet<Tag>);
 
 type Tag = MaybeOwnedStr;
 
