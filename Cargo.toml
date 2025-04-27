@@ -1,0 +1,37 @@
+[package]
+name = "litmus"
+version = "0.5.0"
+description = "a macro-free BDD test harness."
+edition = "2021"
+license = "BSD-3-Clause"
+repository = "https://github.com/NTDuck/litmus"
+keywords = ["bdd", "test", "harness", "cucumber", "gherkin"]
+categories = ["development-tools::testing"]
+publish = true
+
+[features]
+default = []
+ahash = ["dep:ahash"]
+fxhash = ["dep:fxhash"]
+triomphe = ["dep:triomphe"]
+
+[dependencies]
+ahash = { version = "0.8", optional = true }
+fxhash = { version = "0.2", optional = true }
+libtest = { package = "libtest-mimic", version = "0.8" }
+strum = { version = "0.27", features = ["derive"] }
+triomphe = { version = "0.1", optional = true }
+
+[lib]
+test = false
+doctest = false
+
+[lints.rust]
+
+[lints.clippy]
+let_and_return = "allow"
+
+[[example]]
+name = "minimal"
+path = "examples/minimal.rs"
+harness = false
