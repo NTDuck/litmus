@@ -1,11 +1,11 @@
 #![allow(unused_imports)]
 
 mod builders;
-mod configurations;
+mod models;
 mod visitors;
 
 mod utils;
 
 pub use self::builders::*;
-pub use self::configurations::*;
+pub use self::models::*;
 pub use self::visitors::*;

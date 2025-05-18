@@ -1,8 +1,6 @@
 use std::ops::Deref;
 
-use crate::utils::aliases::{Arc, Box, MaybeOwnedStr};
-
-use super::World;
+use crate::{utils::aliases::{Arc, Box, MaybeOwnedStr}, Result, World};
 
 pub struct Steps<StepFnImpl: ?Sized>(Vec<Step<StepFnImpl>>);
 
@@ -99,7 +97,7 @@ pub enum StepLabel {
 }
 
 pub trait GivenStepFn<WorldImpl>:
-    Fn(&mut WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static
+    Fn(&mut WorldImpl) -> Result + Send + Sync + 'static
 where
     WorldImpl: World,
 {
@@ -107,13 +105,13 @@ where
 
 impl<T, WorldImpl> GivenStepFn<WorldImpl> for T
 where
-    T: Fn(&mut WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static,
+    T: Fn(&mut WorldImpl) -> Result + Send + Sync + 'static,
     WorldImpl: World,
 {
 }
 
 pub trait WhenStepFn<WorldImpl>:
-    Fn(&mut WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static
+    Fn(&mut WorldImpl) -> Result + Send + Sync + 'static
 where
     WorldImpl: World,
 {
@@ -121,13 +119,13 @@ where
 
 impl<T, WorldImpl> WhenStepFn<WorldImpl> for T
 where
-    T: Fn(&mut WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static,
+    T: Fn(&mut WorldImpl) -> Result + Send + Sync + 'static,
     WorldImpl: World,
 {
 }
 
 pub trait ThenStepFn<WorldImpl>:
-    Fn(&WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static
+    Fn(&WorldImpl) -> Result + Send + Sync + 'static
 where
     WorldImpl: World,
 {
@@ -135,13 +133,13 @@ where
 
 impl<T, WorldImpl> ThenStepFn<WorldImpl> for T
 where
-    T: Fn(&WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static,
+    T: Fn(&WorldImpl) -> Result + Send + Sync + 'static,
     WorldImpl: World,
 {
 }
 
 pub trait GivenStepFnOnce<WorldImpl>:
-    FnOnce(&mut WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static
+    FnOnce(&mut WorldImpl) -> Result + Send + Sync + 'static
 where
     WorldImpl: World,
 {
@@ -149,13 +147,13 @@ where
 
 impl<T, WorldImpl> GivenStepFnOnce<WorldImpl> for T
 where
-    T: FnOnce(&mut WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static,
+    T: FnOnce(&mut WorldImpl) -> Result + Send + Sync + 'static,
     WorldImpl: World,
 {
 }
 
 pub trait WhenStepFnOnce<WorldImpl>:
-    FnOnce(&mut WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static
+    FnOnce(&mut WorldImpl) -> Result + Send + Sync + 'static
 where
     WorldImpl: World,
 {
@@ -163,13 +161,13 @@ where
 
 impl<T, WorldImpl> WhenStepFnOnce<WorldImpl> for T
 where
-    T: FnOnce(&mut WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static,
+    T: FnOnce(&mut WorldImpl) -> Result + Send + Sync + 'static,
     WorldImpl: World,
 {
 }
 
 pub trait ThenStepFnOnce<WorldImpl>:
-    FnOnce(&WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static
+    FnOnce(&WorldImpl) -> Result + Send + Sync + 'static
 where
     WorldImpl: World,
 {
@@ -177,7 +175,7 @@ where
 
 impl<T, WorldImpl> ThenStepFnOnce<WorldImpl> for T
 where
-    T: FnOnce(&WorldImpl) -> Result<(), libtest::Failed> + Send + Sync + 'static,
+    T: FnOnce(&WorldImpl) -> Result + Send + Sync + 'static,
     WorldImpl: World,
 {
 }
