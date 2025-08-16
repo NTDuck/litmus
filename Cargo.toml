@@ -18,10 +18,11 @@ triomphe = ["dep:triomphe"]
 
 [dependencies]
 ahash = { version = "0.8", optional = true }
+bon = "3.7.0"
 fxhash = { version = "0.2", optional = true }
 libtest-mimic = { version = "0.8", optional = true }
-strum = { version = "0.27", features = ["derive"] }
 triomphe = { version = "0.1", optional = true }
+sealed = "0.6.0"
 
 [dev-dependencies]
 speculoos = "0.13"

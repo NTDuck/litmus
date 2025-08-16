@@ -1,0 +1,32 @@
+pub mod aliases {
+    pub type MaybeOwnedString = ::std::borrow::Cow<'static, str>;
+
+    // /// See also: [Custom allocators](https://nical.github.io/posts/rust-custom-allocators.html)
+    // pub type Box<T> = ::std::boxed::Box<T>;
+
+    // #[cfg(feature = "triomphe")]
+    // pub type Arc<T> = ::triomphe::Arc<T>;
+
+    // #[cfg(not(feature = "triomphe"))]
+    // pub type Arc<T> = ::std::sync::Arc<T>;
+
+    pub type Vec<T> = ::std::vec::Vec<T>;
+
+    #[cfg(all(feature = "ahash", not(feature = "fxhash")))]
+    pub type Set<T> = ::ahash::AHashSet<T>;
+
+    #[cfg(all(feature = "ahash", not(feature = "fxhash")))]
+    pub type Map<K, V> = ::ahash::AHashMap<K, V>;
+
+    #[cfg(all(not(feature = "ahash"), feature = "fxhash"))]
+    pub type Set<T> = ::fxhash::FxHashSet<T>;
+
+    #[cfg(all(not(feature = "ahash"), feature = "fxhash"))]
+    pub type Map<K, V> = ::fxhash::FxHashMap<K, V>;
+
+    #[cfg(not(any(feature = "ahash", feature = "fxhash")))]
+    pub type Set<T> = ::std::collections::HashSet<T>;
+
+    #[cfg(not(any(feature = "ahash", feature = "fxhash")))]
+    pub type Map<K, V> = ::std::collections::HashMap<K, V>;
+}
