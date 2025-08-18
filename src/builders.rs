@@ -1,6 +1,6 @@
 use ::sealed::sealed;
 
-use crate::{utils::aliases::{MaybeOwnedString, Vec}, Background, StepLabel, Steps};
+use crate::{utils::aliases::{MaybeOwnedString, Vec}, Background, Fallible, Scenario, StepLabel, Steps};
 
 pub struct BackgroundBuilder<Given, State: self::background::State = self::background::Empty> {
     _phantom: ::core::marker::PhantomData<(
@@ -38,40 +38,36 @@ impl<Given, State: self::background::State> BackgroundBuilder<Given, State> {
         }
     }
 
-    pub fn description(mut self, value: impl Into<MaybeOwnedString>) -> BackgroundBuilder<Given, self::background::SetDescription<State>>
+    pub fn description(self, value: impl Into<MaybeOwnedString>) -> BackgroundBuilder<Given, self::background::SetDescription<State>>
     where
         State::Description: self::background::IsUnset,
     {
-        self.description.replace(value.into());
-        
         BackgroundBuilder {
             _phantom: ::core::default::Default::default(),
 
-            description: self.description,
+            description: ::core::option::Option::from(value.into()),
             ignored: self.ignored,
             given: self.given,
         }
     }
 
-    pub fn ignored(mut self, value: impl Into<bool>) -> BackgroundBuilder<Given, self::background::SetIgnored<State>>
+    pub fn ignored(self, value: impl Into<bool>) -> BackgroundBuilder<Given, self::background::SetIgnored<State>>
     where
         State::Ignored: self::background::IsUnset,
     {
-        self.ignored.replace(value.into());
-        
         BackgroundBuilder {
             _phantom: ::core::default::Default::default(),
 
             description: self.description,
-            ignored: self.ignored,
+            ignored: ::core::option::Option::from(value.into()),
             given: self.given,
         }
     }
 
-    pub fn given<World>(mut self, description: impl Into<MaybeOwnedString>, callback: Given) -> BackgroundBuilder<Given, self::background::SetGiven<State>>
+    pub fn given<World>(self, description: impl Into<MaybeOwnedString>, callback: Given) -> BackgroundBuilder<Given, self::background::SetGiven<State>>
     where
         State::Given: self::background::IsUnset,
-        Given: FnOnce() -> World + ::core::clone::Clone,
+        Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
         World: ::core::marker::Send + ::core::marker::Sync,
     {
         let given = Steps::builder()
@@ -88,23 +84,49 @@ impl<Given, State: self::background::State> BackgroundBuilder<Given, State> {
             given: ::core::option::Option::from(given),
         }
     }
+}
 
-    pub fn and<World>(mut self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) + ::core::clone::Clone) -> BackgroundBuilder<impl FnOnce() -> World + ::core::clone::Clone, self::background::SetGiven<State>>
+#[::bon::bon]
+impl<Given, State: self::background::State> BackgroundBuilder<Given, self::background::SetGiven<State>> {
+    pub fn and<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible + ::core::clone::Clone) -> BackgroundBuilder<impl FnOnce() -> Fallible<World> + ::core::clone::Clone, self::background::SetGiven<State>>
     where
-        State::Given: self::background::IsSet,
-        Given: FnOnce() -> World + ::core::clone::Clone,
+        <self::background::SetGiven<State> as self::background::State>::Given: self::background::IsSet,
+        Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        self.conjoin(description, callback)
+            .label(StepLabel::And)
+            .call()
+    }
+
+    pub fn but<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible + ::core::clone::Clone) -> BackgroundBuilder<impl FnOnce() -> Fallible<World> + ::core::clone::Clone, self::background::SetGiven<State>>
+    where
+        <self::background::SetGiven<State> as self::background::State>::Given: self::background::IsSet,
+        Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        self.conjoin(description, callback)
+            .label(StepLabel::But)
+            .call()
+    }
+
+    #[builder]
+    fn conjoin<World>(mut self, #[builder(start_fn)] description: impl Into<MaybeOwnedString>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible + ::core::clone::Clone, label: StepLabel) -> BackgroundBuilder<impl FnOnce() -> Fallible<World> + ::core::clone::Clone, self::background::SetGiven<State>>
+    where
+        <self::background::SetGiven<State> as self::background::State>::Given: self::background::IsSet,
+        Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
         World: ::core::marker::Send + ::core::marker::Sync,
     {
         let given = unsafe { self.given.take().unwrap_unchecked() };
         let given = Steps::builder()
             .labels(given.labels)
-            .label(StepLabel::And)
+            .label(label)
             .descriptions(given.descriptions)
             .description(description)
             .callback(move || {
-                let mut world = (given.callback)();
-                callback(&mut world);
-                world
+                let mut world = (given.callback)()?;
+                (callback)(&mut world)?;
+                Ok(world)
             })
             .build();
 
@@ -116,33 +138,22 @@ impl<Given, State: self::background::State> BackgroundBuilder<Given, State> {
             given: ::core::option::Option::from(given),
         }
     }
+}
 
-    pub fn but<World>(mut self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) + ::core::clone::Clone) -> BackgroundBuilder<impl FnOnce() -> World + ::core::clone::Clone, self::background::SetGiven<State>>
-    where
-        State::Given: self::background::IsSet,
-        Given: FnOnce() -> World + ::core::clone::Clone,
-        World: ::core::marker::Send + ::core::marker::Sync,
-    {
-        let given = unsafe { self.given.take().unwrap_unchecked() };
-        let given = Steps::builder()
-            .labels(given.labels)
-            .label(StepLabel::But)
-            .descriptions(given.descriptions)
-            .description(description)
-            .callback(move || {
-                let mut world = (given.callback)();
-                callback(&mut world);
-                world
-            })
-            .build();
+#[sealed]
+pub(crate) trait IntoBackground<Given>: ::core::marker::Sized {
+    fn into_background(self) -> Background<Given>;
+}
 
-        BackgroundBuilder {
-            _phantom: ::core::default::Default::default(),
-
-            description: self.description,
-            ignored: self.ignored,
-            given: ::core::option::Option::from(given),
-        }
+#[sealed]
+impl<Given, World, State: self::background::State> IntoBackground<Given> for BackgroundBuilder<Given, State>
+where
+    State: self::background::IsComplete,
+    Given: FnOnce() -> World + ::core::clone::Clone,
+    World: ::core::marker::Send + ::core::marker::Sync,
+{
+    fn into_background(self) -> Background<Given> {
+        self.build()
     }
 }
 
@@ -204,6 +215,279 @@ mod background {
         pub struct Description;
         pub struct Ignored;
         pub struct Given;
+    }
+}
+
+pub struct ScenarioBuilder<Given, When, Then, State: self::scenario::State = self::scenario::Empty> {
+    _phantom: ::core::marker::PhantomData<(
+        PhantomCovariant<State>,
+        PhantomCovariant<Steps<Given>>,
+        PhantomCovariant<Given>,
+        PhantomCovariant<Steps<When>>,
+        PhantomCovariant<When>,
+        PhantomCovariant<Steps<Then>>,
+        PhantomCovariant<Then>,
+    )>,
+
+    description: ::core::option::Option<MaybeOwnedString>,
+    ignored: ::core::option::Option<bool>,
+
+    given: ::core::option::Option<Steps<Given>>,
+    when: ::core::option::Option<Steps<When>>,
+    then: ::core::option::Option<Steps<Then>>,
+}
+
+impl<Given, When, Then> Scenario<Given, When, Then> {
+    pub fn builder() -> ScenarioBuilder<Given, When, Then> {
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+            
+            given: ::core::default::Default::default(),
+            when: ::core::default::Default::default(),
+            then: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, State> {
+    pub fn build(self) -> Scenario<Given, When, Then>
+    where
+        State: self::scenario::IsComplete,
+    {
+        Scenario {
+            description: self.description,
+            ignored: self.ignored,
+
+            given: unsafe { self.given.unwrap_unchecked() },
+            when: unsafe { self.when.unwrap_unchecked() },
+            then: unsafe { self.then.unwrap_unchecked() },
+        }
+    }
+
+    pub fn description(self, value: impl Into<MaybeOwnedString>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetDescription<State>> {
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: ::core::option::Option::from(value.into()),
+            ignored: self.ignored,
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
+        }
+    }
+
+    pub fn ignored(self, value: impl Into<bool>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetIgnored<State>> {
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: self.description,
+            ignored: ::core::option::Option::from(value.into()),
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
+        }
+    }
+
+    pub fn given<World>(self, description: impl Into<MaybeOwnedString>, callback: Given) -> ScenarioBuilder<Given, When, Then, self::scenario::SetGiven<State>>
+    where
+        State::Given: self::background::IsUnset,
+        Given: FnOnce() -> Fallible<World>,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        let given = Steps::builder()
+            .label(StepLabel::Given)
+            .description(description)
+            .callback(callback)
+            .build();
+
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: self.description,
+            ignored: self.ignored,
+
+            given: ::core::option::Option::from(given),
+            when: self.when,
+            then: self.then,
+        }
+    }
+}
+
+impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetGiven<State>> {
+    fn and<World>(mut self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
+    where
+        State::Given: self::background::IsSet,
+        Given: FnOnce() -> Fallible<World>,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        let given = unsafe { self.given.take().unwrap_unchecked() };
+        let given = Steps::builder()
+            .labels(given.labels)
+            .label(StepLabel::And)
+            .descriptions(given.descriptions)
+            .description(description)
+            .callback(move || {
+                let mut world = (given.callback)()?;
+                (callback)(&mut world)?;
+                Ok(world)
+            })
+            .build();
+
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: self.description,
+            ignored: self.ignored,
+
+            given: ::core::option::Option::from(given),
+            when: self.when,
+            then: self.then,
+        }
+    }
+
+    fn but<World>(mut self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
+    where
+        State::Given: self::background::IsSet,
+        Given: FnOnce() -> Fallible<World>,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        let given = unsafe { self.given.take().unwrap_unchecked() };
+        let given = Steps::builder()
+            .labels(given.labels)
+            .label(StepLabel::But)
+            .descriptions(given.descriptions)
+            .description(description)
+            .callback(move || {
+                let mut world = (given.callback)()?;
+                (callback)(&mut world)?;
+                Ok(world)
+            })
+            .build();
+
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: self.description,
+            ignored: self.ignored,
+
+            given: ::core::option::Option::from(given),
+            when: self.when,
+            then: self.then,
+        }
+    }
+}
+
+impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetWhen<State>> {
+    fn and() {
+
+    }
+}
+
+mod scenario {
+    pub(super) use super::*;
+
+    #[sealed]
+    pub trait State: ::core::marker::Sized {
+        type Description;
+        type Ignored;
+
+        type Given;
+        type When;
+        type Then;
+    }
+
+    #[sealed]
+    pub trait IsComplete: self::State<Given: IsSet, When: IsSet, Then: IsSet> {}
+
+    #[sealed]
+    impl<State: self::State> IsComplete for State
+    where
+        State::Given: IsSet,
+        State::When: IsSet,
+        State::Then: IsSet,
+    {
+    }
+
+    pub struct Empty;
+
+    pub struct SetDescription<State: self::State = self::Empty>(PhantomCovariant<State>);
+    pub struct SetIgnored<State: self::State = self::Empty>(PhantomCovariant<State>);
+    pub struct SetGiven<State: self::State = self::Empty>(PhantomCovariant<State>);
+    pub struct SetWhen<State: self::State = self::Empty>(PhantomCovariant<State>);
+    pub struct SetThen<State: self::State = self::Empty>(PhantomCovariant<State>);
+
+    #[sealed]
+    impl self::State for Empty {
+        type Description = Unset<self::members::Description>;
+        type Ignored = Unset<self::members::Ignored>;
+
+        type Given = Unset<self::members::Given>;
+        type When = Unset<self::members::When>;
+        type Then = Unset<self::members::Then>;
+    }
+
+    #[sealed]
+    impl<State: self::State> self::State for SetDescription<State> {
+        type Description = Set<self::members::Description>;
+        type Ignored = State::Ignored;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+    }
+
+    #[sealed]
+    impl<State: self::State> self::State for SetIgnored<State> {
+        type Description = State::Description;
+        type Ignored = Set<self::members::Ignored>;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+    }
+
+    #[sealed]
+    impl<State: self::State> self::State for SetGiven<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+
+        type Given = Set<self::members::Given>;
+        type When = State::When;
+        type Then = State::Then;
+    }
+
+    #[sealed]
+    impl<State: self::State> self::State for SetWhen<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+
+        type Given = State::Given;
+        type When = Set<self::members::When>;
+        type Then = State::Then;
+    }
+
+    #[sealed]
+    impl<State: self::State> self::State for SetThen<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = Set<self::members::Then>;
+    }
+
+    mod members {
+        pub struct Description;
+        pub struct Ignored;
+
+        pub struct Given;
+        pub struct When;
+        pub struct Then;
     }
 }
 
