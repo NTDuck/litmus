@@ -1,6 +1,7 @@
 use ::sealed::sealed;
 
-use crate::{utils::aliases::{MaybeOwnedString, Vec}, Background, Fallible, Scenario, StepLabel, Steps};
+use crate::{IntoScenario, __seal_into_background, __seal_into_scenario};
+use crate::{utils::aliases::{MaybeOwnedString, Vec}, Background, Fallible, IntoBackground, Scenario, StepLabel, Steps};
 
 pub struct BackgroundBuilder<Given, State: self::background::State = self::background::Empty> {
     _phantom: ::core::marker::PhantomData<(
@@ -148,12 +149,7 @@ where
     }
 }
 
-#[sealed]
-pub(crate) trait IntoBackground<Given>: ::core::marker::Sized {
-    fn into_background(self) -> Background<Given>;
-}
-
-#[sealed]
+#[sealed(pub(crate))]
 impl<Given, World, State: self::background::State> IntoBackground<Given> for BackgroundBuilder<Given, State>
 where
     State: self::background::IsComplete,
@@ -560,12 +556,7 @@ where
     }
 }
 
-#[sealed]
-trait IntoScenario<Given, When, Then>: ::core::marker::Sized {
-    fn into_scenario(self) -> Scenario<Given, When, Then>;
-}
-
-#[sealed]
+#[sealed(pub(crate))]
 impl<Given, When, Then, State: self::scenario::State> IntoScenario<Given, When, Then> for ScenarioBuilder<Given, When, Then, State>
 where
     State: self::scenario::IsComplete,

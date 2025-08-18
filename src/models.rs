@@ -1,3 +1,5 @@
+use ::sealed::sealed;
+
 use crate::utils::aliases::{MaybeOwnedString, Set, Vec};
 
 #[derive(::core::fmt::Debug)]
@@ -43,4 +45,14 @@ pub type Fallible<T = ()> = ::core::result::Result<T, Failed>;
 
 pub struct Failed {
     pub message: MaybeOwnedString,
+}
+
+#[sealed(pub(crate))]
+pub trait IntoBackground<Given>: ::core::marker::Sized {
+    fn into_background(self) -> Background<Given>;
+}
+
+#[sealed(pub(crate))]
+pub trait IntoScenario<Given, When, Then>: ::core::marker::Sized {
+    fn into_scenario(self) -> Scenario<Given, When, Then>;
 }
