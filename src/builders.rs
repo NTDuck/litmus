@@ -26,18 +26,10 @@ impl<Given> Background<Given> {
     }
 }
 
-impl<Given, State: self::background::State> BackgroundBuilder<Given, State> {
-    pub fn build(self) -> Background<Given>
-    where
-        State: self::background::IsComplete,
-    {
-        Background {
-            description: self.description,
-            ignored: self.ignored,
-            given: unsafe { self.given.unwrap_unchecked() },
-        }
-    }
-
+impl<Given, State: self::background::State> BackgroundBuilder<Given, State>
+where
+    State::Given: self::background::IsUnset,
+{
     pub fn description(self, value: impl Into<MaybeOwnedString>) -> BackgroundBuilder<Given, self::background::SetDescription<State>>
     where
         State::Description: self::background::IsUnset,
@@ -87,10 +79,12 @@ impl<Given, State: self::background::State> BackgroundBuilder<Given, State> {
 }
 
 #[::bon::bon]
-impl<Given, State: self::background::State> BackgroundBuilder<Given, self::background::SetGiven<State>> {
+impl<Given, State: self::background::State> BackgroundBuilder<Given, self::background::SetGiven<State>>
+where
+    <self::background::SetGiven<State> as self::background::State>::Given: self::background::IsSet,
+{
     pub fn and<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible + ::core::clone::Clone) -> BackgroundBuilder<impl FnOnce() -> Fallible<World> + ::core::clone::Clone, self::background::SetGiven<State>>
     where
-        <self::background::SetGiven<State> as self::background::State>::Given: self::background::IsSet,
         Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
         World: ::core::marker::Send + ::core::marker::Sync,
     {
@@ -101,7 +95,6 @@ impl<Given, State: self::background::State> BackgroundBuilder<Given, self::backg
 
     pub fn but<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible + ::core::clone::Clone) -> BackgroundBuilder<impl FnOnce() -> Fallible<World> + ::core::clone::Clone, self::background::SetGiven<State>>
     where
-        <self::background::SetGiven<State> as self::background::State>::Given: self::background::IsSet,
         Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
         World: ::core::marker::Send + ::core::marker::Sync,
     {
@@ -113,7 +106,6 @@ impl<Given, State: self::background::State> BackgroundBuilder<Given, self::backg
     #[builder]
     fn conjoin<World>(mut self, #[builder(start_fn)] description: impl Into<MaybeOwnedString>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible + ::core::clone::Clone, label: StepLabel) -> BackgroundBuilder<impl FnOnce() -> Fallible<World> + ::core::clone::Clone, self::background::SetGiven<State>>
     where
-        <self::background::SetGiven<State> as self::background::State>::Given: self::background::IsSet,
         Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
         World: ::core::marker::Send + ::core::marker::Sync,
     {
@@ -136,6 +128,22 @@ impl<Given, State: self::background::State> BackgroundBuilder<Given, self::backg
             description: self.description,
             ignored: self.ignored,
             given: ::core::option::Option::from(given),
+        }
+    }
+}
+
+impl<Given, State: self::background::State> BackgroundBuilder<Given, State>
+where
+    State: self::background::IsComplete,
+{
+    pub fn build(self) -> Background<Given>
+    where
+        State: self::background::IsComplete,
+    {
+        Background {
+            description: self.description,
+            ignored: self.ignored,
+            given: unsafe { self.given.unwrap_unchecked() },
         }
     }
 }
@@ -252,21 +260,12 @@ impl<Given, When, Then> Scenario<Given, When, Then> {
     }
 }
 
-impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, State> {
-    pub fn build(self) -> Scenario<Given, When, Then>
-    where
-        State: self::scenario::IsComplete,
-    {
-        Scenario {
-            description: self.description,
-            ignored: self.ignored,
-
-            given: unsafe { self.given.unwrap_unchecked() },
-            when: unsafe { self.when.unwrap_unchecked() },
-            then: unsafe { self.then.unwrap_unchecked() },
-        }
-    }
-
+impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, State>
+where
+    State::Given: self::scenario::IsUnset,
+    State::When: self::scenario::IsUnset,
+    State::Then: self::scenario::IsUnset,
+{
     pub fn description(self, value: impl Into<MaybeOwnedString>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetDescription<State>> {
         ScenarioBuilder {
             _phantom: ::core::default::Default::default(),
@@ -295,7 +294,6 @@ impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, Whe
 
     pub fn given<World>(self, description: impl Into<MaybeOwnedString>, callback: Given) -> ScenarioBuilder<Given, When, Then, self::scenario::SetGiven<State>>
     where
-        State::Given: self::background::IsUnset,
         Given: FnOnce() -> Fallible<World>,
         World: ::core::marker::Send + ::core::marker::Sync,
     {
@@ -318,17 +316,43 @@ impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, Whe
     }
 }
 
-impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetGiven<State>> {
-    fn and<World>(mut self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
+#[::bon::bon]
+impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetGiven<State>>
+where
+    <self::scenario::SetGiven<State> as self::scenario::State>::Given: self::scenario::IsSet,
+    <self::scenario::SetGiven<State> as self::scenario::State>::When: self::scenario::IsUnset,
+    <self::scenario::SetGiven<State> as self::scenario::State>::Then: self::scenario::IsUnset,
+{
+    pub fn and<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
     where
-        State::Given: self::background::IsSet,
+        Given: FnOnce() -> Fallible<World>,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        self.conjoin_given(description, callback)
+            .label(StepLabel::And)
+            .call()
+    }
+
+    pub fn but<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
+    where
+        Given: FnOnce() -> Fallible<World>,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        self.conjoin_given(description, callback)
+            .label(StepLabel::But)
+            .call()
+    }
+
+    #[builder]
+    fn conjoin_given<World>(mut self, #[builder(start_fn)] description: impl Into<MaybeOwnedString>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible, label: StepLabel) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
+    where
         Given: FnOnce() -> Fallible<World>,
         World: ::core::marker::Send + ::core::marker::Sync,
     {
         let given = unsafe { self.given.take().unwrap_unchecked() };
         let given = Steps::builder()
             .labels(given.labels)
-            .label(StepLabel::And)
+            .label(label)
             .descriptions(given.descriptions)
             .description(description)
             .callback(move || {
@@ -350,23 +374,16 @@ impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, Whe
         }
     }
 
-    fn but<World>(mut self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
+    pub fn when<World>(self, description: impl Into<MaybeOwnedString>, callback: When) -> ScenarioBuilder<Given, When, Then, self::scenario::SetWhen<self::scenario::SetGiven<State>>>
     where
-        State::Given: self::background::IsSet,
-        Given: FnOnce() -> Fallible<World>,
+        Given: FnOnce() -> Fallible<World>, // Required for type deduction
+        When: FnOnce(&mut World) -> Fallible,
         World: ::core::marker::Send + ::core::marker::Sync,
     {
-        let given = unsafe { self.given.take().unwrap_unchecked() };
-        let given = Steps::builder()
-            .labels(given.labels)
-            .label(StepLabel::But)
-            .descriptions(given.descriptions)
+        let when = Steps::builder()
+            .label(StepLabel::When)
             .description(description)
-            .callback(move || {
-                let mut world = (given.callback)()?;
-                (callback)(&mut world)?;
-                Ok(world)
-            })
+            .callback(callback)
             .build();
 
         ScenarioBuilder {
@@ -375,16 +392,171 @@ impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, Whe
             description: self.description,
             ignored: self.ignored,
 
-            given: ::core::option::Option::from(given),
-            when: self.when,
+            given: self.given,
+            when: ::core::option::Option::from(when),
             then: self.then,
         }
     }
 }
 
-impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetWhen<State>> {
-    fn and() {
+#[::bon::bon]
+impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetWhen<State>>
+where
+    <self::scenario::SetWhen<State> as self::scenario::State>::Given: self::scenario::IsSet,
+    <self::scenario::SetWhen<State> as self::scenario::State>::When: self::scenario::IsSet,
+    <self::scenario::SetWhen<State> as self::scenario::State>::Then: self::scenario::IsUnset,
+{
+    pub fn and<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<Given, impl FnOnce(&mut World) -> Fallible, Then, self::scenario::SetWhen<State>>
+    where
+        When: FnOnce(&mut World) -> Fallible,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        self.conjoin_when(description, callback)
+            .label(StepLabel::And)
+            .call()
+    }
 
+    pub fn but<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<Given, impl FnOnce(&mut World) -> Fallible, Then, self::scenario::SetWhen<State>>
+    where
+        When: FnOnce(&mut World) -> Fallible,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        self.conjoin_when(description, callback)
+            .label(StepLabel::But)
+            .call()
+    }
+
+    #[builder]
+    fn conjoin_when<World>(mut self, #[builder(start_fn)] description: impl Into<MaybeOwnedString>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible, label: StepLabel) -> ScenarioBuilder<Given, impl FnOnce(&mut World) -> Fallible, Then, self::scenario::SetWhen<State>>
+    where
+        When: FnOnce(&mut World) -> Fallible,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        let when = unsafe { self.when.take().unwrap_unchecked() };
+        let when = Steps::builder()
+            .labels(when.labels)
+            .label(label)
+            .descriptions(when.descriptions)
+            .description(description)
+            .callback(move |world: &mut World| {
+                (when.callback)(world)?;
+                (callback)(world)?;
+                Ok(())
+            })
+            .build();
+
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: self.description,
+            ignored: self.ignored,
+
+            given: self.given,
+            when: ::core::option::Option::from(when),
+            then: self.then,
+        }
+    }
+
+    pub fn then<World>(self, description: impl Into<MaybeOwnedString>, callback: Then) -> ScenarioBuilder<Given, When, Then, self::scenario::SetThen<self::scenario::SetWhen<State>>>
+    where
+        When: FnOnce(&mut World) -> Fallible, // Required for type deduction
+        Then: FnOnce(&World) -> Fallible,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        let then = Steps::builder()
+            .label(StepLabel::Then)
+            .description(description)
+            .callback(callback)
+            .build();
+
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: self.description,
+            ignored: self.ignored,
+
+            given: self.given,
+            when: self.when,
+            then: ::core::option::Option::from(then),
+        }
+    }
+}
+
+#[::bon::bon]
+impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetThen<State>>
+where
+    <self::scenario::SetThen<State> as self::scenario::State>::Given: self::scenario::IsSet,
+    <self::scenario::SetThen<State> as self::scenario::State>::When: self::scenario::IsSet,
+    <self::scenario::SetThen<State> as self::scenario::State>::Then: self::scenario::IsSet,
+{
+    pub fn and<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&World) -> Fallible) -> ScenarioBuilder<Given, When, impl FnOnce(&World) -> Fallible, self::scenario::SetThen<State>>
+    where
+        Then: FnOnce(&World) -> Fallible,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        self.conjoin_then(description, callback)
+            .label(StepLabel::And)
+            .call()
+    }
+
+    pub fn but<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&World) -> Fallible) -> ScenarioBuilder<Given, When, impl FnOnce(&World) -> Fallible, self::scenario::SetThen<State>>
+    where
+        Then: FnOnce(&World) -> Fallible,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        self.conjoin_then(description, callback)
+            .label(StepLabel::But)
+            .call()
+    }
+
+    #[builder]
+    fn conjoin_then<World>(mut self, #[builder(start_fn)] description: impl Into<MaybeOwnedString>, #[builder(start_fn)] callback: impl FnOnce(&World) -> Fallible, label: StepLabel) -> ScenarioBuilder<Given, When, impl FnOnce(&World) -> Fallible, self::scenario::SetThen<State>>
+    where
+        Then: FnOnce(&World) -> Fallible,
+        World: ::core::marker::Send + ::core::marker::Sync,
+    {
+        let then = unsafe { self.then.take().unwrap_unchecked() };
+        let then = Steps::builder()
+            .labels(then.labels)
+            .label(label)
+            .descriptions(then.descriptions)
+            .description(description)
+            .callback(move |world: &World| {
+                (then.callback)(world)?;
+                (callback)(world)?;
+                Ok(())
+            })
+            .build();
+
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: self.description,
+            ignored: self.ignored,
+
+            given: self.given,
+            when: self.when,
+            then: ::core::option::Option::from(then),
+        }
+    }
+}
+
+impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, State>
+where
+    State: self::scenario::IsComplete,
+{
+    pub fn build(self) -> Scenario<Given, When, Then>
+    where
+        State: self::scenario::IsComplete,
+    {
+        Scenario {
+            description: self.description,
+            ignored: self.ignored,
+
+            given: unsafe { self.given.unwrap_unchecked() },
+            when: unsafe { self.when.unwrap_unchecked() },
+            then: unsafe { self.then.unwrap_unchecked() },
+        }
     }
 }
 

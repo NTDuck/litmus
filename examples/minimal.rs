@@ -1,11 +1,20 @@
-use litmus::Background;
+use litmus::{Background, Scenario};
 
 fn main() {
-    let _i = Background::builder()
-        .description("foo")
+    let _b = Background::builder()
+        .description("background")
         .ignored(false)
-        .given("something", || Ok(4))
-        .and("then", |i| Ok(*i += 1))
-        .but("some", |i| Ok(*i += 1))
+        .given("given", || Ok(0))
+        .and("given", |i| Ok(*i += 1))
+        .but("given", |i| Ok(*i += 1))
+        .build();
+
+    let _s = Scenario::builder()
+        .description("scenario")
+        .ignored(false)
+        .given("given", || Ok(0))
+        .when("when", |i| Ok(*i += 1))
+        .and("when", |i| Ok(*i += 1))
+        .then("then", |i| Ok(assert!(*i == 1)))
         .build();
 }
