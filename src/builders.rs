@@ -560,6 +560,21 @@ where
     }
 }
 
+#[sealed]
+trait IntoScenario<Given, When, Then>: ::core::marker::Sized {
+    fn into_scenario(self) -> Scenario<Given, When, Then>;
+}
+
+#[sealed]
+impl<Given, When, Then, State: self::scenario::State> IntoScenario<Given, When, Then> for ScenarioBuilder<Given, When, Then, State>
+where
+    State: self::scenario::IsComplete,
+{
+    fn into_scenario(self) -> Scenario<Given, When, Then> {
+        self.build()
+    }
+}
+
 mod scenario {
     pub(super) use super::*;
 
