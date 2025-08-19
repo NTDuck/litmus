@@ -14,6 +14,7 @@ pub struct Background<Given> {
 pub struct Scenario<Given, When, Then> {
     pub(crate) description: Option<MaybeOwnedString>,
     pub(crate) ignored: Option<bool>,
+    pub(crate) tags: Option<Tags>,
 
     pub(crate) given: Steps<Given>,
     pub(crate) when: Steps<When>,
@@ -21,7 +22,7 @@ pub struct Scenario<Given, When, Then> {
 }
 
 #[derive(::core::fmt::Debug)]
-pub(crate) struct Tags(Set<MaybeOwnedString>);
+pub(crate) struct Tags(pub(crate) Set<MaybeOwnedString>);
 
 #[derive(::std::fmt::Debug)]
 pub(crate) struct Steps<Callback> {

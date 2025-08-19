@@ -12,6 +12,8 @@ fn main() {
     let _s = Scenario::builder()
         .description("scenario")
         .ignored(false)
+        .tag("tag0")
+        // .tags(["tag0", "tag1"])
         .given("given", || Ok(0))
         .when("when", |i| Ok(*i += 1))
         .and("when", |i| Ok(*i += 1))

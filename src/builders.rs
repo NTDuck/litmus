@@ -1,6 +1,6 @@
 use ::sealed::sealed;
 
-use crate::{IntoScenario, __seal_into_background, __seal_into_scenario};
+use crate::{IntoScenario, Tags, __seal_into_background, __seal_into_scenario};
 use crate::{utils::aliases::{MaybeOwnedString, Vec}, Background, Fallible, IntoBackground, Scenario, StepLabel, Steps};
 
 pub struct BackgroundBuilder<Given, State: self::background::State = self::background::Empty> {
@@ -235,6 +235,7 @@ pub struct ScenarioBuilder<Given, When, Then, State: self::scenario::State = sel
 
     description: ::core::option::Option<MaybeOwnedString>,
     ignored: ::core::option::Option<bool>,
+    tags: ::core::option::Option<Tags>,
 
     given: ::core::option::Option<Steps<Given>>,
     when: ::core::option::Option<Steps<When>>,
@@ -248,6 +249,7 @@ impl<Given, When, Then> Scenario<Given, When, Then> {
 
             description: ::core::default::Default::default(),
             ignored: ::core::default::Default::default(),
+            tags: ::core::default::Default::default(),
             
             given: ::core::default::Default::default(),
             when: ::core::default::Default::default(),
@@ -262,12 +264,16 @@ where
     State::When: self::scenario::IsUnset,
     State::Then: self::scenario::IsUnset,
 {
-    pub fn description(self, value: impl Into<MaybeOwnedString>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetDescription<State>> {
+    pub fn description(self, value: impl Into<MaybeOwnedString>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetDescription<State>>
+    where
+        State::Description: self::scenario::IsUnset,
+    {
         ScenarioBuilder {
             _phantom: ::core::default::Default::default(),
 
             description: ::core::option::Option::from(value.into()),
             ignored: self.ignored,
+            tags: self.tags,
             
             given: self.given,
             when: self.when,
@@ -275,12 +281,59 @@ where
         }
     }
 
-    pub fn ignored(self, value: impl Into<bool>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetIgnored<State>> {
+    pub fn ignored(self, value: impl Into<bool>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetIgnored<State>>
+    where
+        State::Ignored: self::scenario::IsUnset,
+    {
         ScenarioBuilder {
             _phantom: ::core::default::Default::default(),
 
             description: self.description,
             ignored: ::core::option::Option::from(value.into()),
+            tags: self.tags,
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
+        }
+    }
+
+    pub fn tag(self, value: impl Into<MaybeOwnedString>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetTags<State>>
+    where
+        State::Tags: self::scenario::IsUnset,
+    {
+        let tags = Tags::builder()
+            .tag(value)
+            .build();
+
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: self.description,
+            ignored: self.ignored,
+            tags: ::core::option::Option::from(tags),
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
+        }
+    }
+
+    pub fn tags<Tag>(self, values: impl IntoIterator<Item = Tag>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetTags<State>>
+    where
+        Tag: Into<MaybeOwnedString>,
+        State::Tags: self::scenario::IsUnset,
+    {
+        let tags = Tags::builder()
+            .tags(values)
+            .build();
+
+        ScenarioBuilder {
+            _phantom: ::core::default::Default::default(),
+
+            description: self.description,
+            ignored: self.ignored,
+            tags: ::core::option::Option::from(tags),
             
             given: self.given,
             when: self.when,
@@ -304,6 +357,7 @@ where
 
             description: self.description,
             ignored: self.ignored,
+            tags: self.tags,
 
             given: ::core::option::Option::from(given),
             when: self.when,
@@ -363,6 +417,7 @@ where
 
             description: self.description,
             ignored: self.ignored,
+            tags: self.tags,
 
             given: ::core::option::Option::from(given),
             when: self.when,
@@ -387,6 +442,7 @@ where
 
             description: self.description,
             ignored: self.ignored,
+            tags: self.tags,
 
             given: self.given,
             when: ::core::option::Option::from(when),
@@ -446,6 +502,7 @@ where
 
             description: self.description,
             ignored: self.ignored,
+            tags: self.tags,
 
             given: self.given,
             when: ::core::option::Option::from(when),
@@ -470,6 +527,7 @@ where
 
             description: self.description,
             ignored: self.ignored,
+            tags: self.tags,
 
             given: self.given,
             when: self.when,
@@ -529,6 +587,7 @@ where
 
             description: self.description,
             ignored: self.ignored,
+            tags: self.tags,
 
             given: self.given,
             when: self.when,
@@ -548,6 +607,7 @@ where
         Scenario {
             description: self.description,
             ignored: self.ignored,
+            tags: self.tags,
 
             given: unsafe { self.given.unwrap_unchecked() },
             when: unsafe { self.when.unwrap_unchecked() },
@@ -573,6 +633,7 @@ mod scenario {
     pub trait State: ::core::marker::Sized {
         type Description;
         type Ignored;
+        type Tags;
 
         type Given;
         type When;
@@ -595,6 +656,8 @@ mod scenario {
 
     pub struct SetDescription<State: self::State = self::Empty>(PhantomCovariant<State>);
     pub struct SetIgnored<State: self::State = self::Empty>(PhantomCovariant<State>);
+    pub struct SetTags<State: self::State = self::Empty>(PhantomCovariant<State>);
+
     pub struct SetGiven<State: self::State = self::Empty>(PhantomCovariant<State>);
     pub struct SetWhen<State: self::State = self::Empty>(PhantomCovariant<State>);
     pub struct SetThen<State: self::State = self::Empty>(PhantomCovariant<State>);
@@ -603,6 +666,7 @@ mod scenario {
     impl self::State for Empty {
         type Description = Unset<self::members::Description>;
         type Ignored = Unset<self::members::Ignored>;
+        type Tags = Unset<self::members::Tags>;
 
         type Given = Unset<self::members::Given>;
         type When = Unset<self::members::When>;
@@ -613,6 +677,7 @@ mod scenario {
     impl<State: self::State> self::State for SetDescription<State> {
         type Description = Set<self::members::Description>;
         type Ignored = State::Ignored;
+        type Tags = State::Tags;
 
         type Given = State::Given;
         type When = State::When;
@@ -623,6 +688,18 @@ mod scenario {
     impl<State: self::State> self::State for SetIgnored<State> {
         type Description = State::Description;
         type Ignored = Set<self::members::Ignored>;
+        type Tags = State::Tags;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+    }
+
+    #[sealed]
+    impl<State: self::State> self::State for SetTags<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = Set<self::members::Tags>;
 
         type Given = State::Given;
         type When = State::When;
@@ -633,6 +710,7 @@ mod scenario {
     impl<State: self::State> self::State for SetGiven<State> {
         type Description = State::Description;
         type Ignored = State::Ignored;
+        type Tags = State::Tags;
 
         type Given = Set<self::members::Given>;
         type When = State::When;
@@ -643,6 +721,7 @@ mod scenario {
     impl<State: self::State> self::State for SetWhen<State> {
         type Description = State::Description;
         type Ignored = State::Ignored;
+        type Tags = State::Tags;
 
         type Given = State::Given;
         type When = Set<self::members::When>;
@@ -653,6 +732,7 @@ mod scenario {
     impl<State: self::State> self::State for SetThen<State> {
         type Description = State::Description;
         type Ignored = State::Ignored;
+        type Tags = State::Tags;
 
         type Given = State::Given;
         type When = State::When;
@@ -662,10 +742,38 @@ mod scenario {
     mod members {
         pub struct Description;
         pub struct Ignored;
+        pub struct Tags;
 
         pub struct Given;
         pub struct When;
         pub struct Then;
+    }
+}
+
+pub(crate) struct TagsBuilder(crate::utils::aliases::Set<MaybeOwnedString>);
+
+impl Tags {
+    fn builder() -> TagsBuilder {
+        TagsBuilder(::core::default::Default::default())
+    }
+}
+
+impl TagsBuilder {
+    fn tag(mut self, value: impl Into<MaybeOwnedString>) -> Self {
+        self.0.insert(value.into());
+        self
+    }
+
+    fn tags<Tag>(mut self, values: impl IntoIterator<Item = Tag>) -> Self
+    where
+        Tag: Into<MaybeOwnedString>,
+    {
+        self.0.extend(values.into_iter().map(Into::into));
+        self
+    }
+
+    fn build(self) -> Tags {
+        Tags(self.0)
     }
 }
 
@@ -694,24 +802,13 @@ impl<Callback> Steps<Callback> {
 }
 
 impl<Callback, State: self::steps::State> StepsBuilder<Callback, State> {
-    fn build(self) -> Steps<Callback>
-    where
-        State: self::steps::IsComplete,
-    {
-        Steps {
-            labels: self.labels,
-            descriptions: self.descriptions,
-            callback: unsafe { self.callback.unwrap_unchecked() },
-        }
-    }
-
     fn label(mut self, value: StepLabel) -> Self {
         self.labels.push(value);
         self
     }
 
-    fn labels(mut self, value: impl IntoIterator<Item = StepLabel>) -> Self {
-        self.labels.extend(value);
+    fn labels(mut self, values: impl IntoIterator<Item = StepLabel>) -> Self {
+        self.labels.extend(values);
         self
     }
 
@@ -720,8 +817,11 @@ impl<Callback, State: self::steps::State> StepsBuilder<Callback, State> {
         self
     }
 
-    fn descriptions(mut self, value: impl IntoIterator<Item = MaybeOwnedString>) -> Self {
-        self.descriptions.extend(value);
+    fn descriptions<Description>(mut self, values: impl IntoIterator<Item = Description>) -> Self
+    where
+        Description: Into<MaybeOwnedString>,
+    {
+        self.descriptions.extend(values.into_iter().map(Into::into));
         self
     }
 
@@ -737,6 +837,17 @@ impl<Callback, State: self::steps::State> StepsBuilder<Callback, State> {
             labels: self.labels,
             descriptions: self.descriptions,
             callback: self.callback,
+        }
+    }
+
+    fn build(self) -> Steps<Callback>
+    where
+        State: self::steps::IsComplete,
+    {
+        Steps {
+            labels: self.labels,
+            descriptions: self.descriptions,
+            callback: unsafe { self.callback.unwrap_unchecked() },
         }
     }
 }
