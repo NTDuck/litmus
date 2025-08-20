@@ -1,38 +1,62 @@
+use std::rc::Rc;
+
 use ::sealed::sealed;
 
-use crate::utils::aliases::{MaybeOwnedString, Set, Vec};
+use crate::utils::aliases::{borrow::MaybeOwnedString, collections::Set};
 
 #[derive(::core::fmt::Debug)]
-pub struct Background<Given> {
-    pub(crate) description: Option<MaybeOwnedString>,
-    pub(crate) ignored: Option<bool>,
+pub struct Suite {
 
-    pub(crate) given: Steps<Given>,
 }
 
 #[derive(::core::fmt::Debug)]
-pub struct Scenario<Given, When, Then> {
+pub struct Feature {
+
+}
+
+#[derive(::core::fmt::Debug)]
+pub struct Rule {
+
+}
+
+pub struct Background<World> {
+    pub(crate) description: Option<MaybeOwnedString>,
+    pub(crate) ignored: Option<bool>,
+
+    pub(crate) given: (
+        Step<Rc<dyn FnOnce() -> Fallible<World>>>,
+        Steps<Rc<dyn FnOnce(&mut World) -> Fallible>>,
+    ),
+}
+
+pub struct Scenario<World> {
     pub(crate) description: Option<MaybeOwnedString>,
     pub(crate) ignored: Option<bool>,
     pub(crate) tags: Option<Tags>,
 
-    pub(crate) given: Steps<Given>,
-    pub(crate) when: Steps<When>,
-    pub(crate) then: Steps<Then>,
+    pub(crate) given: (
+        Step<Box<dyn FnOnce() -> Fallible<World>>>,
+        Steps<Box<dyn FnOnce(&mut World) -> Fallible>>,
+    ),
+    pub(crate) when: Steps<Box<dyn FnOnce(&mut World) -> Fallible>>,
+    pub(crate) then: Steps<Box<dyn FnOnce(&World) -> Fallible>>,
 }
 
 #[derive(::core::fmt::Debug)]
-pub(crate) struct Tags(pub(crate) Set<MaybeOwnedString>);
+pub struct Tags(pub(crate) Set<MaybeOwnedString>);
 
-#[derive(::std::fmt::Debug)]
-pub(crate) struct Steps<Callback> {
-    pub(crate) labels: Vec<StepLabel>,
-    pub(crate) descriptions: Vec<MaybeOwnedString>,
-    
+#[derive(::core::fmt::Debug)]
+pub(crate) struct Steps<Callback: ::core::marker::Sized>(pub(crate) Vec<Step<Callback>>);
+
+#[derive(::core::fmt::Debug)]
+pub(crate) struct Step<Callback: ::core::marker::Sized> {
+    pub(crate) label: StepLabel,
+    pub(crate) description: MaybeOwnedString,
+
     pub(crate) callback: Callback,
 }
 
-#[derive(::core::fmt::Debug)]
+#[derive(::core::fmt::Debug, ::core::clone::Clone)]
 pub(crate) enum StepLabel {
     Given,
     When,
@@ -54,6 +78,11 @@ pub trait IntoBackground<Given>: ::core::marker::Sized {
 }
 
 #[sealed(pub(crate))]
-pub trait IntoScenario<Given, When, Then>: ::core::marker::Sized {
-    fn into_scenario(self) -> Scenario<Given, When, Then>;
+pub trait IntoScenario<World>: ::core::marker::Sized {
+    fn into_scenario(self) -> Scenario<World>;
+}
+
+#[sealed(pub(crate))]
+pub trait IntoTags: ::core::marker::Sized {
+    fn into_tags(self) -> Tags;
 }

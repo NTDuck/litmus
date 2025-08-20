@@ -1,32 +1,38 @@
 pub mod aliases {
-    pub type MaybeOwnedString = ::std::borrow::Cow<'static, str>;
+    pub mod borrow {
+        pub type MaybeOwnedString = ::std::borrow::Cow<'static, str>;
+    }
 
-    // /// See also: [Custom allocators](https://nical.github.io/posts/rust-custom-allocators.html)
-    // pub type Box<T> = ::std::boxed::Box<T>;
+    pub mod boxed {
+        /// See also: [Custom allocators](https://nical.github.io/posts/rust-custom-allocators.html)
+        pub type Box<T> = ::std::boxed::Box<T>;
+    }
 
-    // #[cfg(feature = "triomphe")]
-    // pub type Arc<T> = ::triomphe::Arc<T>;
+    pub mod collections {
+        #[cfg(all(feature = "ahash", not(feature = "fxhash")))]
+        pub type Set<T> = ::ahash::AHashSet<T>;
 
-    // #[cfg(not(feature = "triomphe"))]
-    // pub type Arc<T> = ::std::sync::Arc<T>;
+        #[cfg(all(feature = "ahash", not(feature = "fxhash")))]
+        pub type Map<K, V> = ::ahash::AHashMap<K, V>;
 
-    pub type Vec<T> = ::std::vec::Vec<T>;
+        #[cfg(all(not(feature = "ahash"), feature = "fxhash"))]
+        pub type Set<T> = ::fxhash::FxHashSet<T>;
 
-    #[cfg(all(feature = "ahash", not(feature = "fxhash")))]
-    pub type Set<T> = ::ahash::AHashSet<T>;
+        #[cfg(all(not(feature = "ahash"), feature = "fxhash"))]
+        pub type Map<K, V> = ::fxhash::FxHashMap<K, V>;
 
-    #[cfg(all(feature = "ahash", not(feature = "fxhash")))]
-    pub type Map<K, V> = ::ahash::AHashMap<K, V>;
+        #[cfg(not(any(feature = "ahash", feature = "fxhash")))]
+        pub type Set<T> = ::std::collections::HashSet<T>;
 
-    #[cfg(all(not(feature = "ahash"), feature = "fxhash"))]
-    pub type Set<T> = ::fxhash::FxHashSet<T>;
+        #[cfg(not(any(feature = "ahash", feature = "fxhash")))]
+        pub type Map<K, V> = ::std::collections::HashMap<K, V>;
+    }
 
-    #[cfg(all(not(feature = "ahash"), feature = "fxhash"))]
-    pub type Map<K, V> = ::fxhash::FxHashMap<K, V>;
+    pub mod rc {
+        pub type Rc<T> = ::std::rc::Rc<T>;
+    }
 
-    #[cfg(not(any(feature = "ahash", feature = "fxhash")))]
-    pub type Set<T> = ::std::collections::HashSet<T>;
-
-    #[cfg(not(any(feature = "ahash", feature = "fxhash")))]
-    pub type Map<K, V> = ::std::collections::HashMap<K, V>;
+    pub mod vec {
+        pub type Vec<T> = ::std::vec::Vec<T>;
+    }
 }
