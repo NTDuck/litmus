@@ -10,18 +10,16 @@ categories = ["development-tools::testing"]
 publish = true
 
 [features]
-default = ["libtest-mimic"]
+default = ["libtest-mimic", "ahash", "fxhash"]
 ahash = ["dep:ahash"]
 fxhash = ["dep:fxhash"]
 libtest-mimic = ["dep:libtest-mimic"]
-triomphe = ["dep:triomphe"]
 
 [dependencies]
 ahash = { version = "0.8", optional = true }
-bon = "3.7.0"
+bon = "3.7.1"
 fxhash = { version = "0.2", optional = true }
 libtest-mimic = { version = "0.8", optional = true }
-triomphe = { version = "0.1", optional = true }
 sealed = "0.6.0"
 
 [dev-dependencies]
