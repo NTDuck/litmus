@@ -79,59 +79,30 @@ where
     }
 }
 
-// #[::bon::bon]
-// impl<Given, State: self::background::State> BackgroundBuilder<Given, self::background::SetGiven<State>>
-// where
-//     <self::background::SetGiven<State> as self::background::State>::Given: self::background::IsSet,
-// {
-//     pub fn and<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible + ::core::clone::Clone) -> BackgroundBuilder<impl FnOnce() -> Fallible<World> + ::core::clone::Clone, self::background::SetGiven<State>>
-//     where
-//         Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         self.conjoin(description, callback)
-//             .label(StepLabel::And)
-//             .call()
-//     }
+#[::bon::bon]
+impl<World, InnerState: self::background::BuilderState> BackgroundBuilder<World, self::background::SetGiven<InnerState>>
+where
+    <self::background::SetGiven<InnerState> as self::background::BuilderState>::Given: self::marker::IsSet,
+{
+    #[builder]
+    fn conjoin(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl Fn(&mut World) -> Fallible + 'static, label: StepLabel) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
+        let step = Step::builder()
+            .label(label)
+            .description(description)
+            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible>)
+            .build();
 
-//     pub fn but<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible + ::core::clone::Clone) -> BackgroundBuilder<impl FnOnce() -> Fallible<World> + ::core::clone::Clone, self::background::SetGiven<State>>
-//     where
-//         Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         self.conjoin(description, callback)
-//             .label(StepLabel::But)
-//             .call()
-//     }
+        self.given.1.get_or_insert_with(|| Steps::builder().build()).0.push(step);
 
-//     #[builder]
-//     fn conjoin<World>(mut self, #[builder(start_fn)] description: impl Into<MaybeOwnedString>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible + ::core::clone::Clone, label: StepLabel) -> BackgroundBuilder<impl FnOnce() -> Fallible<World> + ::core::clone::Clone, self::background::SetGiven<State>>
-//     where
-//         Given: FnOnce() -> Fallible<World> + ::core::clone::Clone,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         let given = unsafe { self.given.take().unwrap_unchecked() };
-//         let given = Steps::builder()
-//             .labels(given.labels)
-//             .label(label)
-//             .descriptions(given.descriptions)
-//             .description(description)
-//             .callback(move || {
-//                 let mut world = (given.callback)()?;
-//                 (callback)(&mut world)?;
-//                 Ok(world)
-//             })
-//             .build();
+        BackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            given: self.given,
 
-//         BackgroundBuilder {
-//             __phantom: ::core::default::Default::default(),
-
-//             description: self.description,
-//             ignored: self.ignored,
-//             given: ::core::option::Option::from(given),
-//         }
-//     }
-// }
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
 
 impl<World, State: self::background::BuilderState> BackgroundBuilder<World, State>
 where
