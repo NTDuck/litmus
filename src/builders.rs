@@ -7,8 +7,8 @@ pub struct BackgroundBuilder<World, State: self::background::BuilderState = self
     ignored: ::core::option::Option<bool>,
 
     given: (
-        ::core::option::Option<Step<::std::rc::Rc<dyn Fn() -> Fallible<World>>>>,
-        ::core::option::Option<Steps<::std::rc::Rc<dyn Fn(&mut World) -> Fallible>>>,
+        ::core::option::Option<Step<::std::rc::Rc<dyn Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>>>,
+        ::core::option::Option<Steps<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
     ),
 
     __phantom: self::marker::PhantomCovariant<State>,
@@ -60,11 +60,11 @@ where
         }
     }
 
-    pub fn given(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn() -> Fallible<World> + 'static) -> BackgroundBuilder<World, self::background::SetGiven<State>> {
+    pub fn given(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync + 'static) -> BackgroundBuilder<World, self::background::SetGiven<State>> {
         let step = Step::builder()
             .label(StepLabel::Given)
             .description(description)
-            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn() -> Fallible<World>>)
+            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
         self.given.0 = ::core::option::Option::from(step);
@@ -84,24 +84,24 @@ impl<World, InnerState: self::background::BuilderState> BackgroundBuilder<World,
 where
     <self::background::SetGiven<InnerState> as self::background::BuilderState>::Given: self::marker::IsSet,
 {
-    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
+    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
         self.conjoin(description, callback)
             .label(StepLabel::And)
             .call()
     }
 
-    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
+    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
         self.conjoin(description, callback)
             .label(StepLabel::But)
             .call()
     }
 
     #[builder]
-    fn conjoin(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl Fn(&mut World) -> Fallible + 'static, label: StepLabel) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
+    fn conjoin(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static, label: StepLabel) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
         let step = Step::builder()
             .label(label)
             .description(description)
-            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible>)
+            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
         self.given.1.get_or_insert_with(|| Steps::builder().build()).0.push(step);
@@ -209,11 +209,11 @@ pub struct ScenarioBuilder<World, RandomState: ::core::hash::BuildHasher = ::std
     tags: ::core::option::Option<Tags<RandomState>>,
 
     given: (
-        ::core::option::Option<Step<::std::boxed::Box<dyn FnOnce() -> Fallible<World>>>>,
-        ::core::option::Option<Steps<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible>>>,
+        ::core::option::Option<Step<::std::boxed::Box<dyn FnOnce() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>>>,
+        ::core::option::Option<Steps<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
     ),
-    when: ::core::option::Option<Steps<Box<dyn FnOnce(&mut World) -> Fallible>>>,
-    then: ::core::option::Option<Steps<Box<dyn FnOnce(&World) -> Fallible>>>,
+    when: ::core::option::Option<Steps<Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    then: ::core::option::Option<Steps<Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
 
     __phantom: self::marker::PhantomCovariant<State>,
 }
@@ -297,11 +297,11 @@ where
         }
     }
 
-    pub fn given(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce() -> Fallible<World> + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<State>> {
+    pub fn given(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<State>> {
         let step = Step::builder()
             .label(StepLabel::Given)
             .description(description)
-            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce() -> Fallible<World>>)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
         self.given.0 = ::core::option::Option::from(step);
@@ -327,24 +327,24 @@ where
     <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::When: self::marker::IsUnset,
     <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
 {
-    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
+    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
         self.conjoin_given(description, callback)
             .label(StepLabel::And)
             .call()
     }
 
-    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
+    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
         self.conjoin_given(description, callback)
             .label(StepLabel::But)
             .call()
     }
 
     #[builder]
-    fn conjoin_given(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible + 'static, label: StepLabel) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
+    fn conjoin_given(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static, label: StepLabel) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
         let step = Step::builder()
             .label(label)
             .description(description)
-            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible>)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
         self.given.1.get_or_insert_with(|| Steps::builder().build()).0.push(step);
@@ -362,11 +362,11 @@ where
         }
     }
 
-    pub fn when(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetGiven<InnerState>>> {
+    pub fn when(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetGiven<InnerState>>> {
         let step = Step::builder()
             .label(StepLabel::When)
             .description(description)
-            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible>)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
         let steps = Steps::builder()
@@ -396,24 +396,24 @@ where
     <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
     <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
 {
-    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
+    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
         self.conjoin_when(description, callback)
             .label(StepLabel::And)
             .call()
     }
 
-    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
+    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
         self.conjoin_when(description, callback)
             .label(StepLabel::But)
             .call()
     }
 
     #[builder]
-    fn conjoin_when(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible + 'static, label: StepLabel) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
+    fn conjoin_when(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static, label: StepLabel) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
         let step = Step::builder()
             .label(label)
             .description(description)
-            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible>)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
         unsafe { self.when.as_mut().unwrap_unchecked() }.0.push(step);
@@ -431,11 +431,11 @@ where
         }
     }
 
-    pub fn then(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetWhen<InnerState>>> {
+    pub fn then(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetWhen<InnerState>>> {
         let step = Step::builder()
             .label(StepLabel::Then)
             .description(description)
-            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible>)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
         let steps = Steps::builder()
@@ -465,24 +465,24 @@ where
     <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
     <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsSet,
 {
-    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
+    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
         self.conjoin_then(description, callback)
             .label(StepLabel::And)
             .call()
     }
 
-    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
+    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
         self.conjoin_then(description, callback)
             .label(StepLabel::But)
             .call()
     }
 
     #[builder]
-    fn conjoin_then(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl FnOnce(&World) -> Fallible + 'static, label: StepLabel) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
+    fn conjoin_then(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static, label: StepLabel) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
         let step = Step::builder()
             .label(label)
             .description(description)
-            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible>)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
         unsafe { self.then.as_mut().unwrap_unchecked() }.0.push(step);
@@ -684,6 +684,7 @@ impl<Callback> StepsBuilder<Callback> {
         self
     }
 
+    #[allow(dead_code)]
     fn steps(mut self, values: impl IntoIterator<Item = Step<Callback>>) -> Self {
         self.0.extend(values.into_iter());
         self

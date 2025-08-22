@@ -24,8 +24,8 @@ pub struct Background<World> {
     pub(crate) ignored: ::core::option::Option<bool>,
 
     pub(crate) given: (
-        Step<::std::rc::Rc<dyn Fn() -> Fallible<World>>>,
-        ::core::option::Option<Steps<::std::rc::Rc<dyn Fn(&mut World) -> Fallible>>>,
+        Step<::std::rc::Rc<dyn Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>>,
+        ::core::option::Option<Steps<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
     ),
 }
 
@@ -35,11 +35,11 @@ pub struct Scenario<World, RandomState: ::core::hash::BuildHasher = ::std::hash:
     pub(crate) tags: ::core::option::Option<Tags<RandomState>>,
 
     pub(crate) given: (
-        Step<::std::boxed::Box<dyn FnOnce() -> Fallible<World>>>,
-        ::core::option::Option<Steps<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible>>>,
+        Step<::std::boxed::Box<dyn FnOnce() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>>,
+        ::core::option::Option<Steps<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
     ),
-    pub(crate) when: Steps<Box<dyn FnOnce(&mut World) -> Fallible>>,
-    pub(crate) then: Steps<Box<dyn FnOnce(&World) -> Fallible>>,
+    pub(crate) when: Steps<Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    pub(crate) then: Steps<Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
 }
 
 #[derive(::core::fmt::Debug)]
@@ -95,4 +95,11 @@ pub trait IntoScenario<World, RandomState: ::core::hash::BuildHasher = ::std::ha
 #[sealed(pub(crate))]
 pub trait IntoTags<RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState>: ::core::marker::Sized {
     fn into_tags(self) -> Tags<RandomState>;
+}
+
+#[sealed]
+impl<RandomState: ::core::hash::BuildHasher> IntoTags<RandomState> for Tags<RandomState> {
+    fn into_tags(self) -> Tags<RandomState> {
+        self
+    }
 }

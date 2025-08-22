@@ -11,13 +11,14 @@ fn main() {
         .but("given", |i| Ok(*i += 1))
         .build();
 
-    // let _s = Scenario::builder()
-    //     .description("scenario")
-    //     .ignored(false)
-    //     .tags(["tag0", "tag1"])
-    //     .given("given", || Ok(0))
-    //     .when("when", |i| Ok(*i += 1))
-    //     .and("when", |i| Ok(*i += 1))
-    //     .then("then", |i| Ok(assert!(*i == 1)))
-    //     .build();
+    let _s = Scenario::builder()
+        .description("scenario")
+        .ignored(false)
+        .tags(["tag0", "tag1"])
+        .given("given", || Ok(0))
+        .when("when", |i| Ok(*i += 1))
+        .and("when", |i| Ok(*i += 1))
+        .then("then", |i| Ok(assert!(*i == 1)))
+        .and("then", |i| Ok(assert!(*i != 2)))
+        .build();
 }
