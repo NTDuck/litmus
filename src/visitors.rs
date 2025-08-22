@@ -5,26 +5,25 @@ where
     Trial: Into<::libtest_mimic::Trial>,
 {
     let args = ::libtest_mimic::Arguments::from_args();
-    let conclusion = ::libtest_mimic::run(&args, trials.into_iter().map(Into::into).collect());
+    let trials = trials.into_iter().map(Into::into).collect();
+    let conclusion = ::libtest_mimic::run(&args, trials);
     conclusion.exit_code()
 }
 
-impl<World: 'static> Into<::libtest_mimic::Trial> for Scenario<World> {
+impl<World> Into<::libtest_mimic::Trial> for Scenario<World>
+where
+    World: ::core::default::Default + 'static,
+{
     fn into(self) -> ::libtest_mimic::Trial {
         let description = self.description
-            .unwrap_or_else(|| match self.given.1 {
-                Some(ref steps) => ::std::format!("{} {}; {}; {}", self.given.0, steps, self.when, self.then).into(),
-                None => ::std::format!("{}; {}; {}", self.given.0, self.when, self.then).into(),
-            });
+            .unwrap_or_else(|| ::std::format!("{}; {}; {}", self.given, self.when, self.then).into());
 
         let callback = move || {
-            let mut world = (self.given.0.callback)()?;
+            let mut world = ::core::default::Default::default();
             
-            if let Some(steps) = self.given.1 {
-                steps.0.into_iter()
-                    .map(|step| step.callback)
-                    .try_for_each(|callback| (callback)(&mut world))?;
-            }
+            self.given.0.into_iter()
+                .map(|step| step.callback)
+                .try_for_each(|callback| (callback)(&mut world))?;
 
             self.when.0.into_iter()
                 .map(|step| step.callback)
