@@ -1,87 +1,83 @@
 use crate::models::*;
 
-trait Executor<Unit> {
-    type Output;
-
-    fn execute(&self, unit: Unit) -> Self::Output;
+pub fn run<Trial>(
+    trials: impl IntoIterator<Item = Trial>,
+) -> ::std::process::ExitCode
+where
+    Trial: Into<::libtest_mimic::Trial>,
+{
+    let args = ::libtest_mimic::Arguments::from_args();
+    let conclusion = ::libtest_mimic::run(&args, trials.into_iter().map(Into::into).collect());
+    conclusion.exit_code()
 }
 
-struct LibtestMimicExecutor;
-
-impl<World> Executor<Scenario<World>> for LibtestMimicExecutor
-where
-    World: 'static,
-{
-    type Output = ::libtest_mimic::Trial;
-    
-    fn execute(&self, scenario: Scenario<World>) -> Self::Output {
-        let description = scenario.description
-            .unwrap_or_else(|| match scenario.given.1 {
-                Some(ref steps) => ::std::format!("{} {}; {}; {}", scenario.given.0, steps, scenario.when, scenario.then).into(),
-                None => ::std::format!("{}; {}; {}", scenario.given.0, scenario.when, scenario.then).into(),
+impl<World: 'static> Into<::libtest_mimic::Trial> for Scenario<World> {
+    fn into(self) -> ::libtest_mimic::Trial {
+        let description = self.description
+            .unwrap_or_else(|| match self.given.1 {
+                Some(ref steps) => ::std::format!("{} {}; {}; {}", self.given.0, steps, self.when, self.then).into(),
+                None => ::std::format!("{}; {}; {}", self.given.0, self.when, self.then).into(),
             });
 
         let callback = move || {
-            let mut world = (scenario.given.0.callback)()?;
+            let mut world = (self.given.0.callback)()?;
             
-            if let Some(steps) = scenario.given.1 {
+            if let Some(steps) = self.given.1 {
                 steps.0.into_iter()
                     .map(|step| step.callback)
                     .try_for_each(|callback| (callback)(&mut world))?;
             }
 
-            scenario.when.0.into_iter()
+            self.when.0.into_iter()
                 .map(|step| step.callback)
                 .try_for_each(|callback| (callback)(&mut world))?;
 
-            scenario.then.0.into_iter()
+            self.then.0.into_iter()
                 .map(|step| step.callback)
                 .try_for_each(|callback| (callback)(&world))?;
 
             Ok(())
         };
 
-        self.execute(callback)
+        into_trial(callback)
             .description(description)
-            .ignored(scenario.ignored)
-            .tags(scenario.tags)
+            .ignored(self.ignored)
+            .tags(self.tags)
             .call()
     }
 }
 
-#[::bon::bon]
-impl LibtestMimicExecutor {
-    #[builder(on(_, required))]
-    fn execute<Callback>(&self, #[builder(start_fn)] callback: Callback, description: impl Into<::std::borrow::Cow<'static, str>>, ignored: ::core::option::Option<impl Into<bool>>, tags: ::core::option::Option<impl IntoTags>) -> ::libtest_mimic::Trial
-    where
-        Callback: FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static,
-    {
-        let callback = move || {
-            (callback)()
-                .map_err(|err| err.message.into())
-        };
+#[::bon::builder]
+#[builder(on(_, required))]
+fn into_trial<Callback>(#[builder(start_fn)] callback: Callback, description: impl Into<::std::borrow::Cow<'static, str>>, ignored: ::core::option::Option<impl Into<bool>>, tags: ::core::option::Option<impl IntoTags>) -> ::libtest_mimic::Trial
+where
+    Callback: FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static,
+{
+    let callback = move || {
+        (callback)()
+            .map_err(|err| err.message.into())
+    };
 
-        let description = description.into();
-        let ignored = ignored.map(Into::into);
+    let description = description.into();
+    let ignored = ignored.map(Into::into);
 
-        let tags = tags
-            .map(IntoTags::into_tags)
-            .map(|tags| ::std::format!("{}", tags));
+    let tags = tags
+        .map(IntoTags::into_tags)
+        .map(|tags| ::std::format!("{}", tags));
 
-        let trial = ::libtest_mimic::Trial::test(description, callback);
-        
-        let trial = match ignored {
-            Some(ignored) => trial.with_ignored_flag(ignored),
-            None => trial,
-        };
+    let trial = ::libtest_mimic::Trial::test(description, callback);
+    
+    let trial = match ignored {
+        Some(ignored) => trial.with_ignored_flag(ignored),
+        None => trial,
+    };
 
-        let trial = match tags {
-            Some(tags) => trial.with_kind(tags),
-            None => trial,
-        };
+    let trial = match tags {
+        Some(tags) => trial.with_kind(tags),
+        None => trial,
+    };
 
-        trial
-    }
+    trial
 }
 
 impl<RandomState: ::core::hash::BuildHasher> ::std::fmt::Display for Tags<RandomState> {
