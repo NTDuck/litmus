@@ -2,207 +2,6 @@ use ::sealed::sealed;
 
 use crate::models::*;
 
-pub struct BackgroundBuilder<World, State: self::background::BuilderState = self::background::Empty> {
-    description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
-    ignored: ::core::option::Option<bool>,
-
-    given: (
-        ::core::option::Option<Step<::std::rc::Rc<dyn Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>>>,
-        ::core::option::Option<Steps<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    ),
-
-    __phantom: self::marker::PhantomCovariant<State>,
-}
-
-impl<World> Background<World> {
-    pub fn builder() -> BackgroundBuilder<World> {
-        BackgroundBuilder {
-            description: ::core::default::Default::default(),
-            ignored: ::core::default::Default::default(),
-            given: ::core::default::Default::default(),
-
-            __phantom: ::core::default::Default::default(),
-        }
-    }
-}
-
-impl<World, State: self::background::BuilderState> BackgroundBuilder<World, State>
-where
-    State::Given: self::marker::IsUnset,
-{
-    pub fn description(mut self, value: impl Into<::std::borrow::Cow<'static, str>>) -> BackgroundBuilder<World, self::background::SetDescription<State>>
-    where
-        State::Description: self::marker::IsUnset,
-    {
-        self.description = ::core::option::Option::from(value.into());
-
-        BackgroundBuilder {
-            description: self.description,
-            ignored: self.ignored,
-            given: self.given,
-
-            __phantom: ::core::default::Default::default(),
-        }
-    }
-
-    pub fn ignored(mut self, value: impl Into<bool>) -> BackgroundBuilder<World, self::background::SetIgnored<State>>
-    where
-        State::Ignored: self::marker::IsUnset,
-    {
-        self.ignored = ::core::option::Option::from(value.into());
-
-        BackgroundBuilder {
-            description: self.description,
-            ignored: self.ignored,
-            given: self.given,
-
-            __phantom: ::core::default::Default::default(),
-        }
-    }
-
-    pub fn given(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync + 'static) -> BackgroundBuilder<World, self::background::SetGiven<State>> {
-        let step = Step::builder()
-            .label(StepLabel::Given)
-            .description(description)
-            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>)
-            .build();
-
-        self.given.0 = ::core::option::Option::from(step);
-
-        BackgroundBuilder {
-            description: self.description,
-            ignored: self.ignored,
-            given: self.given,
-
-            __phantom: ::core::default::Default::default(),
-        }
-    }
-}
-
-#[::bon::bon]
-impl<World, InnerState: self::background::BuilderState> BackgroundBuilder<World, self::background::SetGiven<InnerState>>
-where
-    <self::background::SetGiven<InnerState> as self::background::BuilderState>::Given: self::marker::IsSet,
-{
-    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
-        self.conjoin(description, callback)
-            .label(StepLabel::And)
-            .call()
-    }
-
-    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
-        self.conjoin(description, callback)
-            .label(StepLabel::But)
-            .call()
-    }
-
-    #[builder]
-    fn conjoin(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static, label: StepLabel) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
-        let step = Step::builder()
-            .label(label)
-            .description(description)
-            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
-            .build();
-
-        self.given.1.get_or_insert_with(|| Steps::builder().build()).0.push(step);
-
-        BackgroundBuilder {
-            description: self.description,
-            ignored: self.ignored,
-            given: self.given,
-
-            __phantom: ::core::default::Default::default(),
-        }
-    }
-}
-
-impl<World, State: self::background::BuilderState> BackgroundBuilder<World, State>
-where
-    State: self::background::IsComplete,
-{
-    pub fn build(self) -> Background<World> {
-        Background {
-            description: self.description,
-            ignored: self.ignored,
-            given: (
-                unsafe { self.given.0.unwrap_unchecked() },
-                self.given.1,
-            ),
-        }
-    }
-}
-
-#[sealed]
-impl<World, State: self::background::BuilderState> IntoBackground<World> for BackgroundBuilder<World, State>
-where
-    State: self::background::IsComplete,
-{
-    fn into_background(self) -> Background<World> {
-        self.build()
-    }
-}
-
-mod background {
-    pub(super) use super::*;
-
-    #[sealed]
-    pub trait BuilderState: ::core::marker::Sized {
-        type Description;
-        type Ignored;
-        type Given;
-    }
-
-    #[sealed]
-    pub trait IsComplete: BuilderState<Given: self::marker::IsSet> {}
-
-    #[sealed]
-    impl<State: BuilderState> IsComplete for State
-    where
-        State::Given: self::marker::IsSet,
-    {
-    }
-
-    pub struct Empty;
-
-    pub struct SetDescription<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
-    pub struct SetIgnored<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
-    pub struct SetGiven<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
-
-    #[sealed]
-    impl BuilderState for Empty {
-        type Description = self::marker::Unset<self::members::Description>;
-        type Ignored = self::marker::Unset<self::members::Ignored>;
-        type Given = self::marker::Unset<self::members::Given>;
-    }
-
-    #[sealed]
-    impl<State: BuilderState> BuilderState for SetDescription<State> {
-        type Description = self::marker::Set<self::members::Description>;
-        type Ignored = State::Ignored;
-        type Given = State::Given;
-    }
-
-    #[sealed]
-    impl<State: BuilderState> BuilderState for SetIgnored<State> {
-        type Description = State::Description;
-        type Ignored = self::marker::Set<self::members::Ignored>;
-        type Given = State::Given;
-    }
-
-    #[sealed]
-    impl<State: BuilderState> BuilderState for SetGiven<State> {
-        type Description = State::Description;
-        type Ignored = State::Ignored;
-        type Given = self::marker::Set<self::members::Given>;
-    }
-
-    mod members {
-        pub struct Description;
-        pub struct Ignored;
-        pub struct Given;
-    }
-}
-
 pub struct ScenarioBuilder<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState, State: self::scenario::BuilderState = self::scenario::Empty> {
     description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     ignored: ::core::option::Option<bool>,
@@ -652,6 +451,208 @@ mod scenario {
         pub struct Given;
         pub struct When;
         pub struct Then;
+    }
+}
+
+
+pub struct BackgroundBuilder<World, State: self::background::BuilderState = self::background::Empty> {
+    description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
+    ignored: ::core::option::Option<bool>,
+
+    given: (
+        ::core::option::Option<Step<::std::rc::Rc<dyn Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>>>,
+        ::core::option::Option<Steps<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    ),
+
+    __phantom: self::marker::PhantomCovariant<State>,
+}
+
+impl<World> Background<World> {
+    pub fn builder() -> BackgroundBuilder<World> {
+        BackgroundBuilder {
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+            given: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::background::BuilderState> BackgroundBuilder<World, State>
+where
+    State::Given: self::marker::IsUnset,
+{
+    pub fn description(mut self, value: impl Into<::std::borrow::Cow<'static, str>>) -> BackgroundBuilder<World, self::background::SetDescription<State>>
+    where
+        State::Description: self::marker::IsUnset,
+    {
+        self.description = ::core::option::Option::from(value.into());
+
+        BackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            given: self.given,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn ignored(mut self, value: impl Into<bool>) -> BackgroundBuilder<World, self::background::SetIgnored<State>>
+    where
+        State::Ignored: self::marker::IsUnset,
+    {
+        self.ignored = ::core::option::Option::from(value.into());
+
+        BackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            given: self.given,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn given(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync + 'static) -> BackgroundBuilder<World, self::background::SetGiven<State>> {
+        let step = Step::builder()
+            .label(StepLabel::Given)
+            .description(description)
+            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>)
+            .build();
+
+        self.given.0 = ::core::option::Option::from(step);
+
+        BackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            given: self.given,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+#[::bon::bon]
+impl<World, InnerState: self::background::BuilderState> BackgroundBuilder<World, self::background::SetGiven<InnerState>>
+where
+    <self::background::SetGiven<InnerState> as self::background::BuilderState>::Given: self::marker::IsSet,
+{
+    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
+        self.conjoin(description, callback)
+            .label(StepLabel::And)
+            .call()
+    }
+
+    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
+        self.conjoin(description, callback)
+            .label(StepLabel::But)
+            .call()
+    }
+
+    #[builder]
+    fn conjoin(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static, label: StepLabel) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
+        let step = Step::builder()
+            .label(label)
+            .description(description)
+            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
+            .build();
+
+        self.given.1.get_or_insert_with(|| Steps::builder().build()).0.push(step);
+
+        BackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            given: self.given,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::background::BuilderState> BackgroundBuilder<World, State>
+where
+    State: self::background::IsComplete,
+{
+    pub fn build(self) -> Background<World> {
+        Background {
+            description: self.description,
+            ignored: self.ignored,
+            given: (
+                unsafe { self.given.0.unwrap_unchecked() },
+                self.given.1,
+            ),
+        }
+    }
+}
+
+#[sealed]
+impl<World, State: self::background::BuilderState> IntoBackground<World> for BackgroundBuilder<World, State>
+where
+    State: self::background::IsComplete,
+{
+    fn into_background(self) -> Background<World> {
+        self.build()
+    }
+}
+
+mod background {
+    pub(super) use super::*;
+
+    #[sealed]
+    pub trait BuilderState: ::core::marker::Sized {
+        type Description;
+        type Ignored;
+        type Given;
+    }
+
+    #[sealed]
+    pub trait IsComplete: BuilderState<Given: self::marker::IsSet> {}
+
+    #[sealed]
+    impl<State: BuilderState> IsComplete for State
+    where
+        State::Given: self::marker::IsSet,
+    {
+    }
+
+    pub struct Empty;
+
+    pub struct SetDescription<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+    pub struct SetIgnored<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+    pub struct SetGiven<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+
+    #[sealed]
+    impl BuilderState for Empty {
+        type Description = self::marker::Unset<self::members::Description>;
+        type Ignored = self::marker::Unset<self::members::Ignored>;
+        type Given = self::marker::Unset<self::members::Given>;
+    }
+
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetDescription<State> {
+        type Description = self::marker::Set<self::members::Description>;
+        type Ignored = State::Ignored;
+        type Given = State::Given;
+    }
+
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetIgnored<State> {
+        type Description = State::Description;
+        type Ignored = self::marker::Set<self::members::Ignored>;
+        type Given = State::Given;
+    }
+
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetGiven<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Given = self::marker::Set<self::members::Given>;
+    }
+
+    mod members {
+        pub struct Description;
+        pub struct Ignored;
+        pub struct Given;
     }
 }
 

@@ -1,5 +1,9 @@
 use ::sealed::sealed;
 
+pub struct Suite<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
+    pub(crate) features: ::std::vec::Vec<Feature<World, RandomState>>,
+}
+
 pub struct Feature<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
     pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     pub(crate) ignored: ::core::option::Option<bool>,
@@ -19,16 +23,6 @@ pub struct Rule<World, RandomState: ::core::hash::BuildHasher = ::std::hash::Ran
     pub(crate) scenarios: ::std::vec::Vec<Scenario<World>>,
 }
 
-pub struct Background<World> {
-    pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
-    pub(crate) ignored: ::core::option::Option<bool>,
-
-    pub(crate) given: (
-        Step<::std::rc::Rc<dyn Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>>,
-        ::core::option::Option<Steps<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    ),
-}
-
 pub struct Scenario<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
     pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     pub(crate) ignored: ::core::option::Option<bool>,
@@ -40,6 +34,16 @@ pub struct Scenario<World, RandomState: ::core::hash::BuildHasher = ::std::hash:
     ),
     pub(crate) when: Steps<Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
     pub(crate) then: Steps<Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+}
+
+pub struct Background<World> {
+    pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
+    pub(crate) ignored: ::core::option::Option<bool>,
+
+    pub(crate) given: (
+        Step<::std::rc::Rc<dyn Fn() -> Fallible<World> + ::core::marker::Send + ::core::marker::Sync>>,
+        ::core::option::Option<Steps<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    ),
 }
 
 #[derive(::core::fmt::Debug)]
@@ -83,13 +87,13 @@ pub trait IntoRule<World, RandomState: ::core::hash::BuildHasher = ::std::hash::
 }
 
 #[sealed(pub(crate))]
-pub trait IntoBackground<World>: ::core::marker::Sized {
-    fn into_background(self) -> Background<World>;
+pub trait IntoScenario<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState>: ::core::marker::Sized {
+    fn into_scenario(self) -> Scenario<World, RandomState>;
 }
 
 #[sealed(pub(crate))]
-pub trait IntoScenario<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState>: ::core::marker::Sized {
-    fn into_scenario(self) -> Scenario<World, RandomState>;
+pub trait IntoBackground<World>: ::core::marker::Sized {
+    fn into_background(self) -> Background<World>;
 }
 
 #[sealed(pub(crate))]

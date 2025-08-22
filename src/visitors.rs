@@ -1,8 +1,6 @@
 use crate::models::*;
 
-pub fn run<Trial>(
-    trials: impl IntoIterator<Item = Trial>,
-) -> ::std::process::ExitCode
+pub fn run<Trial>(trials: impl IntoIterator<Item = Trial>) -> ::std::process::ExitCode
 where
     Trial: Into<::libtest_mimic::Trial>,
 {
