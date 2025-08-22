@@ -1,19 +1,19 @@
 use ::sealed::sealed;
 
-pub struct Feature<World> {
+pub struct Feature<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
     pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     pub(crate) ignored: ::core::option::Option<bool>,
-    pub(crate) tags: ::core::option::Option<Tags>,
+    pub(crate) tags: ::core::option::Option<Tags<RandomState>>,
 
     pub(crate) background: ::core::option::Option<Background<World>>,
     pub(crate) scenarios: ::std::vec::Vec<Scenario<World>>,
     pub(crate) rules: ::std::vec::Vec<Rule<World>>,
 }
 
-pub struct Rule<World> {
+pub struct Rule<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
     pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     pub(crate) ignored: ::core::option::Option<bool>,
-    pub(crate) tags: ::core::option::Option<Tags>,
+    pub(crate) tags: ::core::option::Option<Tags<RandomState>>,
 
     pub(crate) background: ::core::option::Option<Background<World>>,
     pub(crate) scenarios: ::std::vec::Vec<Scenario<World>>,
@@ -29,10 +29,10 @@ pub struct Background<World> {
     ),
 }
 
-pub struct Scenario<World> {
+pub struct Scenario<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
     pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     pub(crate) ignored: ::core::option::Option<bool>,
-    pub(crate) tags: ::core::option::Option<Tags>,
+    pub(crate) tags: ::core::option::Option<Tags<RandomState>>,
 
     pub(crate) given: (
         Step<::std::boxed::Box<dyn FnOnce() -> Fallible<World>>>,
@@ -73,13 +73,13 @@ pub struct Failed {
 }
 
 #[sealed(pub(crate))]
-pub trait IntoFeature<World>: ::core::marker::Sized {
-    fn into_feature(self) -> Feature<World>;
+pub trait IntoFeature<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState>: ::core::marker::Sized {
+    fn into_feature(self) -> Feature<World, RandomState>;
 }
 
 #[sealed(pub(crate))]
-pub trait IntoRule<World>: ::core::marker::Sized {
-    fn into_rule(self) -> Rule<World>;
+pub trait IntoRule<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState>: ::core::marker::Sized {
+    fn into_rule(self) -> Rule<World, RandomState>;
 }
 
 #[sealed(pub(crate))]
@@ -88,16 +88,11 @@ pub trait IntoBackground<World>: ::core::marker::Sized {
 }
 
 #[sealed(pub(crate))]
-pub trait IntoScenario<World>: ::core::marker::Sized {
-    fn into_scenario(self) -> Scenario<World>;
+pub trait IntoScenario<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState>: ::core::marker::Sized {
+    fn into_scenario(self) -> Scenario<World, RandomState>;
 }
 
 #[sealed(pub(crate))]
-pub trait IntoTags: ::core::marker::Sized {
-    fn into_tags(self) -> Tags;
-}
-
-#[sealed(pub(crate))]
-pub trait IntoStep<Callback> {
-    fn into_step(self) -> Step<Callback>;
+pub trait IntoTags<RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState>: ::core::marker::Sized {
+    fn into_tags(self) -> Tags<RandomState>;
 }

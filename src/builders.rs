@@ -84,13 +84,13 @@ impl<World, InnerState: self::background::BuilderState> BackgroundBuilder<World,
 where
     <self::background::SetGiven<InnerState> as self::background::BuilderState>::Given: self::marker::IsSet,
 {
-    fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
+    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
         self.conjoin(description, callback)
             .label(StepLabel::And)
             .call()
     }
 
-    fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
+    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl Fn(&mut World) -> Fallible + 'static) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
         self.conjoin(description, callback)
             .label(StepLabel::But)
             .call()
@@ -203,507 +203,457 @@ mod background {
     }
 }
 
-// pub struct ScenarioBuilder<Given, When, Then, State: self::scenario::State = self::scenario::Empty> {
-//     _phantom: ::core::marker::PhantomData<(
-//         PhantomCovariant<State>,
-//         PhantomCovariant<Steps<Given>>,
-//         PhantomCovariant<Given>,
-//         PhantomCovariant<Steps<When>>,
-//         PhantomCovariant<When>,
-//         PhantomCovariant<Steps<Then>>,
-//         PhantomCovariant<Then>,
-//     )>,
+pub struct ScenarioBuilder<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState, State: self::scenario::BuilderState = self::scenario::Empty> {
+    description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
+    ignored: ::core::option::Option<bool>,
+    tags: ::core::option::Option<Tags<RandomState>>,
 
-//     description: ::core::option::Option<MaybeOwnedString>,
-//     ignored: ::core::option::Option<bool>,
-//     tags: ::core::option::Option<Tags>,
+    given: (
+        ::core::option::Option<Step<::std::boxed::Box<dyn FnOnce() -> Fallible<World>>>>,
+        ::core::option::Option<Steps<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible>>>,
+    ),
+    when: ::core::option::Option<Steps<Box<dyn FnOnce(&mut World) -> Fallible>>>,
+    then: ::core::option::Option<Steps<Box<dyn FnOnce(&World) -> Fallible>>>,
 
-//     given: ::core::option::Option<Steps<Given>>,
-//     when: ::core::option::Option<Steps<When>>,
-//     then: ::core::option::Option<Steps<Then>>,
-// }
+    __phantom: self::marker::PhantomCovariant<State>,
+}
 
-// impl<Given, When, Then> Scenario<Given, When, Then> {
-//     pub fn builder() -> ScenarioBuilder<Given, When, Then> {
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
-
-//             description: ::core::default::Default::default(),
-//             ignored: ::core::default::Default::default(),
-//             tags: ::core::default::Default::default(),
+impl<World, RandomState: ::core::hash::BuildHasher> Scenario<World, RandomState> {
+    pub fn builder() -> ScenarioBuilder<World, RandomState> {
+        ScenarioBuilder {
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+            tags: ::core::default::Default::default(),
             
-//             given: ::core::default::Default::default(),
-//             when: ::core::default::Default::default(),
-//             then: ::core::default::Default::default(),
-//         }
-//     }
-// }
+            given: ::core::default::Default::default(),
+            when: ::core::default::Default::default(),
+            then: ::core::default::Default::default(),
 
-// impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, State>
-// where
-//     State::Given: self::scenario::IsUnset,
-//     State::When: self::scenario::IsUnset,
-//     State::Then: self::scenario::IsUnset,
-// {
-//     pub fn description(self, value: impl Into<MaybeOwnedString>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetDescription<State>>
-//     where
-//         State::Description: self::scenario::IsUnset,
-//     {
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
 
-//             description: ::core::option::Option::from(value.into()),
-//             ignored: self.ignored,
-//             tags: self.tags,
+impl<World, RandomState: ::core::hash::BuildHasher, State: self::scenario::BuilderState> ScenarioBuilder<World, RandomState, State>
+where
+    State::Given: self::marker::IsUnset,
+    State::When: self::marker::IsUnset,
+    State::Then: self::marker::IsUnset,
+{
+    pub fn description(mut self, value: impl Into<::std::borrow::Cow<'static, str>>) -> ScenarioBuilder<World, RandomState, self::scenario::SetDescription<State>>
+    where
+        State::Description: self::marker::IsUnset,
+    {
+        self.description = ::core::option::Option::from(value.into());
+        
+        ScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
             
-//             given: self.given,
-//             when: self.when,
-//             then: self.then,
-//         }
-//     }
+            given: self.given,
+            when: self.when,
+            then: self.then,
 
-//     pub fn ignored(self, value: impl Into<bool>) -> ScenarioBuilder<Given, When, Then, self::scenario::SetIgnored<State>>
-//     where
-//         State::Ignored: self::scenario::IsUnset,
-//     {
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
+            __phantom: ::core::default::Default::default(),
+        }
+    }
 
-//             description: self.description,
-//             ignored: ::core::option::Option::from(value.into()),
-//             tags: self.tags,
+    pub fn ignored(mut self, value: impl Into<bool>) -> ScenarioBuilder<World, RandomState, self::scenario::SetIgnored<State>>
+    where
+        State::Ignored: self::marker::IsUnset,
+    {
+        self.ignored = ::core::option::Option::from(value.into());
+        
+        ScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
             
-//             given: self.given,
-//             when: self.when,
-//             then: self.then,
-//         }
-//     }
+            given: self.given,
+            when: self.when,
+            then: self.then,
 
-//     pub fn tags(self, value: impl IntoTags) -> ScenarioBuilder<Given, When, Then, self::scenario::SetTags<State>>
-//     where
-//         State::Tags: self::scenario::IsUnset,
-//     {
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
+            __phantom: ::core::default::Default::default(),
+        }
+    }
 
-//             description: self.description,
-//             ignored: self.ignored,
-//             tags: ::core::option::Option::from(value.into_tags()),
+    pub fn tags(mut self, value: impl IntoTags<RandomState>) -> ScenarioBuilder<World, RandomState, self::scenario::SetTags<State>>
+    where
+        State::Tags: self::marker::IsUnset,
+    {
+        self.tags = ::core::option::Option::from(value.into_tags());
+        
+        ScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
             
-//             given: self.given,
-//             when: self.when,
-//             then: self.then,
-//         }
-//     }
+            given: self.given,
+            when: self.when,
+            then: self.then,
 
-//     pub fn given<World>(self, description: impl Into<MaybeOwnedString>, callback: Given) -> ScenarioBuilder<Given, When, Then, self::scenario::SetGiven<State>>
-//     where
-//         Given: FnOnce() -> Fallible<World>,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         let given = Steps::builder()
-//             .label(StepLabel::Given)
-//             .description(description)
-//             .callback(callback)
-//             .build();
+            __phantom: ::core::default::Default::default(),
+        }
+    }
 
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
+    pub fn given(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce() -> Fallible<World> + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<State>> {
+        let step = Step::builder()
+            .label(StepLabel::Given)
+            .description(description)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce() -> Fallible<World>>)
+            .build();
 
-//             description: self.description,
-//             ignored: self.ignored,
-//             tags: self.tags,
+        self.given.0 = ::core::option::Option::from(step);
 
-//             given: ::core::option::Option::from(given),
-//             when: self.when,
-//             then: self.then,
-//         }
-//     }
-// }
+        ScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
 
-// #[::bon::bon]
-// impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetGiven<State>>
-// where
-//     <self::scenario::SetGiven<State> as self::scenario::State>::Given: self::scenario::IsSet,
-//     <self::scenario::SetGiven<State> as self::scenario::State>::When: self::scenario::IsUnset,
-//     <self::scenario::SetGiven<State> as self::scenario::State>::Then: self::scenario::IsUnset,
-// {
-//     pub fn and<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
-//     where
-//         Given: FnOnce() -> Fallible<World>,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         self.conjoin_given(description, callback)
-//             .label(StepLabel::And)
-//             .call()
-//     }
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
 
-//     pub fn but<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
-//     where
-//         Given: FnOnce() -> Fallible<World>,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         self.conjoin_given(description, callback)
-//             .label(StepLabel::But)
-//             .call()
-//     }
+#[::bon::bon]
+impl<World, RandomState: ::core::hash::BuildHasher, InnerState: self::scenario::BuilderState> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<InnerState>>
+where
+    <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::Given: self::marker::IsSet,
+    <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::When: self::marker::IsUnset,
+    <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
+{
+    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
+        self.conjoin_given(description, callback)
+            .label(StepLabel::And)
+            .call()
+    }
 
-//     #[builder]
-//     fn conjoin_given<World>(mut self, #[builder(start_fn)] description: impl Into<MaybeOwnedString>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible, label: StepLabel) -> ScenarioBuilder<impl FnOnce() -> Fallible<World>, When, Then, self::scenario::SetGiven<State>>
-//     where
-//         Given: FnOnce() -> Fallible<World>,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         let given = unsafe { self.given.take().unwrap_unchecked() };
-//         let given = Steps::builder()
-//             .labels(given.labels)
-//             .label(label)
-//             .descriptions(given.descriptions)
-//             .description(description)
-//             .callback(move || {
-//                 let mut world = (given.callback)()?;
-//                 (callback)(&mut world)?;
-//                 Ok(world)
-//             })
-//             .build();
+    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
+        self.conjoin_given(description, callback)
+            .label(StepLabel::But)
+            .call()
+    }
 
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
+    #[builder]
+    fn conjoin_given(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible + 'static, label: StepLabel) -> ScenarioBuilder<World, RandomState, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
+        let step = Step::builder()
+            .label(label)
+            .description(description)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible>)
+            .build();
 
-//             description: self.description,
-//             ignored: self.ignored,
-//             tags: self.tags,
+        self.given.1.get_or_insert_with(|| Steps::builder().build()).0.push(step);
 
-//             given: ::core::option::Option::from(given),
-//             when: self.when,
-//             then: self.then,
-//         }
-//     }
+        ScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
 
-//     pub fn when<World>(self, description: impl Into<MaybeOwnedString>, callback: When) -> ScenarioBuilder<Given, When, Then, self::scenario::SetWhen<self::scenario::SetGiven<State>>>
-//     where
-//         Given: FnOnce() -> Fallible<World>, // Required for type deduction
-//         When: FnOnce(&mut World) -> Fallible,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         let when = Steps::builder()
-//             .label(StepLabel::When)
-//             .description(description)
-//             .callback(callback)
-//             .build();
+            __phantom: ::core::default::Default::default(),
+        }
+    }
 
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
+    pub fn when(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetGiven<InnerState>>> {
+        let step = Step::builder()
+            .label(StepLabel::When)
+            .description(description)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible>)
+            .build();
 
-//             description: self.description,
-//             ignored: self.ignored,
-//             tags: self.tags,
+        let steps = Steps::builder()
+            .step(step)
+            .build();
 
-//             given: self.given,
-//             when: ::core::option::Option::from(when),
-//             then: self.then,
-//         }
-//     }
-// }
+        self.when = ::core::option::Option::from(steps);
 
-// #[::bon::bon]
-// impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetWhen<State>>
-// where
-//     <self::scenario::SetWhen<State> as self::scenario::State>::Given: self::scenario::IsSet,
-//     <self::scenario::SetWhen<State> as self::scenario::State>::When: self::scenario::IsSet,
-//     <self::scenario::SetWhen<State> as self::scenario::State>::Then: self::scenario::IsUnset,
-// {
-//     pub fn and<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<Given, impl FnOnce(&mut World) -> Fallible, Then, self::scenario::SetWhen<State>>
-//     where
-//         When: FnOnce(&mut World) -> Fallible,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         self.conjoin_when(description, callback)
-//             .label(StepLabel::And)
-//             .call()
-//     }
+        ScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
 
-//     pub fn but<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&mut World) -> Fallible) -> ScenarioBuilder<Given, impl FnOnce(&mut World) -> Fallible, Then, self::scenario::SetWhen<State>>
-//     where
-//         When: FnOnce(&mut World) -> Fallible,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         self.conjoin_when(description, callback)
-//             .label(StepLabel::But)
-//             .call()
-//     }
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
 
-//     #[builder]
-//     fn conjoin_when<World>(mut self, #[builder(start_fn)] description: impl Into<MaybeOwnedString>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible, label: StepLabel) -> ScenarioBuilder<Given, impl FnOnce(&mut World) -> Fallible, Then, self::scenario::SetWhen<State>>
-//     where
-//         When: FnOnce(&mut World) -> Fallible,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         let when = unsafe { self.when.take().unwrap_unchecked() };
-//         let when = Steps::builder()
-//             .labels(when.labels)
-//             .label(label)
-//             .descriptions(when.descriptions)
-//             .description(description)
-//             .callback(move |world: &mut World| {
-//                 (when.callback)(world)?;
-//                 (callback)(world)?;
-//                 Ok(())
-//             })
-//             .build();
+#[::bon::bon]
+impl <World, RandomState: ::core::hash::BuildHasher, InnerState: self::scenario::BuilderState> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<InnerState>>
+where
+    <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::Given: self::marker::IsSet,
+    <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
+    <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
+{
+    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
+        self.conjoin_when(description, callback)
+            .label(StepLabel::And)
+            .call()
+    }
 
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
+    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&mut World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
+        self.conjoin_when(description, callback)
+            .label(StepLabel::But)
+            .call()
+    }
 
-//             description: self.description,
-//             ignored: self.ignored,
-//             tags: self.tags,
+    #[builder]
+    fn conjoin_when(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl FnOnce(&mut World) -> Fallible + 'static, label: StepLabel) -> ScenarioBuilder<World, RandomState, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
+        let step = Step::builder()
+            .label(label)
+            .description(description)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible>)
+            .build();
 
-//             given: self.given,
-//             when: ::core::option::Option::from(when),
-//             then: self.then,
-//         }
-//     }
+        unsafe { self.when.as_mut().unwrap_unchecked() }.0.push(step);
 
-//     pub fn then<World>(self, description: impl Into<MaybeOwnedString>, callback: Then) -> ScenarioBuilder<Given, When, Then, self::scenario::SetThen<self::scenario::SetWhen<State>>>
-//     where
-//         When: FnOnce(&mut World) -> Fallible, // Required for type deduction
-//         Then: FnOnce(&World) -> Fallible,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         let then = Steps::builder()
-//             .label(StepLabel::Then)
-//             .description(description)
-//             .callback(callback)
-//             .build();
+        ScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
 
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
+            __phantom: ::core::default::Default::default(),
+        }
+    }
 
-//             description: self.description,
-//             ignored: self.ignored,
-//             tags: self.tags,
+    pub fn then(mut self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetWhen<InnerState>>> {
+        let step = Step::builder()
+            .label(StepLabel::Then)
+            .description(description)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible>)
+            .build();
 
-//             given: self.given,
-//             when: self.when,
-//             then: ::core::option::Option::from(then),
-//         }
-//     }
-// }
+        let steps = Steps::builder()
+            .step(step)
+            .build();
 
-// #[::bon::bon]
-// impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, self::scenario::SetThen<State>>
-// where
-//     <self::scenario::SetThen<State> as self::scenario::State>::Given: self::scenario::IsSet,
-//     <self::scenario::SetThen<State> as self::scenario::State>::When: self::scenario::IsSet,
-//     <self::scenario::SetThen<State> as self::scenario::State>::Then: self::scenario::IsSet,
-// {
-//     pub fn and<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&World) -> Fallible) -> ScenarioBuilder<Given, When, impl FnOnce(&World) -> Fallible, self::scenario::SetThen<State>>
-//     where
-//         Then: FnOnce(&World) -> Fallible,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         self.conjoin_then(description, callback)
-//             .label(StepLabel::And)
-//             .call()
-//     }
+        self.then = ::core::option::Option::from(steps);
 
-//     pub fn but<World>(self, description: impl Into<MaybeOwnedString>, callback: impl FnOnce(&World) -> Fallible) -> ScenarioBuilder<Given, When, impl FnOnce(&World) -> Fallible, self::scenario::SetThen<State>>
-//     where
-//         Then: FnOnce(&World) -> Fallible,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         self.conjoin_then(description, callback)
-//             .label(StepLabel::But)
-//             .call()
-//     }
+        ScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
 
-//     #[builder]
-//     fn conjoin_then<World>(mut self, #[builder(start_fn)] description: impl Into<MaybeOwnedString>, #[builder(start_fn)] callback: impl FnOnce(&World) -> Fallible, label: StepLabel) -> ScenarioBuilder<Given, When, impl FnOnce(&World) -> Fallible, self::scenario::SetThen<State>>
-//     where
-//         Then: FnOnce(&World) -> Fallible,
-//         World: ::core::marker::Send + ::core::marker::Sync,
-//     {
-//         let then = unsafe { self.then.take().unwrap_unchecked() };
-//         let then = Steps::builder()
-//             .labels(then.labels)
-//             .label(label)
-//             .descriptions(then.descriptions)
-//             .description(description)
-//             .callback(move |world: &World| {
-//                 (then.callback)(world)?;
-//                 (callback)(world)?;
-//                 Ok(())
-//             })
-//             .build();
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
 
-//         ScenarioBuilder {
-//             _phantom: ::core::default::Default::default(),
+#[::bon::bon]
+impl<World, RandomState: ::core::hash::BuildHasher, InnerState: self::scenario::BuilderState> ScenarioBuilder<World, RandomState, self::scenario::SetThen<InnerState>>
+where
+    <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::Given: self::marker::IsSet,
+    <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
+    <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsSet,
+{
+    pub fn and(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
+        self.conjoin_then(description, callback)
+            .label(StepLabel::And)
+            .call()
+    }
 
-//             description: self.description,
-//             ignored: self.ignored,
-//             tags: self.tags,
+    pub fn but(self, description: impl Into<::std::borrow::Cow<'static, str>>, callback: impl FnOnce(&World) -> Fallible + 'static) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
+        self.conjoin_then(description, callback)
+            .label(StepLabel::But)
+            .call()
+    }
 
-//             given: self.given,
-//             when: self.when,
-//             then: ::core::option::Option::from(then),
-//         }
-//     }
-// }
+    #[builder]
+    fn conjoin_then(mut self, #[builder(start_fn)] description: impl Into<::std::borrow::Cow<'static, str>>, #[builder(start_fn)] callback: impl FnOnce(&World) -> Fallible + 'static, label: StepLabel) -> ScenarioBuilder<World, RandomState, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
+        let step = Step::builder()
+            .label(label)
+            .description(description)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible>)
+            .build();
 
-// impl<Given, When, Then, State: self::scenario::State> ScenarioBuilder<Given, When, Then, State>
-// where
-//     State: self::scenario::IsComplete,
-// {
-//     pub fn build(self) -> Scenario<Given, When, Then>
-//     where
-//         State: self::scenario::IsComplete,
-//     {
-//         Scenario {
-//             description: self.description,
-//             ignored: self.ignored,
-//             tags: self.tags,
+        unsafe { self.then.as_mut().unwrap_unchecked() }.0.push(step);
 
-//             given: unsafe { self.given.unwrap_unchecked() },
-//             when: unsafe { self.when.unwrap_unchecked() },
-//             then: unsafe { self.then.unwrap_unchecked() },
-//         }
-//     }
-// }
+        ScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+            
+            given: self.given,
+            when: self.when,
+            then: self.then,
 
-// #[sealed(pub(crate))]
-// impl<Given, When, Then, State: self::scenario::State> IntoScenario<Given, When, Then> for ScenarioBuilder<Given, When, Then, State>
-// where
-//     State: self::scenario::IsComplete,
-// {
-//     fn into_scenario(self) -> Scenario<Given, When, Then> {
-//         self.build()
-//     }
-// }
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
 
-// mod scenario {
-//     pub(super) use super::*;
+impl<World, RandomState: ::core::hash::BuildHasher, State: self::scenario::BuilderState> ScenarioBuilder<World, RandomState, State>
+where
+    State: self::scenario::IsComplete,
+{
+    pub fn build(self) -> Scenario<World, RandomState> {
+        Scenario {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
 
-//     #[sealed]
-//     pub trait State: ::core::marker::Sized {
-//         type Description;
-//         type Ignored;
-//         type Tags;
+            given: (
+                unsafe { self.given.0.unwrap_unchecked() },
+                self.given.1,
+            ),
+            when: unsafe { self.when.unwrap_unchecked() },
+            then: unsafe { self.then.unwrap_unchecked() },
+        }
+    }
+}
 
-//         type Given;
-//         type When;
-//         type Then;
-//     }
+#[sealed]
+impl<World, RandomState: ::core::hash::BuildHasher, State: self::scenario::BuilderState> IntoScenario<World, RandomState> for ScenarioBuilder<World, RandomState, State>
+where
+    State: self::scenario::IsComplete,
+{
+    fn into_scenario(self) -> Scenario<World, RandomState> {
+        self.build()
+    }
+}
 
-//     #[sealed]
-//     pub trait IsComplete: self::State<Given: IsSet, When: IsSet, Then: IsSet> {}
+mod scenario {
+    pub(super) use super::*;
 
-//     #[sealed]
-//     impl<State: self::State> IsComplete for State
-//     where
-//         State::Given: IsSet,
-//         State::When: IsSet,
-//         State::Then: IsSet,
-//     {
-//     }
+    #[sealed]
+    pub trait BuilderState: ::core::marker::Sized {
+        type Description;
+        type Ignored;
+        type Tags;
 
-//     pub struct Empty;
+        type Given;
+        type When;
+        type Then;
+    }
 
-//     pub struct SetDescription<State: self::State = self::Empty>(PhantomCovariant<State>);
-//     pub struct SetIgnored<State: self::State = self::Empty>(PhantomCovariant<State>);
-//     pub struct SetTags<State: self::State = self::Empty>(PhantomCovariant<State>);
+    #[sealed]
+    pub trait IsComplete: BuilderState<Given: self::marker::IsSet, When: self::marker::IsSet, Then: self::marker::IsSet> {}
 
-//     pub struct SetGiven<State: self::State = self::Empty>(PhantomCovariant<State>);
-//     pub struct SetWhen<State: self::State = self::Empty>(PhantomCovariant<State>);
-//     pub struct SetThen<State: self::State = self::Empty>(PhantomCovariant<State>);
+    #[sealed]
+    impl<State: BuilderState> IsComplete for State
+    where
+        State::Given: self::marker::IsSet,
+        State::When: self::marker::IsSet,
+        State::Then: self::marker::IsSet,
+    {
+    }
 
-//     #[sealed]
-//     impl self::State for Empty {
-//         type Description = Unset<self::members::Description>;
-//         type Ignored = Unset<self::members::Ignored>;
-//         type Tags = Unset<self::members::Tags>;
+    pub struct Empty;
 
-//         type Given = Unset<self::members::Given>;
-//         type When = Unset<self::members::When>;
-//         type Then = Unset<self::members::Then>;
-//     }
+    pub struct SetDescription<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+    pub struct SetIgnored<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+    pub struct SetTags<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
 
-//     #[sealed]
-//     impl<State: self::State> self::State for SetDescription<State> {
-//         type Description = Set<self::members::Description>;
-//         type Ignored = State::Ignored;
-//         type Tags = State::Tags;
+    pub struct SetGiven<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+    pub struct SetWhen<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+    pub struct SetThen<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
 
-//         type Given = State::Given;
-//         type When = State::When;
-//         type Then = State::Then;
-//     }
+    #[sealed]
+    impl BuilderState for Empty {
+        type Description = self::marker::Unset<self::members::Description>;
+        type Ignored = self::marker::Unset<self::members::Ignored>;
+        type Tags = self::marker::Unset<self::members::Tags>;
 
-//     #[sealed]
-//     impl<State: self::State> self::State for SetIgnored<State> {
-//         type Description = State::Description;
-//         type Ignored = Set<self::members::Ignored>;
-//         type Tags = State::Tags;
+        type Given = self::marker::Unset<self::members::Given>;
+        type When = self::marker::Unset<self::members::When>;
+        type Then = self::marker::Unset<self::members::Then>;
+    }
 
-//         type Given = State::Given;
-//         type When = State::When;
-//         type Then = State::Then;
-//     }
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetDescription<State> {
+        type Description = self::marker::Set<self::members::Description>;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
 
-//     #[sealed]
-//     impl<State: self::State> self::State for SetTags<State> {
-//         type Description = State::Description;
-//         type Ignored = State::Ignored;
-//         type Tags = Set<self::members::Tags>;
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+    }
 
-//         type Given = State::Given;
-//         type When = State::When;
-//         type Then = State::Then;
-//     }
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetIgnored<State> {
+        type Description = State::Description;
+        type Ignored = self::marker::Set<self::members::Ignored>;
+        type Tags = State::Tags;
 
-//     #[sealed]
-//     impl<State: self::State> self::State for SetGiven<State> {
-//         type Description = State::Description;
-//         type Ignored = State::Ignored;
-//         type Tags = State::Tags;
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+    }
 
-//         type Given = Set<self::members::Given>;
-//         type When = State::When;
-//         type Then = State::Then;
-//     }
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetTags<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = self::marker::Set<self::members::Tags>;
 
-//     #[sealed]
-//     impl<State: self::State> self::State for SetWhen<State> {
-//         type Description = State::Description;
-//         type Ignored = State::Ignored;
-//         type Tags = State::Tags;
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+    }
 
-//         type Given = State::Given;
-//         type When = Set<self::members::When>;
-//         type Then = State::Then;
-//     }
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetGiven<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
 
-//     #[sealed]
-//     impl<State: self::State> self::State for SetThen<State> {
-//         type Description = State::Description;
-//         type Ignored = State::Ignored;
-//         type Tags = State::Tags;
+        type Given = self::marker::Set<self::members::Given>;
+        type When = State::When;
+        type Then = State::Then;
+    }
 
-//         type Given = State::Given;
-//         type When = State::When;
-//         type Then = Set<self::members::Then>;
-//     }
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetWhen<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
 
-//     mod members {
-//         pub struct Description;
-//         pub struct Ignored;
-//         pub struct Tags;
+        type Given = State::Given;
+        type When = self::marker::Set<self::members::When>;
+        type Then = State::Then;
+    }
 
-//         pub struct Given;
-//         pub struct When;
-//         pub struct Then;
-//     }
-// }
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetThen<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = self::marker::Set<self::members::Then>;
+    }
+
+    mod members {
+        pub struct Description;
+        pub struct Ignored;
+        pub struct Tags;
+
+        pub struct Given;
+        pub struct When;
+        pub struct Then;
+    }
+}
 
 #[sealed]
 impl<I, T> IntoTags for I
@@ -729,18 +679,13 @@ impl<Callback> Steps<Callback> {
 }
 
 impl<Callback> StepsBuilder<Callback> {
-    fn step(mut self, value: impl IntoStep<Callback>) -> Self {
-        self.0.push(value.into_step());
+    fn step(mut self, value: Step<Callback>) -> Self {
+        self.0.push(value);
         self
     }
 
-    fn steps<T>(mut self, value: impl IntoIterator<Item = T>) -> Self
-    where
-        T: IntoStep<Callback>,
-    {
-        self.0.extend(value
-            .into_iter()
-            .map(IntoStep::into_step));
+    fn steps(mut self, values: impl IntoIterator<Item = Step<Callback>>) -> Self {
+        self.0.extend(values.into_iter());
         self
     }
 
@@ -814,26 +759,18 @@ impl<Callback, State: self::step::BuilderState> StepBuilder<Callback, State> {
             __phantom: ::core::default::Default::default(),
         }
     }
+}
 
-    fn build(self) -> Step<Callback>
-    where
-        State: self::step::IsComplete,
-    {
+impl<Callback, State: self::step::BuilderState> StepBuilder<Callback, State>
+where 
+    State: self::step::IsComplete,
+{
+    fn build(self) -> Step<Callback> {
         Step {
             label: unsafe { self.label.unwrap_unchecked() },
             description: unsafe { self.description.unwrap_unchecked() },
             callback: unsafe { self.callback.unwrap_unchecked() },
         }
-    }
-}
-
-#[sealed]
-impl<Callback, State: self::step::BuilderState> IntoStep<Callback> for StepBuilder<Callback, State>
-where
-    State: self::step::IsComplete,
-{
-    fn into_step(self) -> Step<Callback>  {
-        self.build()
     }
 }
 
