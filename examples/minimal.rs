@@ -16,8 +16,20 @@ fn main() {
         .given("0", |i| Ok(*i = 0))
         .when("adding 1", |i| Ok(*i += 1))
         .and("adding 1 again", |i| Ok(*i += 1))
-        .then("it equals 2", |i| Ok(assert!(*i == 1)))
-        .and("it does not equal 49", |i| Ok(assert!(*i != 49)))
+        .then("it equals 2", |i| {
+            if *i == 2 {
+                Ok(())
+            } else {
+                Err("it does not equal 2".into())
+            }
+        })
+        .and("it does not equal 49", |i| {
+            if *i == 49 {
+                Err("it equals 49".into())
+            } else {
+                Ok(())
+            }
+        })
         .build();
 
     litmus::run([_s]);

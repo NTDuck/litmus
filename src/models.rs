@@ -19,8 +19,8 @@ pub struct Feature<World, RandomState: ::core::hash::BuildHasher = ::std::hash::
     pub(crate) tags: ::core::option::Option<Tags<RandomState>>,
 
     pub(crate) background: ::core::option::Option<Background<World>>,
-    pub(crate) scenarios: ::std::vec::Vec<Scenario<World>>,
-    pub(crate) rules: ::std::vec::Vec<Rule<World>>,
+    pub(crate) scenarios: ::std::vec::Vec<Scenario<World, RandomState>>,
+    pub(crate) rules: ::std::vec::Vec<Rule<World, RandomState>>,
 }
 
 pub struct Rule<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
@@ -29,7 +29,7 @@ pub struct Rule<World, RandomState: ::core::hash::BuildHasher = ::std::hash::Ran
     pub(crate) tags: ::core::option::Option<Tags<RandomState>>,
 
     pub(crate) background: ::core::option::Option<Background<World>>,
-    pub(crate) scenarios: ::std::vec::Vec<Scenario<World>>,
+    pub(crate) scenarios: ::std::vec::Vec<Scenario<World, RandomState>>,
 }
 
 pub struct Scenario<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
