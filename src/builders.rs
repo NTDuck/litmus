@@ -2,6 +2,128 @@ use ::sealed::sealed;
 
 use crate::models::*;
 
+pub struct SuiteBuilder<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
+    features: ::std::vec::Vec<Feature<World, RandomState>>,
+
+    before_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    after_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+
+    before_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    after_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+
+    before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+}
+
+impl<World, RandomState: ::core::hash::BuildHasher> Suite<World, RandomState> {
+    pub fn builder() -> SuiteBuilder<World, RandomState> {
+        SuiteBuilder {
+            features: ::core::default::Default::default(),
+
+            before_scenario_hooks: ::core::default::Default::default(),
+            after_scenario_hooks: ::core::default::Default::default(),
+
+            before_step_hooks: ::core::default::Default::default(),
+            after_step_hooks: ::core::default::Default::default(),
+
+            before_global_hooks: ::core::default::Default::default(),
+            after_global_hooks: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, RandomState: ::core::hash::BuildHasher> SuiteBuilder<World, RandomState> {
+    pub fn feature(mut self, value: impl Into<Feature<World, RandomState>>) -> Self {
+        self.features.push(value.into());
+        self
+    }
+
+    pub fn features<T>(mut self, values: impl IntoIterator<Item = T>) -> Self
+    where
+        T: Into<Feature<World, RandomState>>,
+    {
+        self.features.extend(values.into_iter().map(Into::into));
+        self
+    }
+
+    pub fn before_scenario(mut self, tags: impl Into<Tags<RandomState>>, callback: impl Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+        let hook = Hook::builder()
+            .tags(tags)
+            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>)
+            .build();
+
+        self.before_scenario_hooks.push(hook);
+        self
+    }
+
+    pub fn after_scenario(mut self, tags: impl Into<Tags<RandomState>>, callback: impl Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+        let hook = Hook::builder()
+            .tags(tags)
+            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>)
+            .build();
+
+        self.after_scenario_hooks.push(hook);
+        self
+    }
+
+    pub fn before_step(mut self, tags: impl Into<Tags<RandomState>>, callback: impl Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+        let hook = Hook::builder()
+            .tags(tags)
+            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>)
+            .build();
+
+        self.before_step_hooks.push(hook);
+        self
+    }
+
+    pub fn after_step(mut self, tags: impl Into<Tags<RandomState>>, callback: impl Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+        let hook = Hook::builder()
+            .tags(tags)
+            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>)
+            .build();
+
+        self.after_step_hooks.push(hook);
+        self
+    }
+
+    pub fn before_all(mut self, tags: impl Into<Tags<RandomState>>, callback: impl FnOnce() + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+        let hook = Hook::builder()
+            .tags(tags)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>)
+            .build();
+
+        self.before_global_hooks.push(hook);
+        self
+    }
+
+    pub fn after_all(mut self, tags: impl Into<Tags<RandomState>>, callback: impl FnOnce() + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+        let hook = Hook::builder()
+            .tags(tags)
+            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>)
+            .build();
+
+        self.after_global_hooks.push(hook);
+        self
+    }
+}
+
+impl<World, RandomState: ::core::hash::BuildHasher> SuiteBuilder<World, RandomState> {
+    pub fn build(self) -> Suite<World, RandomState> {
+        Suite {
+            features: self.features,
+
+            before_scenario_hooks: self.before_scenario_hooks,
+            after_scenario_hooks: self.after_scenario_hooks,
+
+            before_step_hooks: self.before_step_hooks,
+            after_step_hooks: self.after_step_hooks,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+        }
+    }
+}
+
 pub struct FeatureBuilder<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState, State: self::feature::BuilderState = self::feature::Empty> {
     description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     ignored: ::core::option::Option<bool>,
@@ -69,11 +191,11 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::Builde
         }
     }
 
-    pub fn tags(mut self, value: impl IntoTags<RandomState>) -> FeatureBuilder<World, RandomState, self::feature::SetTags<State>>
+    pub fn tags(mut self, value: impl Into<Tags<RandomState>>) -> FeatureBuilder<World, RandomState, self::feature::SetTags<State>>
     where
         State::Tags: self::marker::IsUnset,
     {
-        self.tags = ::core::option::Option::from(value.into_tags());
+        self.tags = ::core::option::Option::from(value.into());
 
         FeatureBuilder {
             description: self.description,
@@ -88,11 +210,11 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::Builde
         }
     }
 
-    pub fn background(mut self, value: Background<World>) -> FeatureBuilder<World, RandomState, self::feature::SetBackground<State>>
+    pub fn background(mut self, value: impl Into<Background<World>>) -> FeatureBuilder<World, RandomState, self::feature::SetBackground<State>>
     where
         State::Background: self::marker::IsUnset,
     {
-        self.background = ::core::option::Option::from(value);
+        self.background = ::core::option::Option::from(value.into());
 
         FeatureBuilder {
             description: self.description,
@@ -107,67 +229,34 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::Builde
         }
     }
 
-    pub fn scenario(mut self, value: Scenario<World, RandomState>) -> FeatureBuilder<World, RandomState, self::feature::SetScenario<State>>
-    where
-        State::Scenario: self::marker::IsUnset,
-    {
-        self.scenarios.push(value);
-
-        FeatureBuilder {
-            description: self.description,
-            ignored: self.ignored,
-            tags: self.tags,
-
-            background: self.background,
-            scenarios: self.scenarios,
-            rules: self.rules,
-
-            __phantom: ::core::default::Default::default(),
-        }
+    pub fn scenario(mut self, value: Scenario<World, RandomState>) -> Self {
+        self.scenarios.push(value.into());
+        self
     }
 
-    pub fn scenarios<T>(mut self, values: impl IntoIterator<Item = T>) -> FeatureBuilder<World, RandomState, self::feature::SetScenario<State>>
+    pub fn scenarios<T>(mut self, values: impl IntoIterator<Item = T>) -> Self
     where
         T: Into<Scenario<World, RandomState>>,
     {
         self.scenarios.extend(values.into_iter().map(Into::into));
-
-        FeatureBuilder {
-            description: self.description,
-            ignored: self.ignored,
-            tags: self.tags,
-
-            background: self.background,
-            scenarios: self.scenarios,
-            rules: self.rules,
-
-            __phantom: ::core::default::Default::default(),
-        }
+        self
     }
 
-    pub fn rule(mut self, value: impl IntoRule<World, RandomState>) -> FeatureBuilder<World, RandomState, self::feature::SetRule<State>> {
-        self.rules.push(value.into_rule());
-
-        FeatureBuilder {
-            description: self.description,
-            ignored: self.ignored,
-            tags: self.tags,
-
-            background: self.background,
-            scenarios: self.scenarios,
-            rules: self.rules,
-
-            __phantom: ::core::default::Default::default(),
-        }
+    pub fn rule(mut self, value: impl Into<Rule<World, RandomState>>) -> Self {
+        self.rules.push(value.into());
+        self
     }
 
-    pub fn rules<T>(mut self, values: impl IntoIterator<Item = T>) -> FeatureBuilder<World, RandomState, self::feature::SetRule<State>>
+    pub fn rules<T>(mut self, values: impl IntoIterator<Item = T>) -> Self
     where
-        T: IntoRule<World, RandomState>,
+        T: Into<Rule<World, RandomState>>,
     {
-        self.rules.extend(values.into_iter().map(IntoRule::into_rule));
+        self.rules.extend(values.into_iter().map(Into::into));
+        self
+    }
 
-        FeatureBuilder {
+    pub fn build(self) -> Feature<World, RandomState> {
+        Feature {
             description: self.description,
             ignored: self.ignored,
             tags: self.tags,
@@ -175,9 +264,13 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::Builde
             background: self.background,
             scenarios: self.scenarios,
             rules: self.rules,
-
-            __phantom: ::core::default::Default::default(),
         }
+    }
+}
+
+impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::BuilderState> From<FeatureBuilder<World, RandomState, State>> for Feature<World, RandomState> {
+    fn from(builder: FeatureBuilder<World, RandomState, State>) -> Self {
+        builder.build()
     }
 }
 
@@ -191,18 +284,6 @@ mod feature {
         type Tags;
 
         type Background;
-        type Scenario;
-        type Rule;
-    }
-
-    #[sealed]
-    pub trait IsComplete: BuilderState<Scenario: self::marker::IsSet> {}
-
-    #[sealed]
-    impl<State: BuilderState> IsComplete for State
-    where
-        State::Scenario: self::marker::IsSet,
-    {
     }
 
     pub struct Empty;
@@ -212,8 +293,6 @@ mod feature {
     pub struct SetTags<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
 
     pub struct SetBackground<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
-    pub struct SetScenario<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
-    pub struct SetRule<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
 
     #[sealed]
     impl BuilderState for Empty {
@@ -222,8 +301,6 @@ mod feature {
         type Tags = self::marker::Unset<self::members::Tags>;
 
         type Background = self::marker::Unset<self::members::Background>;
-        type Scenario = self::marker::Unset<self::members::Scenario>;
-        type Rule = self::marker::Unset<self::members::Rule>;
     }
 
     #[sealed]
@@ -233,8 +310,6 @@ mod feature {
         type Tags = State::Tags;
 
         type Background = State::Background;
-        type Scenario = State::Scenario;
-        type Rule = State::Rule;
     }
 
     #[sealed]
@@ -244,8 +319,6 @@ mod feature {
         type Tags = State::Tags;
 
         type Background = State::Background;
-        type Scenario = State::Scenario;
-        type Rule = State::Rule;
     }
 
     #[sealed]
@@ -255,8 +328,6 @@ mod feature {
         type Tags = self::marker::Set<self::members::Tags>;
 
         type Background = State::Background;
-        type Scenario = State::Scenario;
-        type Rule = State::Rule;
     }
 
     #[sealed]
@@ -266,30 +337,6 @@ mod feature {
         type Tags = State::Tags;
 
         type Background = self::marker::Set<self::members::Background>;
-        type Scenario = State::Scenario;
-        type Rule = State::Rule;
-    }
-
-    #[sealed]
-    impl<State: BuilderState> BuilderState for SetScenario<State> {
-        type Description = State::Description;
-        type Ignored = State::Ignored;
-        type Tags = State::Tags;
-
-        type Background = State::Background;
-        type Scenario = self::marker::Set<self::members::Scenario>;
-        type Rule = State::Rule;
-    }
-
-    #[sealed]
-    impl<State: BuilderState> BuilderState for SetRule<State> {
-        type Description = State::Description;
-        type Ignored = State::Ignored;
-        type Tags = State::Tags;
-
-        type Background = State::Background;
-        type Scenario = State::Scenario;
-        type Rule = self::marker::Set<self::members::Rule>;
     }
 
     mod members {
@@ -298,8 +345,6 @@ mod feature {
         pub struct Tags;
 
         pub struct Background;
-        pub struct Scenario;
-        pub struct Rule;
     }
 }
 
@@ -366,13 +411,13 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderSt
         }
     }
 
-    pub fn tags(mut self, value: impl IntoTags<RandomState>) -> RuleBuilder<World, RandomState, self::rule::SetTags<State>>
+    pub fn tags(mut self, value: impl Into<Tags<RandomState>>) -> RuleBuilder<World, RandomState, self::rule::SetTags<State>>
     where
         State::Tags: self::marker::IsUnset,
     {
-        self.tags = ::core::option::Option::from(value.into_tags());
+        self.tags = ::core::option::Option::from(value.into());
 
-                RuleBuilder {
+        RuleBuilder {
             description: self.description,
             ignored: self.ignored,
             tags: self.tags,
@@ -384,26 +429,11 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderSt
         }
     }
 
-    pub fn background(mut self, value: impl IntoBackground<World>) -> RuleBuilder<World, RandomState, self::rule::SetBackground<State>>
+    pub fn background(mut self, value: impl Into<Background<World>>) -> RuleBuilder<World, RandomState, self::rule::SetBackground<State>>
     where
         State::Background: self::marker::IsUnset,
     {
-        self.background = ::core::option::Option::from(value.into_background());
-
-                RuleBuilder {
-            description: self.description,
-            ignored: self.ignored,
-            tags: self.tags,
-
-            background: self.background,
-            scenarios: self.scenarios,
-
-            __phantom: ::core::default::Default::default(),
-        }
-    }
-
-    pub fn scenario(mut self, value: impl IntoScenario<World, RandomState>) -> RuleBuilder<World, RandomState, self::rule::SetScenario<State>> {
-        self.scenarios.push(value.into_scenario());
+        self.background = ::core::option::Option::from(value.into());
 
         RuleBuilder {
             description: self.description,
@@ -417,29 +447,19 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderSt
         }
     }
 
-    pub fn scenarios<T>(mut self, values: impl IntoIterator<Item = T>) -> RuleBuilder<World, RandomState, self::rule::SetScenario<State>>
+    pub fn scenario(mut self, value: impl Into<Scenario<World, RandomState>>) -> Self {
+        self.scenarios.push(value.into());
+        self
+    }
+
+    pub fn scenarios<T>(mut self, values: impl IntoIterator<Item = T>) -> Self
     where
-        T: IntoScenario<World, RandomState>,
+        T: Into<Scenario<World, RandomState>>,
     {
-        self.scenarios.extend(values.into_iter().map(IntoScenario::into_scenario));
-
-        RuleBuilder {
-            description: self.description,
-            ignored: self.ignored,
-            tags: self.tags,
-
-            background: self.background,
-            scenarios: self.scenarios,
-
-            __phantom: ::core::default::Default::default(),
-        }
+        self.scenarios.extend(values.into_iter().map(Into::into));
+        self
     }
-}
 
-impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderState> RuleBuilder<World, RandomState, State>
-where
-    State: self::rule::IsComplete,
-{
     pub fn build(self) -> Rule<World, RandomState> {
         Rule {
             description: self.description,
@@ -452,13 +472,9 @@ where
     }
 }
 
-#[sealed]
-impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderState> IntoRule<World, RandomState> for RuleBuilder<World, RandomState, State>
-where
-    State: self::rule::IsComplete,
-{
-    fn into_rule(self) -> Rule<World, RandomState> {
-        self.build()
+impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderState> From<RuleBuilder<World, RandomState, State>> for Rule<World, RandomState> {
+    fn from(builder: RuleBuilder<World, RandomState, State>) -> Self {
+        builder.build()
     }
 }
 
@@ -472,17 +488,6 @@ mod rule {
         type Tags;
 
         type Background;
-        type Scenario;
-    }
-
-    #[sealed]
-    pub trait IsComplete: BuilderState<Scenario: self::marker::IsSet> {}
-
-    #[sealed]
-    impl<State: BuilderState> IsComplete for State
-    where
-        State::Scenario: self::marker::IsSet,
-    {
     }
 
     pub struct Empty;
@@ -492,7 +497,6 @@ mod rule {
     pub struct SetTags<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
 
     pub struct SetBackground<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
-    pub struct SetScenario<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
 
     #[sealed]
     impl BuilderState for Empty {
@@ -501,7 +505,6 @@ mod rule {
         type Tags = self::marker::Unset<self::members::Tags>;
 
         type Background = self::marker::Unset<self::members::Background>;
-        type Scenario = self::marker::Unset<self::members::Scenario>;
     }
 
     #[sealed]
@@ -511,7 +514,6 @@ mod rule {
         type Tags = State::Tags;
 
         type Background = State::Background;
-        type Scenario = State::Scenario;
     }
 
     #[sealed]
@@ -521,7 +523,6 @@ mod rule {
         type Tags = State::Tags;
 
         type Background = State::Background;
-        type Scenario = State::Scenario;
     }
 
     #[sealed]
@@ -531,7 +532,6 @@ mod rule {
         type Tags = self::marker::Set<self::members::Tags>;
 
         type Background = State::Background;
-        type Scenario = State::Scenario;
     }
 
     #[sealed]
@@ -541,17 +541,6 @@ mod rule {
         type Tags = State::Tags;
 
         type Background = self::marker::Set<self::members::Background>;
-        type Scenario = State::Scenario;
-    }
-
-    #[sealed]
-    impl<State: BuilderState> BuilderState for SetScenario<State> {
-        type Description = State::Description;
-        type Ignored = State::Ignored;
-        type Tags = State::Tags;
-
-        type Background = State::Background;
-        type Scenario = self::marker::Set<self::members::Scenario>;
     }
 
     mod members {
@@ -560,7 +549,6 @@ mod rule {
         pub struct Tags;
 
         pub struct Background;
-        pub struct Scenario;
     }
 }
 
@@ -569,9 +557,9 @@ pub struct ScenarioBuilder<World, RandomState: ::core::hash::BuildHasher = ::std
     ignored: ::core::option::Option<bool>,
     tags: ::core::option::Option<Tags<RandomState>>,
 
-    given: ::core::option::Option<Steps<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    when: ::core::option::Option<Steps<Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    then: ::core::option::Option<Steps<Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    given: ::std::vec::Vec<Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    when: ::std::vec::Vec<Step<Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    then: ::std::vec::Vec<Step<Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
 
     __phantom: self::marker::PhantomCovariant<State>,
 }
@@ -636,11 +624,11 @@ where
         }
     }
 
-    pub fn tags(mut self, value: impl IntoTags<RandomState>) -> ScenarioBuilder<World, RandomState, self::scenario::SetTags<State>>
+    pub fn tags(mut self, value: impl Into<Tags<RandomState>>) -> ScenarioBuilder<World, RandomState, self::scenario::SetTags<State>>
     where
         State::Tags: self::marker::IsUnset,
     {
-        self.tags = ::core::option::Option::from(value.into_tags());
+        self.tags = ::core::option::Option::from(value.into());
         
         ScenarioBuilder {
             description: self.description,
@@ -662,11 +650,7 @@ where
             .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
-        let steps = Steps::builder()
-            .step(step)
-            .build();
-
-        self.given = ::core::option::Option::from(steps);
+        self.given.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -709,7 +693,7 @@ where
             .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
-        unsafe { self.given.as_mut().unwrap_unchecked() }.0.push(step);
+        self.given.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -731,11 +715,7 @@ where
             .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
-        let steps = Steps::builder()
-            .step(step)
-            .build();
-
-        self.when = ::core::option::Option::from(steps);
+        self.when.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -778,7 +758,7 @@ where
             .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
-        unsafe { self.when.as_mut().unwrap_unchecked() }.0.push(step);
+        self.when.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -800,11 +780,7 @@ where
             .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
-        let steps = Steps::builder()
-            .step(step)
-            .build();
-
-        self.then = ::core::option::Option::from(steps);
+        self.then.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -847,7 +823,7 @@ where
             .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
-        unsafe { self.then.as_mut().unwrap_unchecked() }.0.push(step);
+        self.then.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -873,20 +849,19 @@ where
             ignored: self.ignored,
             tags: self.tags,
 
-            given: unsafe { self.given.unwrap_unchecked() },
-            when: unsafe { self.when.unwrap_unchecked() },
-            then: unsafe { self.then.unwrap_unchecked() },
+            given: self.given,
+            when: self.when,
+            then: self.then,
         }
     }
 }
 
-#[sealed]
-impl<World, RandomState: ::core::hash::BuildHasher, State: self::scenario::BuilderState> IntoScenario<World, RandomState> for ScenarioBuilder<World, RandomState, State>
+impl<World, RandomState: ::core::hash::BuildHasher, State: self::scenario::BuilderState> From<ScenarioBuilder<World, RandomState, State>> for Scenario<World, RandomState>
 where
     State: self::scenario::IsComplete,
 {
-    fn into_scenario(self) -> Scenario<World, RandomState> {
-        self.build()
+    fn from(builder: ScenarioBuilder<World, RandomState, State>) -> Self {
+        builder.build()
     }
 }
 
@@ -1014,12 +989,11 @@ mod scenario {
     }
 }
 
-
 pub struct BackgroundBuilder<World, State: self::background::BuilderState = self::background::Empty> {
     description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     ignored: ::core::option::Option<bool>,
 
-    given: ::core::option::Option<Steps<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    given: ::std::vec::Vec<Step<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
 
     __phantom: self::marker::PhantomCovariant<State>,
 }
@@ -1029,6 +1003,7 @@ impl<World> Background<World> {
         BackgroundBuilder {
             description: ::core::default::Default::default(),
             ignored: ::core::default::Default::default(),
+
             given: ::core::default::Default::default(),
 
             __phantom: ::core::default::Default::default(),
@@ -1049,6 +1024,7 @@ where
         BackgroundBuilder {
             description: self.description,
             ignored: self.ignored,
+
             given: self.given,
 
             __phantom: ::core::default::Default::default(),
@@ -1064,6 +1040,7 @@ where
         BackgroundBuilder {
             description: self.description,
             ignored: self.ignored,
+
             given: self.given,
 
             __phantom: ::core::default::Default::default(),
@@ -1077,15 +1054,12 @@ where
             .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
-        let steps = Steps::builder()
-            .step(step)
-            .build();
-
-        self.given = ::core::option::Option::from(steps);
+        self.given.push(step);
 
         BackgroundBuilder {
             description: self.description,
             ignored: self.ignored,
+
             given: self.given,
 
             __phantom: ::core::default::Default::default(),
@@ -1118,11 +1092,12 @@ where
             .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>)
             .build();
 
-        unsafe { self.given.as_mut().unwrap_unchecked() }.0.push(step);
+        self.given.push(step);
 
         BackgroundBuilder {
             description: self.description,
             ignored: self.ignored,
+
             given: self.given,
 
             __phantom: ::core::default::Default::default(),
@@ -1138,18 +1113,18 @@ where
         Background {
             description: self.description,
             ignored: self.ignored,
-            given: unsafe { self.given.unwrap_unchecked() },
+            
+            given: self.given,
         }
     }
 }
 
-#[sealed]
-impl<World, State: self::background::BuilderState> IntoBackground<World> for BackgroundBuilder<World, State>
+impl<World, State: self::background::BuilderState> From<BackgroundBuilder<World, State>> for Background<World>
 where
     State: self::background::IsComplete,
 {
-    fn into_background(self) -> Background<World> {
-        self.build()
+    fn from(builder: BackgroundBuilder<World, State>) -> Self {
+        builder.build()
     }
 }
 
@@ -1214,23 +1189,81 @@ mod background {
     }
 }
 
+pub struct HookBuilder<Callback, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState, State: self::hook::BuilderState = self::hook::Empty> {
+    tags: ::core::option::Option<Tags<RandomState>>,
+    callback: ::core::option::Option<Callback>,
+
+    __phantom: self::marker::PhantomCovariant<State>,
+}
+
+impl<Callback, RandomState: ::core::hash::BuildHasher> Hook<Callback, RandomState> {
+    fn builder() -> HookBuilder<Callback, RandomState> {
+        HookBuilder {
+            tags: ::core::default::Default::default(),
+            callback: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<Callback, RandomState: ::core::hash::BuildHasher, State: self::hook::BuilderState> HookBuilder<Callback, RandomState, State> {
+    fn tags(mut self, value: impl Into<Tags<RandomState>>) -> HookBuilder<Callback, RandomState, self::hook::SetTags<State>>
+    where
+        State::Tags: self::marker::IsUnset,
+    {
+        self.tags = ::core::option::Option::from(value.into());
+
+        HookBuilder {
+            tags: self.tags,
+            callback: self.callback,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    fn callback(mut self, value: Callback) -> HookBuilder<Callback, RandomState, self::hook::SetCallback<State>>
+    where
+        State::Callback: self::marker::IsUnset,
+    {
+        self.callback = ::core::option::Option::from(value);
+
+        HookBuilder {
+            tags: self.tags,
+            callback: self.callback,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<Callback, RandomState: ::core::hash::BuildHasher, State: self::hook::BuilderState> HookBuilder<Callback, RandomState, State>
+where
+    State: self::hook::IsComplete,
+{
+    fn build(self) -> Hook<Callback, RandomState> {
+        Hook {
+            tags: unsafe { self.tags.unwrap_unchecked() },
+            callback: unsafe { self.callback.unwrap_unchecked() },
+        }
+    }
+}
+
 mod hook {
     pub(super) use super::*;
 
     #[sealed]
     pub trait BuilderState: ::core::marker::Sized {
-        type Description;
         type Tags;
         type Callback;
     }
 
     #[sealed]
-    pub trait IsComplete: BuilderState<Description: self::marker::IsSet, Tags: self::marker::IsSet, Callback: self::marker::IsSet> {}
+    pub trait IsComplete: BuilderState<Tags: self::marker::IsSet, Callback: self::marker::IsSet> {}
 
     #[sealed]
     impl<State: BuilderState> IsComplete for State
     where
-        State::Description: self::marker::IsSet,
         State::Tags: self::marker::IsSet,
         State::Callback: self::marker::IsSet,
     {
@@ -1238,82 +1271,34 @@ mod hook {
 
     pub struct Empty;
 
-    pub struct SetDescription<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
     pub struct SetTags<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
     pub struct SetCallback<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
 
     #[sealed]
     impl BuilderState for Empty {
-        type Description = self::marker::Unset<self::members::Description>;
         type Tags = self::marker::Unset<self::members::Tags>;
         type Callback = self::marker::Unset<self::members::Callback>;
     }
 
     #[sealed]
-    impl<State: BuilderState> BuilderState for SetDescription<State> {
-        type Description = self::marker::Set<self::members::Description>;
-        type Tags = State::Tags;
-        type Callback = State::Callback;
-    }
-
-    #[sealed]
     impl<State: BuilderState> BuilderState for SetTags<State> {
-        type Description = State::Description;
         type Tags = self::marker::Set<self::members::Tags>;
         type Callback = State::Callback;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetCallback<State> {
-        type Description = State::Description;
         type Tags = State::Tags;
         type Callback = self::marker::Set<self::members::Callback>;
     }
 
     mod members {
-        pub struct Description;
         pub struct Tags;
         pub struct Callback;
     }
 }
 
-#[sealed]
-impl<I, T> IntoTags for I
-where
-    I: IntoIterator<Item = T>,
-    T: Into<::std::borrow::Cow<'static, str>>,
-{
-    fn into_tags(self) -> Tags {
-        Tags(self.into_iter().map(Into::into).collect())
-    }
-}
-
-pub(crate) struct StepsBuilder<Callback>(::std::vec::Vec<Step<Callback>>);
-
-impl<Callback> Steps<Callback> {
-    fn builder() -> StepsBuilder<Callback> {
-        StepsBuilder(::core::default::Default::default())
-    }
-}
-
-impl<Callback> StepsBuilder<Callback> {
-    fn step(mut self, value: Step<Callback>) -> Self {
-        self.0.push(value);
-        self
-    }
-
-    #[allow(dead_code)]
-    fn steps(mut self, values: impl IntoIterator<Item = Step<Callback>>) -> Self {
-        self.0.extend(values.into_iter());
-        self
-    }
-
-    fn build(self) -> Steps<Callback> {
-        Steps(self.0)
-    }
-}
-
-pub(crate) struct StepBuilder<Callback, State: self::step::BuilderState = self::step::Empty> {
+struct StepBuilder<Callback, State: self::step::BuilderState = self::step::Empty> {
     label: ::core::option::Option<StepLabel>,
     description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     callback: ::core::option::Option<Callback>,
@@ -1456,11 +1441,21 @@ mod step {
     }
 }
 
-impl<T> From<T> for Failed
+impl<I, T> From<I> for Tags
 where
+    I: IntoIterator<Item = T>,
     T: Into<::std::borrow::Cow<'static, str>>,
 {
-    fn from(message: T) -> Failed {
+    fn from(values: I) -> Self {
+        Self(values.into_iter().map(Into::into).collect())
+    }
+}
+
+impl<Message> From<Message> for Failed
+where
+    Message: Into<::std::borrow::Cow<'static, str>>,
+{
+    fn from(message: Message) -> Failed {
         Failed {
             message: message.into(),
         }
