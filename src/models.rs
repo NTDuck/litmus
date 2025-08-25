@@ -1,5 +1,3 @@
-use ::sealed::sealed;
-
 pub struct Suite<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
     pub(crate) features: ::std::vec::Vec<Feature<World, RandomState>>,
 
