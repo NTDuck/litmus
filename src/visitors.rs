@@ -27,6 +27,8 @@ where
     fn into_trial(self) ->  ::libtest_mimic::Trial {
         let (scenario, feature) = self;
 
+
+
         todo!()
     }
 }
@@ -77,10 +79,7 @@ pub trait IntoTrials {
 
 #[::bon::builder]
 #[builder(on(_, required))]
-fn into_trial<Callback>(#[builder(start_fn)] callback: Callback, description: impl Into<::std::borrow::Cow<'static, str>>, ignored: ::core::option::Option<impl Into<bool>>, tags: ::core::option::Option<impl Into<Tags>>) -> ::libtest_mimic::Trial
-where
-    Callback: FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static,
-{
+fn into_trial(#[builder(start_fn)] callback: impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static, description: impl Into<::std::borrow::Cow<'static, str>>, ignored: ::core::option::Option<impl Into<bool>>, tags: ::core::option::Option<impl Into<Tags>>) -> ::libtest_mimic::Trial {
     let callback = move || {
         (callback)()
             .map_err(|err| err.message.into())
@@ -111,6 +110,13 @@ where
 #[sealed]
 trait ToDescription {
     fn to_description(&self) -> ::std::borrow::Cow<'static, str>;
+}
+
+#[sealed]
+impl<World, RandomState: ::core::hash::BuildHasher> ToDescription for Scenario<World, RandomState> {
+    fn to_description(&self) -> ::std::borrow::Cow<'static, str> {
+        ::std::format!("{}; {}; {}", self.given.to_description(), self.when.to_description(), self.then.to_description()).into()
+    }
 }
 
 #[sealed]
@@ -155,5 +161,51 @@ impl ToDescription for StepLabel {
             Self::And => "and".into(),
             Self::But => "but".into(),
         }
+    }
+}
+
+#[sealed]
+trait IntoCallback<RandomState: ::core::hash::BuildHasher> {
+    fn into_callback(self, predicate: impl Fn(&Tags<RandomState>) -> bool) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static;
+}
+
+#[sealed]
+impl<World, RandomState: ::core::hash::BuildHasher> IntoCallback<RandomState> for (
+    Scenario<World, RandomState>,
+    &Suite<World, RandomState>,
+    &Feature<World, RandomState>,
+)
+where
+    World: ::core::default::Default + 'static,
+{
+    fn into_callback(self, predicate: impl Fn(&Tags<RandomState>) -> bool) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static {
+        let (scenario, suite, feature) = self;
+
+        // ::core::assert!(feature.tags.as_ref().is_none_or(|feature_tags| !feature_tags.is_disjoint(tags)));
+        // ::core::assert!(scenario.tags.as_ref().is_none_or(|scenario_tags| !scenario_tags.is_disjoint(tags)));
+
+        move || {
+            let mut world = ::core::default::Default::default();
+            
+            scenario.given.into_iter()
+                .map(|step| step.callback)
+                .try_for_each(|callback| (callback)(&mut world))?;
+
+            scenario.when.into_iter()
+                .map(|step| step.callback)
+                .try_for_each(|callback| (callback)(&mut world))?;
+
+            scenario.then.into_iter()
+                .map(|step| step.callback)
+                .try_for_each(|callback| (callback)(&world))?;
+
+            Ok(())
+        }
+    }
+}
+
+impl<RandomState: ::core::hash::BuildHasher> Tags<RandomState> {
+    fn is_disjoint(&self, other: &Tags<RandomState>) -> bool {
+        self.0.is_disjoint(&other.0)
     }
 }
