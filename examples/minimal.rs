@@ -9,7 +9,7 @@ fn main() {
         .but("given", |i| *i += 1)
         .build();
 
-    let _s = Scenario::builder()
+    let _s = Scenario::<_, ::std::hash::RandomState>::builder()
         // .description("scenario")
         .ignored(false)
         .tags(["tag0", "tag1"])

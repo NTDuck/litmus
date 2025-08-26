@@ -1,14 +1,14 @@
 pub struct Suite<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
     pub(crate) features: ::std::vec::Vec<Feature<World, RandomState>>,
 
-    pub(crate) before_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
-    pub(crate) after_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    pub(crate) before_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    pub(crate) after_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
 
-    pub(crate) before_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
-    pub(crate) after_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    pub(crate) before_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    pub(crate) after_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
 
-    pub(crate) before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
-    pub(crate) after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    pub(crate) before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    pub(crate) after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
 }
 
 pub struct Feature<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
@@ -37,7 +37,7 @@ pub struct Scenario<World, RandomState: ::core::hash::BuildHasher = ::std::hash:
 
     pub(crate) given: ::std::vec::Vec<Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
     pub(crate) when: ::std::vec::Vec<Step<Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    pub(crate) then: ::std::vec::Vec<Step<Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    pub(crate) then: ::std::vec::Vec<Step<Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
 }
 
 pub struct Background<World> {
@@ -48,7 +48,7 @@ pub struct Background<World> {
 }
 
 pub(crate) struct Hook<Callback, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
-    pub(crate) tags: Tags<RandomState>,
+    pub(crate) tags: ::core::option::Option<Tags<RandomState>>,
     pub(crate) callback: Callback,
 }
 
@@ -58,6 +58,7 @@ pub(crate) struct Step<Callback> {
     pub(crate) callback: Callback,
 }
 
+#[derive(::core::clone::Clone)]
 pub struct Tags<RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState>(pub(crate) ::std::collections::HashSet<::std::borrow::Cow<'static, str>, RandomState>);
 
 pub(crate) enum StepLabel {

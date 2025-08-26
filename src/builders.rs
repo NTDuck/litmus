@@ -5,14 +5,14 @@ use crate::models::*;
 pub struct SuiteBuilder<World, RandomState: ::core::hash::BuildHasher = ::std::hash::RandomState> {
     features: ::std::vec::Vec<Feature<World, RandomState>>,
 
-    before_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
-    after_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    before_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    after_scenario_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
 
-    before_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
-    after_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    before_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    after_step_hooks: ::std::vec::Vec<Hook<::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
 
-    before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
-    after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
+    after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>, RandomState>>,
 }
 
 impl<World, RandomState: ::core::hash::BuildHasher> Suite<World, RandomState> {
@@ -46,60 +46,102 @@ impl<World, RandomState: ::core::hash::BuildHasher> SuiteBuilder<World, RandomSt
         self
     }
 
-    pub fn before_scenario(mut self, tags: impl Into<Tags<RandomState>>, callback: impl Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+    pub fn before_scenario<Callback, Output>(mut self, tags: impl Into<Tags<RandomState>>, callback: Callback) -> Self
+    where
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let callback  = ::std::rc::Rc::new(move |world: &mut World| (callback)(world).into_fallible())
+            as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
         let hook = Hook::builder()
             .tags(tags)
-            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>)
+            .callback(callback)
             .build();
 
         self.before_scenario_hooks.push(hook);
         self
     }
 
-    pub fn after_scenario(mut self, tags: impl Into<Tags<RandomState>>, callback: impl Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+    pub fn after_scenario<Callback, Output>(mut self, tags: impl Into<Tags<RandomState>>, callback: Callback) -> Self
+    where
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let callback  = ::std::rc::Rc::new(move |world: &mut World| (callback)(world).into_fallible())
+            as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
         let hook = Hook::builder()
             .tags(tags)
-            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>)
+            .callback(callback)
             .build();
 
         self.after_scenario_hooks.push(hook);
         self
     }
 
-    pub fn before_step(mut self, tags: impl Into<Tags<RandomState>>, callback: impl Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+    pub fn before_step<Callback, Output>(mut self, tags: impl Into<Tags<RandomState>>, callback: Callback) -> Self
+    where
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let callback  = ::std::rc::Rc::new(move |world: &mut World| (callback)(world).into_fallible())
+            as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
         let hook = Hook::builder()
             .tags(tags)
-            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>)
+            .callback(callback)
             .build();
 
         self.before_step_hooks.push(hook);
         self
     }
 
-    pub fn after_step(mut self, tags: impl Into<Tags<RandomState>>, callback: impl Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+    pub fn after_step<Callback, Output>(mut self, tags: impl Into<Tags<RandomState>>, callback: Callback) -> Self
+    where
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let callback  = ::std::rc::Rc::new(move |world: &mut World| (callback)(world).into_fallible())
+            as ::std::rc::Rc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
         let hook = Hook::builder()
             .tags(tags)
-            .callback(::std::rc::Rc::new(callback) as ::std::rc::Rc<dyn Fn(&mut World) + ::core::marker::Send + ::core::marker::Sync>)
+            .callback(callback)
             .build();
 
         self.after_step_hooks.push(hook);
         self
     }
 
-    pub fn before_all(mut self, tags: impl Into<Tags<RandomState>>, callback: impl FnOnce() + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+    pub fn before_all<Callback, Output>(mut self, tags: impl Into<Tags<RandomState>>, callback: Callback) -> Self
+    where
+        Callback: FnOnce() -> Output+ ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
+            as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
         let hook = Hook::builder()
             .tags(tags)
-            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>)
+            .callback(callback)
             .build();
 
         self.before_global_hooks.push(hook);
         self
     }
 
-    pub fn after_all(mut self, tags: impl Into<Tags<RandomState>>, callback: impl FnOnce() + ::core::marker::Send + ::core::marker::Sync + 'static) -> Self {
+    pub fn after_all<Callback, Output>(mut self, tags: impl Into<Tags<RandomState>>, callback: Callback) -> Self
+    where
+        Callback: FnOnce() -> Output+ ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
+            as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
         let hook = Hook::builder()
             .tags(tags)
-            .callback(::std::boxed::Box::new(callback) as ::std::boxed::Box<dyn FnOnce() + ::core::marker::Send + ::core::marker::Sync>)
+            .callback(callback)
             .build();
 
         self.after_global_hooks.push(hook);
@@ -229,7 +271,7 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::Builde
         }
     }
 
-    pub fn scenario(mut self, value: Scenario<World, RandomState>) -> Self {
+    pub fn scenario(mut self, value: impl Into<Scenario<World, RandomState>>) -> Self {
         self.scenarios.push(value.into());
         self
     }
@@ -255,7 +297,12 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::Builde
         self
     }
 
-    pub fn build(self) -> Feature<World, RandomState> {
+    pub fn build(mut self) -> Feature<World, RandomState>
+    where
+        RandomState: ::core::clone::Clone + ::core::default::Default,
+    {
+        self.propagate_tags();
+
         Feature {
             description: self.description,
             ignored: self.ignored,
@@ -266,9 +313,29 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::Builde
             rules: self.rules,
         }
     }
+
+    fn propagate_tags(&mut self)
+    where
+        RandomState: ::core::clone::Clone + ::core::default::Default,
+    {
+        if let Some(tags) = self.tags.as_ref() {
+            self.scenarios.iter_mut()
+                .for_each(|scenario| scenario.tags
+                    .get_or_insert_with(|| Tags::from(::std::iter::empty::<::std::borrow::Cow<'static, str>>()))
+                    .extend(tags.clone()));
+
+            self.rules.iter_mut()
+                .for_each(|rule| rule.tags
+                    .get_or_insert_with(|| Tags::from(::std::iter::empty::<::std::borrow::Cow<'static, str>>()))
+                    .extend(tags.clone()));
+        }
+    }
 }
 
-impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::BuilderState> From<FeatureBuilder<World, RandomState, State>> for Feature<World, RandomState> {
+impl<World, RandomState: ::core::hash::BuildHasher, State: self::feature::BuilderState> From<FeatureBuilder<World, RandomState, State>> for Feature<World, RandomState>
+where
+    RandomState: ::core::clone::Clone + ::core::default::Default,
+{
     fn from(builder: FeatureBuilder<World, RandomState, State>) -> Self {
         builder.build()
     }
@@ -460,7 +527,12 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderSt
         self
     }
 
-    pub fn build(self) -> Rule<World, RandomState> {
+    pub fn build(mut self) -> Rule<World, RandomState>
+    where
+        RandomState: ::core::clone::Clone + ::core::default::Default,
+    {
+        self.propagate_tags();
+
         Rule {
             description: self.description,
             ignored: self.ignored,
@@ -470,9 +542,24 @@ impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderSt
             scenarios: self.scenarios,
         }
     }
+
+    fn propagate_tags(&mut self)
+    where
+        RandomState: ::core::clone::Clone + ::core::default::Default,
+    {
+        if let Some(tags) = self.tags.as_ref() {
+            self.scenarios.iter_mut()
+                .for_each(|scenario| scenario.tags
+                    .get_or_insert_with(|| Tags::from(::std::iter::empty::<::std::borrow::Cow<'static, str>>()))
+                    .extend(tags.clone()));
+        }
+    }
 }
 
-impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderState> From<RuleBuilder<World, RandomState, State>> for Rule<World, RandomState> {
+impl<World, RandomState: ::core::hash::BuildHasher, State: self::rule::BuilderState> From<RuleBuilder<World, RandomState, State>> for Rule<World, RandomState>
+where
+    RandomState: ::core::clone::Clone + ::core::default::Default,
+{
     fn from(builder: RuleBuilder<World, RandomState, State>) -> Self {
         builder.build()
     }
@@ -559,7 +646,7 @@ pub struct ScenarioBuilder<World, RandomState: ::core::hash::BuildHasher = ::std
 
     given: ::std::vec::Vec<Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
     when: ::std::vec::Vec<Step<Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    then: ::std::vec::Vec<Step<Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    then: ::std::vec::Vec<Step<Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
 
     __phantom: self::marker::PhantomCovariant<State>,
 }
@@ -822,8 +909,8 @@ where
         Callback: FnOnce(&World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
-        let callback = ::std::boxed::Box::new(move |world: &World| (callback)(world).into_fallible())
-            as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+        let callback = ::std::boxed::Box::new(move |world: &mut World| (callback)(world).into_fallible())
+            as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
         let step = Step::builder()
             .label(StepLabel::Then)
@@ -880,8 +967,8 @@ where
         Callback: FnOnce(&World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
-        let callback = ::std::boxed::Box::new(move |world: &World| (callback)(world).into_fallible())
-            as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+        let callback = ::std::boxed::Box::new(move |world: &mut World| (callback)(world).into_fallible())
+            as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
         let step = Step::builder()
             .label(label)
@@ -1331,7 +1418,7 @@ where
 {
     fn build(self) -> Hook<Callback, RandomState> {
         Hook {
-            tags: unsafe { self.tags.unwrap_unchecked() },
+            tags: self.tags,
             callback: unsafe { self.callback.unwrap_unchecked() },
         }
     }
@@ -1347,12 +1434,11 @@ mod hook {
     }
 
     #[sealed]
-    pub trait IsComplete: BuilderState<Tags: self::marker::IsSet, Callback: self::marker::IsSet> {}
+    pub trait IsComplete: BuilderState<Callback: self::marker::IsSet> {}
 
     #[sealed]
     impl<State: BuilderState> IsComplete for State
     where
-        State::Tags: self::marker::IsSet,
         State::Callback: self::marker::IsSet,
     {
     }
@@ -1529,10 +1615,17 @@ mod step {
     }
 }
 
-impl<I, T> From<I> for Tags
+impl<RandomState: ::core::hash::BuildHasher> Tags<RandomState> {
+    fn extend(&mut self, other: Tags<RandomState>) {
+        self.0.extend(other.0.into_iter());
+    }
+}
+
+impl<I, T, RandomState: ::core::hash::BuildHasher> From<I> for Tags<RandomState>
 where
     I: IntoIterator<Item = T>,
     T: Into<::std::borrow::Cow<'static, str>>,
+    RandomState: ::core::default::Default,
 {
     fn from(values: I) -> Self {
         Self(values.into_iter().map(Into::into).collect())

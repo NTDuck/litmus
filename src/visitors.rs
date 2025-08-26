@@ -2,79 +2,117 @@ use ::sealed::sealed;
 
 use crate::models::*;
 
-pub fn run(trials: impl IntoTrials) -> ::std::process::ExitCode {
+pub fn run<RandomState: ::core::hash::BuildHasher>(trials: impl IntoTrials<RandomState>, filter: impl IntoTagsFilter<RandomState>) -> ::std::process::ExitCode {
     let args = ::libtest_mimic::Arguments::from_args();
-    let trials = trials.into_trials().into_iter().collect();
+
+    let filter = filter.into_filter();
+    let trials = trials.into_trials(filter).into_iter().collect();
+
     let conclusion = ::libtest_mimic::run(&args, trials);
     conclusion.exit_code()
 }
 
 #[sealed]
-impl<World, RandomState: ::core::hash::BuildHasher> IntoTrials for Suite<World, RandomState> {
-    fn into_trials(self) -> impl IntoIterator<Item =  ::libtest_mimic::Trial>  {
+pub trait IntoTagsFilter<RandomState: ::core::hash::BuildHasher> {
+    fn into_filter(self) -> impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone;
+}
+
+#[sealed]
+impl<F, RandomState: ::core::hash::BuildHasher> IntoTagsFilter<RandomState> for F
+where
+    F: Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone,
+{
+    fn into_filter(self) -> impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone {
+        self
+    }
+}
+
+#[sealed]
+impl<'a, T, RandomState: ::core::hash::BuildHasher> IntoTagsFilter<RandomState> for &'a [T]
+where
+    T: Into<::std::borrow::Cow<'static, str>> + ::core::clone::Clone,
+    RandomState: ::core::default::Default + ::core::clone::Clone,
+{
+    fn into_filter(self) -> impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone {
+        move |tags| {
+            let filter = Tags::from(self.iter().cloned().map(Into::into));
+            !filter.is_disjoint(tags)
+        }
+    }
+}
+
+#[sealed]
+impl<T, const N: usize, RandomState: ::core::hash::BuildHasher> IntoTagsFilter<RandomState> for [T; N]
+where
+    T: Into<::std::borrow::Cow<'static, str>> + ::core::clone::Clone,
+    RandomState: ::core::default::Default,
+{
+    fn into_filter(self) -> impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone {
+        move |tags| {
+            let filter = Tags::from(self.iter().cloned().map(Into::into));
+            !filter.is_disjoint(tags)
+        }
+    }
+}
+
+impl<RandomState: ::core::hash::BuildHasher> Tags<RandomState> {
+    fn is_disjoint(&self, other: &Tags<RandomState>) -> bool {
+        self.0.is_disjoint(&other.0)
+    }
+}
+
+#[sealed]
+pub trait IntoTrial<RandomState: ::core::hash::BuildHasher> {
+    fn into_trial(self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) -> ::libtest_mimic::Trial;
+}
+
+#[sealed]
+pub trait IntoTrials<RandomState: ::core::hash::BuildHasher> {
+    fn into_trials(self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) -> impl IntoIterator<Item = ::libtest_mimic::Trial>;
+}
+
+#[sealed]
+impl<World, RandomState: ::core::hash::BuildHasher> IntoTrials<RandomState> for Suite<World, RandomState> {
+    fn into_trials(mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) -> impl IntoIterator<Item = ::libtest_mimic::Trial> {
+        self.retain(filter);
+
         vec![]
     }
 }
 
-#[sealed]
-impl<World, RandomState: ::core::hash::BuildHasher> IntoTrial for (
-    Scenario<World, RandomState>,
-    &Feature<World, RandomState>,
-)
-where
-    World: ::core::default::Default + 'static,
-{
-    fn into_trial(self) ->  ::libtest_mimic::Trial {
-        let (scenario, feature) = self;
+// #[sealed]
+// impl<World, RandomState: ::core::hash::BuildHasher> IntoTrials<RandomState> for Suite<World, RandomState> {
+//     fn into_trials(self, filter: impl IntoTagsFilter<RandomState>) -> impl IntoIterator<Item = ::libtest_mimic::Trial> {
+//         let step_transformer = 
 
-
-
-        todo!()
-    }
-}
-
-// impl<World> Into<::libtest_mimic::Trial> for Scenario<World>
-// where
-//     World: ::core::default::Default + 'static,
-// {
-//     fn into(self) -> ::libtest_mimic::Trial {
-//         let description = self.description
-//             .unwrap_or_else(|| ::std::format!("{}; {}; {}", self.given, self.when, self.then).into());
-
-//         let callback = move || {
-//             let mut world = ::core::default::Default::default();
-            
-//             self.given.0.into_iter()
-//                 .map(|step| step.callback)
-//                 .try_for_each(|callback| (callback)(&mut world))?;
-
-//             self.when.0.into_iter()
-//                 .map(|step| step.callback)
-//                 .try_for_each(|callback| (callback)(&mut world))?;
-
-//             self.then.0.into_iter()
-//                 .map(|step| step.callback)
-//                 .try_for_each(|callback| (callback)(&world))?;
-
-//             Ok(())
-//         };
-
-//         into_trial(callback)
-//             .description(description)
-//             .ignored(self.ignored)
-//             .tags(self.tags)
-//             .call()
+//         ::std::vec![]
 //     }
 // }
 
-#[sealed]
-pub trait IntoTrial {
-    fn into_trial(self) -> ::libtest_mimic::Trial;
+trait Retain<RandomState: ::core::hash::BuildHasher> {
+    fn retain(&mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone);
 }
 
-#[sealed]
-pub trait IntoTrials {
-    fn into_trials(self) -> impl IntoIterator<Item = ::libtest_mimic::Trial>;
+impl<World, RandomState: ::core::hash::BuildHasher> Retain<RandomState> for Suite<World, RandomState> {
+    fn retain(&mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) {
+        self.features.retain(|feature| feature.tags.as_ref().is_none_or(|tags| (filter)(&tags)));
+    }
+}
+
+impl<World, RandomState: ::core::hash::BuildHasher> Retain<RandomState> for Feature<World, RandomState> {
+    fn retain(&mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) {
+        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_none_or(|tags| (filter)(&tags)));
+        self.rules.retain(|rule| rule.tags.as_ref().is_none_or(|tags| (filter)(&tags)));
+
+        self.rules.iter_mut()
+            .for_each(|rule| rule.retain(filter.clone()));
+    }
+}
+
+impl<World, RandomState: ::core::hash::BuildHasher> Retain<RandomState> for Rule<World, RandomState> {
+    fn retain(&mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) {
+        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
+    }
 }
 
 #[::bon::builder]
@@ -166,7 +204,7 @@ impl ToDescription for StepLabel {
 
 #[sealed]
 trait IntoCallback<RandomState: ::core::hash::BuildHasher> {
-    fn into_callback(self, predicate: impl Fn(&Tags<RandomState>) -> bool) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static;
+    fn into_callback(self, filter: impl IntoTagsFilter<RandomState>) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static;
 }
 
 #[sealed]
@@ -178,11 +216,13 @@ impl<World, RandomState: ::core::hash::BuildHasher> IntoCallback<RandomState> fo
 where
     World: ::core::default::Default + 'static,
 {
-    fn into_callback(self, predicate: impl Fn(&Tags<RandomState>) -> bool) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static {
+    fn into_callback(self, filter: impl IntoTagsFilter<RandomState>) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static {
+        let filter = filter.into_filter();
+
         let (scenario, suite, feature) = self;
 
-        // ::core::assert!(feature.tags.as_ref().is_none_or(|feature_tags| !feature_tags.is_disjoint(tags)));
-        // ::core::assert!(scenario.tags.as_ref().is_none_or(|scenario_tags| !scenario_tags.is_disjoint(tags)));
+        ::core::assert!(feature.tags.as_ref().is_none_or(|tags| filter(&tags)));
+        ::core::assert!(scenario.tags.as_ref().is_none_or(|tags| filter(&tags)));
 
         move || {
             let mut world = ::core::default::Default::default();
@@ -197,15 +237,9 @@ where
 
             scenario.then.into_iter()
                 .map(|step| step.callback)
-                .try_for_each(|callback| (callback)(&world))?;
+                .try_for_each(|callback| (callback)(&mut world))?;
 
             Ok(())
         }
-    }
-}
-
-impl<RandomState: ::core::hash::BuildHasher> Tags<RandomState> {
-    fn is_disjoint(&self, other: &Tags<RandomState>) -> bool {
-        self.0.is_disjoint(&other.0)
     }
 }

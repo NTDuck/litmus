@@ -1,2 +1,0 @@
-
-yt-dlp -x --audio-format mp3 -o "%(title)s.%(ext)s" "https://www.youtube.com/@mai_dq/videos"
