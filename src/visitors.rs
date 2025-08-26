@@ -76,18 +76,23 @@ impl<World, RandomState: ::core::hash::BuildHasher> IntoTrials<RandomState> for 
     fn into_trials(mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) -> impl IntoIterator<Item = ::libtest_mimic::Trial> {
         self.retain(filter);
 
+        let scenario_step_transformer = move |step: Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>| |world: &mut World| {
+            self.before_step_hooks.into_iter()
+                .map(|hook| hook.callback)
+                .try_for_each(|hook| (hook)(world))?;
+
+            (step.callback)(world)?;
+
+            self.after_step_hooks.into_iter()
+                .map(|hook| hook.callback)
+                .try_for_each(|hook| (hook)(world))?;
+
+            Fallible::Ok(())
+        };
+
         vec![]
     }
 }
-
-// #[sealed]
-// impl<World, RandomState: ::core::hash::BuildHasher> IntoTrials<RandomState> for Suite<World, RandomState> {
-//     fn into_trials(self, filter: impl IntoTagsFilter<RandomState>) -> impl IntoIterator<Item = ::libtest_mimic::Trial> {
-//         let step_transformer = 
-
-//         ::std::vec![]
-//     }
-// }
 
 trait Retain<RandomState: ::core::hash::BuildHasher> {
     fn retain(&mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone);
@@ -95,14 +100,14 @@ trait Retain<RandomState: ::core::hash::BuildHasher> {
 
 impl<World, RandomState: ::core::hash::BuildHasher> Retain<RandomState> for Suite<World, RandomState> {
     fn retain(&mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) {
-        self.features.retain(|feature| feature.tags.as_ref().is_none_or(|tags| (filter)(&tags)));
+        self.features.retain(|feature| feature.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
     }
 }
 
 impl<World, RandomState: ::core::hash::BuildHasher> Retain<RandomState> for Feature<World, RandomState> {
     fn retain(&mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) {
-        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_none_or(|tags| (filter)(&tags)));
-        self.rules.retain(|rule| rule.tags.as_ref().is_none_or(|tags| (filter)(&tags)));
+        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
+        self.rules.retain(|rule| rule.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
 
         self.rules.iter_mut()
             .for_each(|rule| rule.retain(filter.clone()));
@@ -112,6 +117,24 @@ impl<World, RandomState: ::core::hash::BuildHasher> Retain<RandomState> for Feat
 impl<World, RandomState: ::core::hash::BuildHasher> Retain<RandomState> for Rule<World, RandomState> {
     fn retain(&mut self, filter: impl Fn(&Tags<RandomState>) -> bool + ::core::clone::Clone) {
         self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
+    }
+}
+
+impl<World, RandomState: ::core::hash::BuildHasher> Suite<World, RandomState> {
+    fn to_scenario_step_transformer(&self, step: Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static>>) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static {
+        move |world: &mut World| {
+            self.before_step_hooks.into_iter()
+                .map(|hook| hook.callback)
+                .try_for_each(|hook| (hook)(world))?;
+
+            (step.callback)(world)?;
+
+            self.after_step_hooks.into_iter()
+                .map(|hook| hook.callback)
+                .try_for_each(|hook| (hook)(world))?;
+
+            Ok(())
+        }
     }
 }
 
