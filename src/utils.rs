@@ -20,7 +20,16 @@ pub mod aliases {
         #[cfg(not(any(feature = "triomphe")))]
         pub type Arc<T> = ::std::sync::Arc<T>;
 
+        #[deprecated = "Deprecated due to missing required trait implementation:\n\
+        ```\n\
+        impl<T, U, A> ::std::ops::CoerceUnsized<::triomphe::Arc<U, A>> for ::triomphe::Arc<T, A>\n\
+        where\n\
+            T: ::core::marker::Unsize<U> + ?::core::marker::Sized,\n\
+            A: ::std::alloc::Allocator,\n\
+            U: ?::core::marker::Sized,\n\
+        ```\n\\"]
         #[cfg(feature = "triomphe")]
         pub type Arc<T> = ::triomphe::Arc<T>;
+
     }
 }

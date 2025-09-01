@@ -10,7 +10,7 @@ categories = ["development-tools::testing"]
 publish = true
 
 [features]
-default = ["libtest-mimic", "seahash", "triomphe"]
+default = ["libtest-mimic", "seahash"]
 ahash = ["dep:ahash"]
 fxhash = ["dep:fxhash"]
 metrohash = ["dep:metrohash"]
