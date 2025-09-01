@@ -1501,7 +1501,7 @@ where
     }
 }
 
-mod marker {
+pub(crate) mod marker {
     pub(super) use super::*;
 
     #[sealed]

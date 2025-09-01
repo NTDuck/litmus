@@ -24,23 +24,24 @@ pub struct Runner {
     after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
 }
 
+#[derive(::core::default::Default)]
 struct RunnerConfigurations {
-    ignore_filter: IgnoreFilter,
+    ignore_policy: IgnorePolicy,
     tags_filter: ::core::option::Option<::std::boxed::Box<dyn Fn(&Tags) -> bool>>,
-
+    
+    /* Used by ::libtest_mimic::Arguments */
     format: FormatPolicy,
     color: ColorPolicy,
-
     threads: ::core::option::Option<u64>,
     logfile: ::core::option::Option<::std::borrow::Cow<'static, ::std::path::Path>>,
 }
 
 #[derive(::core::default::Default)]
-pub enum IgnoreFilter {
+enum IgnorePolicy {
     #[default]
-    RunNonIgnoredOnly,
-    RunIgnoredOnly,
-    RunBothIgnoredAndUnignored,
+    RetainIgnored,
+    RetainUnignored,
+    None,
 }
 
 #[sealed]
@@ -155,13 +156,177 @@ mod builder {
         pub(super) use super::*;
     }
 
-    pub struct RunnerBuilder {
+    pub struct RunnerBuilder<State: self::runner::BuilderState = self::runner::Empty> {
         trials: ::std::vec::Vec<::libtest_mimic::Trial>,
 
         configurations: RunnerConfigurations,
 
         before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-        after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,      
+        after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+
+        __phantom: self::marker::PhantomCovariant<State>,
+    }
+
+    impl Runner {
+        pub fn new() -> RunnerBuilder {
+            RunnerBuilder {
+                trials: ::core::default::Default::default(),
+
+                configurations: ::core::default::Default::default(),
+
+                before_global_hooks: ::core::default::Default::default(),
+                after_global_hooks: ::core::default::Default::default(),
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+    }
+
+    impl<State: self::runner::BuilderState> RunnerBuilder<State> {
+
+    }
+
+    mod runner {
+        use seahash::State;
+
+        pub(super) use super::*;
+
+        #[sealed]
+        pub trait BuilderState: ::core::marker::Sized {
+            type Trials;
+
+            type IgnorePolicy;
+            type TagsFilter;
+
+            type Format;
+            type Color;
+            type Threads;
+            type LogFile;
+        }
+
+        #[sealed]
+        pub trait IsComplete: BuilderState<Trials: self::marker::IsSet> {}
+
+        #[sealed]
+        impl<State: BuilderState> IsComplete for State
+        where
+            State::Trials: self::marker::IsSet,
+        {
+        }
+
+        pub struct Empty;
+
+        pub struct SetTrials<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+
+        pub struct SetIgnorePolicy<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+        pub struct SetTagsFilter<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+
+        pub struct SetFormat<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+        pub struct SetColor<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+        pub struct SetThreads<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+        pub struct SetLogFile<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+
+        #[sealed]
+        impl BuilderState for Empty {
+            type Trials = self::marker::Unset<self::members::Trials>;
+            type IgnorePolicy = self::marker::Unset<self::members::IgnorePolicy>;
+            type TagsFilter = self::marker::Unset<self::members::TagsFilter>;
+
+            type Format = self::marker::Unset<self::members::Format>;
+            type Color = self::marker::Unset<self::members::Color>;
+            type Threads = self::marker::Unset<self::members::Threads>;
+            type LogFile = self::marker::Unset<self::members::LogFile>;
+        }
+
+        #[sealed]
+        impl<State: BuilderState> BuilderState for SetIgnorePolicy<State> {
+            type Trials = State::Trials;
+
+            type IgnorePolicy = self::marker::Set<self::members::IgnorePolicy>;
+            type TagsFilter = State::TagsFilter;
+
+            type Format = State::Format;
+            type Color = State::Color;
+            type Threads = State::Threads;
+            type LogFile = State::LogFile;
+        }
+
+        #[sealed]
+        impl<State: BuilderState> BuilderState for SetTagsFilter<State> {
+            type Trials = State::Trials;
+
+            type IgnorePolicy = State::IgnorePolicy;
+            type TagsFilter = self::marker::Set<self::members::TagsFilter>;
+
+            type Format = State::Format;
+            type Color = State::Color;
+            type Threads = State::Threads;
+            type LogFile = State::LogFile;
+        }
+
+        #[sealed]
+        impl<State: BuilderState> BuilderState for SetFormat<State> {
+            type Trials = State::Trials;
+            
+            type IgnorePolicy = State::IgnorePolicy;
+            type TagsFilter = State::TagsFilter;
+
+            type Format = self::marker::Set<self::members::Format>;
+            type Color = State::Color;
+            type Threads = State::Threads;
+            type LogFile = State::LogFile;
+        }
+
+        #[sealed]
+        impl<State: BuilderState> BuilderState for SetColor<State> {
+            type Trials = State::Trials;
+            
+            type IgnorePolicy = State::IgnorePolicy;
+            type TagsFilter = State::TagsFilter;
+
+            type Format = State::Format;
+            type Color = self::marker::Set<self::members::Color>;
+            type Threads = State::Threads;
+            type LogFile = State::LogFile;
+        }
+
+        #[sealed]
+        impl<State: BuilderState> BuilderState for SetThreads<State> {
+            type Trials = State::Trials;
+            
+            type IgnorePolicy = State::IgnorePolicy;
+            type TagsFilter = State::TagsFilter;
+
+            type Format = State::Format;
+            type Color = State::Color;
+            type Threads = self::marker::Set<self::members::Threads>;
+            type LogFile = State::LogFile;
+        }
+
+        #[sealed]
+        impl<State: BuilderState> BuilderState for SetLogFile<State> {
+            type Trials = State::Trials;
+            
+            type IgnorePolicy = State::IgnorePolicy;
+            type TagsFilter = State::TagsFilter;
+
+            type Format = State::Format;
+            type Color = State::Color;
+            type Threads = State::Threads;
+            type LogFile = self::marker::Set<self::members::LogFile>;
+        }
+
+        mod members {
+            pub struct Trials;
+
+            pub struct IgnorePolicy;
+            pub struct TagsFilter;
+            
+            pub struct Format;
+            pub struct Color;
+            pub struct Threads;
+            pub struct LogFile;
+        }
     }
 
     pub struct SuiteBuilder<World> {
@@ -287,7 +452,7 @@ mod builder {
 }
 
 trait RetainByIgnored {
-    fn retain(&mut self, filter: IgnoreFilter);
+    fn retain(&mut self, filter: IgnorePolicy);
 }
 
 trait RetainByTags {
