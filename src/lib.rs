@@ -5,7 +5,6 @@ pub mod visitors;
 
 mod utils;
 
-pub use self::assertions::*;
 pub use self::builders::*;
 pub use self::models::*;
 pub use self::visitors::*;

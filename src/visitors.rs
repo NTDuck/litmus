@@ -3,118 +3,67 @@ use ::sealed::sealed;
 use crate::models::*;
 use crate::utils::aliases;
 
-/*
-ok ok so heres idea
-runner -> suite becomes a part of visitors
-suite accepts features + worldful hooks
-runner accepts suites + individual features (will be exec-ed without hooks in mind)
-there are hookful runner and hookless runner, will be impl in private API DEBUNKED
-runner func is run
-runner can be configured
-child thingies get access to runner configuration, gherkin has none, visit libtest mimic for intel
-whoopes!!!
-*/
-
 pub struct Runner {
     trials: ::std::vec::Vec<::libtest_mimic::Trial>,
 
-    configurations: RunnerConfigurations,
+    configurations: self::configurations::RunnerConfigurations,
 
     before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
     after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
 }
 
-#[derive(::core::default::Default)]
-struct RunnerConfigurations {
-    ignore_policy: IgnorePolicy,
-    tags_filter: ::core::option::Option<::std::boxed::Box<dyn Fn(&Tags) -> bool>>,
-    
-    /* Used by ::libtest_mimic::Arguments */
-    format: Format,
-    color: Color,
-    threads: ::core::option::Option<u64>,
-    logfile: ::core::option::Option<::std::borrow::Cow<'static, ::std::path::Path>>,
-}
+pub use configurations as config;
 
-#[derive(::core::default::Default, ::core::clone::Clone, ::core::marker::Copy)]
-enum IgnorePolicy {
-    #[default]
-    RetainIgnored,
-    RetainUnignored,
-    None,
-}
+pub mod configurations {
+    pub(super) use super::*;
 
-#[sealed]
-pub trait IntoTagsFilter {
-    fn into_filter(self) -> impl Fn(&Tags) -> bool;
-
-    fn chain(self, other: impl IntoTagsFilter) -> impl Fn(&Tags) -> bool
-    where
-        Self: ::core::marker::Sized,
-    {
-        let this = self.into_filter();
-        let other = other.into_filter();
-
-        move |tags| this(tags) && other(tags)
+    #[derive(::core::default::Default)]
+    pub(crate) struct RunnerConfigurations {
+        pub(crate) ignore_policy: IgnorePolicy,
+        pub(crate) tags_filter: ::core::option::Option<::std::boxed::Box<dyn Fn(&Tags) -> bool>>,
+        
+        /* Used by `::libtest_mimic::Arguments` */
+        pub(crate) format: Format,
+        pub(crate) color: Color,
+        pub(crate) threads: ::core::option::Option<ThreadsCount>,
+        pub(crate) logfile: ::core::option::Option<::std::borrow::Cow<'static, ::std::path::Path>>,
     }
-}
 
-#[sealed]
-impl<F> IntoTagsFilter for F
-where
-    F: Fn(&Tags) -> bool,
-{
-    fn into_filter(self) -> impl Fn(&Tags) -> bool {
-        self
+    #[derive(::core::default::Default, ::core::clone::Clone, ::core::marker::Copy)]
+    pub(crate) enum IgnorePolicy {
+        RetainIgnored,
+
+        #[default]
+        RetainUnignored,
+        
+        None,
     }
-}
 
-#[sealed]
-impl<'a, T> IntoTagsFilter for &'a [T]
-where
-    T: Into<::std::borrow::Cow<'static, str>> + ::core::clone::Clone,
-{
-    fn into_filter(self) -> impl Fn(&Tags) -> bool {
-        move |tags| {
-            let filter = Tags::from(self.iter().cloned().map(Into::into));
-            !filter.is_disjoint(tags)
-        }
+    #[derive(::core::default::Default)]
+    pub enum Format {
+        #[default]
+        Pretty,
+        Terse,
+        Json,
     }
-}
 
-#[sealed]
-impl<T, const N: usize> IntoTagsFilter for [T; N]
-where
-    T: Into<::std::borrow::Cow<'static, str>> + ::core::clone::Clone,
-{
-    fn into_filter(self) -> impl Fn(&Tags) -> bool {
-        move |tags| {
-            let filter = Tags::from(self.iter().cloned().map(Into::into));
-            !filter.is_disjoint(tags)
-        }
+    #[derive(::core::default::Default)]
+    pub enum Color {
+        #[default]
+        Auto,
+        Always,
+        Never,
     }
-}
 
-impl Tags {
-    fn is_disjoint(&self, other: &Tags) -> bool {
-        self.0.is_disjoint(&other.0)
+    pub enum ThreadsCount {
+        #[cfg(feature = "num-cpus")]
+        LogicalCores,
+
+        #[cfg(feature = "num-cpus")]
+        PhysicalCores,
+
+        Custom(u64),
     }
-}
-
-#[derive(::core::default::Default)]
-pub enum Format {
-    #[default]
-    Pretty,
-    Terse,
-    Json,
-}
-
-#[derive(::core::default::Default)]
-pub enum Color {
-    #[default]
-    Auto,
-    Always,
-    Never,
 }
 
 pub struct Suite<World> {
@@ -135,7 +84,7 @@ mod builder {
     pub struct RunnerBuilder<State: self::runner::BuilderState = self::runner::Empty> {
         trials: ::std::vec::Vec<::libtest_mimic::Trial>,
 
-        configurations: RunnerConfigurations,
+        configurations: self::configurations::RunnerConfigurations,
 
         before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
         after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
@@ -167,25 +116,7 @@ mod builder {
         where
             State::IgnorePolicy: self::marker::IsUnset,
         {
-            self.configurations.ignore_policy = IgnorePolicy::RetainIgnored;
-
-            RunnerBuilder {
-                trials: self.trials,
-
-                configurations: self.configurations,
-
-                before_global_hooks: self.before_global_hooks,
-                after_global_hooks: self.after_global_hooks,
-
-                __phantom: ::core::default::Default::default(),
-            }
-        }
-
-        pub fn exclude_ignored(mut self) -> RunnerBuilder<self::runner::SetIgnorePolicy<State>>
-        where
-            State::IgnorePolicy: self::marker::IsUnset,
-        {
-            self.configurations.ignore_policy = IgnorePolicy::RetainUnignored;
+            self.configurations.ignore_policy = self::configurations::IgnorePolicy::RetainIgnored;
 
             RunnerBuilder {
                 trials: self.trials,
@@ -203,7 +134,7 @@ mod builder {
         where
             State::IgnorePolicy: self::marker::IsUnset,
         {
-            self.configurations.ignore_policy = IgnorePolicy::None;
+            self.configurations.ignore_policy = self::configurations::IgnorePolicy::None;
 
             RunnerBuilder {
                 trials: self.trials,
@@ -238,7 +169,7 @@ mod builder {
             }
         }
 
-        pub fn format(mut self, value: Format) -> RunnerBuilder<self::runner::SetFormat<State>>
+        pub fn format(mut self, value: self::configurations::Format) -> RunnerBuilder<self::runner::SetFormat<State>>
         where
             State::Format: self::marker::IsUnset,
         {
@@ -256,7 +187,7 @@ mod builder {
             }
         }
 
-        pub fn color(mut self, value: Color) -> RunnerBuilder<self::runner::SetColor<State>>
+        pub fn color(mut self, value: self::configurations::Color) -> RunnerBuilder<self::runner::SetColor<State>>
         where
             State::Color: self::marker::IsUnset,
         {
@@ -274,7 +205,7 @@ mod builder {
             }
         }
 
-        pub fn threads(mut self, value: impl Into<u64>) -> RunnerBuilder<self::runner::SetThreads<State>>
+        pub fn threads(mut self, value: impl Into<self::configurations::ThreadsCount>) -> RunnerBuilder<self::runner::SetThreads<State>>
         where
             State::Threads: self::marker::IsUnset,
         {
@@ -613,6 +544,57 @@ mod builder {
         }
     }
 
+    #[sealed]
+    pub trait IntoTagsFilter {
+        fn into_filter(self) -> impl Fn(&Tags) -> bool;
+
+        fn chain(self, other: impl IntoTagsFilter) -> impl Fn(&Tags) -> bool
+        where
+            Self: ::core::marker::Sized,
+        {
+            let this = self.into_filter();
+            let other = other.into_filter();
+
+            move |tags| this(tags) && other(tags)
+        }
+    }
+
+    #[sealed]
+    impl<F> IntoTagsFilter for F
+    where
+        F: Fn(&Tags) -> bool,
+    {
+        fn into_filter(self) -> impl Fn(&Tags) -> bool {
+            self
+        }
+    }
+
+    #[sealed]
+    impl<'a, T> IntoTagsFilter for &'a [T]
+    where
+        T: Into<::std::borrow::Cow<'static, str>> + ::core::clone::Clone,
+    {
+        fn into_filter(self) -> impl Fn(&Tags) -> bool {
+            move |tags| {
+                let filter = Tags::from(self.iter().cloned().map(Into::into));
+                !filter.is_disjoint(tags)
+            }
+        }
+    }
+
+    #[sealed]
+    impl<T, const N: usize> IntoTagsFilter for [T; N]
+    where
+        T: Into<::std::borrow::Cow<'static, str>> + ::core::clone::Clone,
+    {
+        fn into_filter(self) -> impl Fn(&Tags) -> bool {
+            move |tags| {
+                let filter = Tags::from(self.iter().cloned().map(Into::into));
+                !filter.is_disjoint(tags)
+            }
+        }
+    }
+
     pub struct SuiteBuilder<World> {
         features: ::std::vec::Vec<Feature<World>>,
 
@@ -742,14 +724,14 @@ mod builder {
 }
 
 trait RetainByIgnorePolicy {
-    fn retain(&mut self, policy: IgnorePolicy);
+    fn retain(&mut self, policy: self::configurations::IgnorePolicy);
 }
 
 impl<World> RetainByIgnorePolicy for Suite<World> {
-    fn retain(&mut self, policy: IgnorePolicy) {
+    fn retain(&mut self, policy: self::configurations::IgnorePolicy) {
         match policy {
-            IgnorePolicy::RetainIgnored => self.features.retain(|features| features.ignored.as_ref().is_some_and(|ignored| *ignored)),
-            IgnorePolicy::RetainUnignored => self.features.retain(|features| features.ignored.as_ref().is_none_or(|ignored| !ignored)),
+            self::configurations::IgnorePolicy::RetainIgnored => self.features.retain(|features| features.ignored.as_ref().is_some_and(|ignored| *ignored)),
+            self::configurations::IgnorePolicy::RetainUnignored => self.features.retain(|features| features.ignored.as_ref().is_none_or(|ignored| !ignored)),
             _ => {},
         }
 
@@ -759,16 +741,22 @@ impl<World> RetainByIgnorePolicy for Suite<World> {
 }
 
 impl<World> RetainByIgnorePolicy for Feature<World> {
-    fn retain(&mut self, policy: IgnorePolicy) {
+    fn retain(&mut self, policy: self::configurations::IgnorePolicy) {
         match policy {
-            IgnorePolicy::RetainIgnored => {
+            self::configurations::IgnorePolicy::RetainIgnored => {
+                self.background = self.background.take()
+                    .filter(|background| background.ignored.as_ref().is_some_and(|ignored| *ignored));
                 self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_some_and(|ignored| *ignored));
                 self.rules.retain(|rule| rule.ignored.as_ref().is_some_and(|ignored| *ignored));
             },
-            IgnorePolicy::RetainUnignored => {
+
+            self::configurations::IgnorePolicy::RetainUnignored => {
+                self.background = self.background.take()
+                    .filter(|background| background.ignored.as_ref().is_none_or(|ignored| !ignored));
                 self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_none_or(|ignored| !ignored));
                 self.rules.retain(|rule| rule.ignored.as_ref().is_none_or(|ignored| !ignored));
             },
+
             _ => {},
         }
 
@@ -778,10 +766,20 @@ impl<World> RetainByIgnorePolicy for Feature<World> {
 }
 
 impl<World> RetainByIgnorePolicy for Rule<World> {
-    fn retain(&mut self, policy: IgnorePolicy) {
+    fn retain(&mut self, policy: self::configurations::IgnorePolicy) {
         match policy {
-            IgnorePolicy::RetainIgnored => self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_some_and(|ignored| *ignored)),
-            IgnorePolicy::RetainUnignored => self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_none_or(|ignored| !ignored)),
+            self::configurations::IgnorePolicy::RetainIgnored => {
+                self.background = self.background.take()
+                    .filter(|background| background.ignored.as_ref().is_some_and(|ignored| *ignored));
+                self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_some_and(|ignored| *ignored));
+            },
+
+            self::configurations::IgnorePolicy::RetainUnignored => {
+                self.background = self.background.take()
+                    .filter(|background| background.ignored.as_ref().is_none_or(|ignored| !ignored));
+                self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_none_or(|ignored| !ignored));
+            },
+
             _ => {},
         }
     }
@@ -1014,7 +1012,10 @@ trait ToDescription {
 
 impl<World> ToDescription for Scenario<World> {
     fn to_description(&self) -> ::std::borrow::Cow<'static, str> {
-        ::std::format!("{}; {}; {}", self.given.to_description(), self.when.to_description(), self.then.to_description()).into()
+        match self.description {
+            Some(ref description) => description.clone(),
+            None => ::std::format!("{}; {}; {}", self.given.to_description(), self.when.to_description(), self.then.to_description()).into()
+        }
     }
 }
 
@@ -1155,31 +1156,45 @@ impl Runner {
     }
 }
 
-impl RunnerConfigurations {
+impl self::configurations::RunnerConfigurations {
     fn update(self, args: &mut ::libtest_mimic::Arguments) {
         args.format = ::core::option::Option::from(self.format).map(Into::into);
         args.color = ::core::option::Option::from(self.color).map(Into::into);
-        args.test_threads = self.threads.map(|threads| threads as usize);
+        args.test_threads = self.threads.map(Into::into);
         args.logfile = self.logfile.map(|path| path.to_string_lossy().into_owned());
     }
 }
 
-impl From<Format> for ::libtest_mimic::FormatSetting {
-    fn from(policy: Format) -> Self {
-        match policy {
-            Format::Pretty => Self::Pretty,
-            Format::Terse => Self::Terse,
-            Format::Json => Self::Json,
+impl From<self::configurations::Format> for ::libtest_mimic::FormatSetting {
+    fn from(format: self::configurations::Format) -> Self {
+        match format {
+            self::configurations::Format::Pretty => Self::Pretty,
+            self::configurations::Format::Terse => Self::Terse,
+            self::configurations::Format::Json => Self::Json,
         }
     }
 }
 
-impl From<Color> for ::libtest_mimic::ColorSetting {
-    fn from(policy: Color) -> Self {
-        match policy {
-            Color::Auto => Self::Auto,
-            Color::Always => Self::Always,
-            Color::Never => Self::Never,
+impl From<self::configurations::Color> for ::libtest_mimic::ColorSetting {
+    fn from(color: self::configurations::Color) -> Self {
+        match color {
+            self::configurations::Color::Auto => Self::Auto,
+            self::configurations::Color::Always => Self::Always,
+            self::configurations::Color::Never => Self::Never,
+        }
+    }
+}
+
+impl From<self::configurations::ThreadsCount> for usize {
+    fn from(threads: self::configurations::ThreadsCount) -> Self {
+        match threads {
+            #[cfg(feature = "num-cpus")]
+            configurations::ThreadsCount::LogicalCores => ::num_cpus::get(),
+
+            #[cfg(feature = "num-cpus")]
+            configurations::ThreadsCount::PhysicalCores => ::num_cpus::get_physical(),
+
+            configurations::ThreadsCount::Custom(threads) => threads as usize,
         }
     }
 }

@@ -1,24 +1,33 @@
-use litmus::{Background, Scenario};
-
-fn main() {
-    let _b = Background::builder()
-        .description("background")
-        .ignored(false)
-        .given("given", |i| *i = 0)
-        .and("given", |i| *i += 1)
-        .but("given", |i| *i += 1)
+fn main() -> ::std::process::ExitCode {
+    let runner = ::litmus::Runner::builder()
+        .include_ignored()
+        .color(::litmus::config::Color::Auto)
+        .format(::litmus::config::Format::Terse)
+        .feature(::litmus::Feature::builder()
+            .scenario(::litmus::Scenario::builder()
+                .given("0", |i| *i = 0)
+                .when("adding 1", |i| *i += 1)
+                .and("adding 1 again", |i| *i += 1)
+                .then("it equals 2", |i| ::litmus::assert!(*i == 2))
+                .and("it does not equal 49", |i| ::litmus::assert!(*i != 49))
+                .build())
+            .build())
         .build();
 
-    let _s = Scenario::builder()
-        // .description("scenario")
-        .ignored(false)
-        .tags(["tag0", "tag1"])
-        .given("0", |i| *i = 0)
-        .when("adding 1", |i| *i += 1)
-        .and("adding 1 again", |i| *i += 2)
-        .then("it equals 2", |i| ::litmus::assert!(*i == 2))
-        .and("it does not equal 49", |i| ::litmus::assert!(*i != 49))
-        .build();
+    runner.run()
 
-    // litmus::run([_s]);
+    /*
+    ::litmus::Runner::new()
+        .include_ignored()
+        .color(::litmus::config::Color::Auto)
+        .format(::litmus::config::Format::Terse)
+        .feature(::litmus::Feature::new()
+            .scenario(::litmus::Scenario::new()
+                .given("0", |i| *i = 0)
+                .when("adding 1", |i| *i += 1)
+                .and("adding 1 again", |i| *i += 1)
+                .then("it equals 2", |i| ::litmus::assert!(*i == 2))
+                .and("it does not equal 49", |i| ::litmus::assert!(*i != 49))))
+        .run();
+     */
 }

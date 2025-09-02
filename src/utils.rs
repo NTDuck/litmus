@@ -30,6 +30,5 @@ pub mod aliases {
         ```\n\\"]
         #[cfg(feature = "triomphe")]
         pub type Arc<T> = ::triomphe::Arc<T>;
-
     }
 }

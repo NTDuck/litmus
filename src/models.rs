@@ -1,6 +1,7 @@
 use crate::utils::aliases;
 
 pub struct Feature<World> {
+    #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     pub(crate) ignored: ::core::option::Option<bool>,
     pub(crate) tags: ::core::option::Option<Tags>,
@@ -11,6 +12,7 @@ pub struct Feature<World> {
 }
 
 pub struct Rule<World> {
+    #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     pub(crate) ignored: ::core::option::Option<bool>,
     pub(crate) tags: ::core::option::Option<Tags>,
@@ -30,6 +32,7 @@ pub struct Scenario<World> {
 }
 
 pub struct Background<World> {
+    #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     pub(crate) ignored: ::core::option::Option<bool>,
 
@@ -51,6 +54,14 @@ pub(crate) struct Step<Callback> {
 
 #[derive(::core::clone::Clone)]
 pub struct Tags(pub(crate) ::std::collections::HashSet<::std::borrow::Cow<'static, str>, aliases::hash::BuildHasher>);
+
+impl ::std::ops::Deref for Tags {
+    type Target = ::std::collections::HashSet<::std::borrow::Cow<'static, str>, aliases::hash::BuildHasher>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(::core::clone::Clone, ::core::marker::Copy)]
 pub(crate) enum StepLabel {
