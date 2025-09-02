@@ -17,6 +17,3 @@ pub use self::visitors::*;
     all(feature = "seahash", any(feature = "ahash", feature = "fxhash", feature = "metrohash")),
 ))]
 ::core::compile_error!("The following feature flags are mutually exclusive: `ahash`, `fxhash`, `metrohash`, `seahash`");
-
-// #[cfg(any(feature = "triomphe"))]
-// ::core::compile_error!("The following feature flags are deprecated: `triomphe`");

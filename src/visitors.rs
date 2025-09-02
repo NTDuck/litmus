@@ -30,13 +30,13 @@ struct RunnerConfigurations {
     tags_filter: ::core::option::Option<::std::boxed::Box<dyn Fn(&Tags) -> bool>>,
     
     /* Used by ::libtest_mimic::Arguments */
-    format: FormatPolicy,
-    color: ColorPolicy,
+    format: Format,
+    color: Color,
     threads: ::core::option::Option<u64>,
     logfile: ::core::option::Option<::std::borrow::Cow<'static, ::std::path::Path>>,
 }
 
-#[derive(::core::default::Default)]
+#[derive(::core::default::Default, ::core::clone::Clone, ::core::marker::Copy)]
 enum IgnorePolicy {
     #[default]
     RetainIgnored,
@@ -102,39 +102,19 @@ impl Tags {
 }
 
 #[derive(::core::default::Default)]
-pub enum FormatPolicy {
+pub enum Format {
     #[default]
     Pretty,
     Terse,
     Json,
 }
 
-impl From<FormatPolicy> for ::libtest_mimic::FormatSetting {
-    fn from(policy: FormatPolicy) -> Self {
-        match policy {
-            FormatPolicy::Pretty => Self::Pretty,
-            FormatPolicy::Terse => Self::Terse,
-            FormatPolicy::Json => Self::Json,
-        }
-    }
-}
-
 #[derive(::core::default::Default)]
-pub enum ColorPolicy {
+pub enum Color {
     #[default]
     Auto,
     Always,
     Never,
-}
-
-impl From<ColorPolicy> for ::libtest_mimic::ColorSetting {
-    fn from(policy: ColorPolicy) -> Self {
-        match policy {
-            ColorPolicy::Auto => Self::Auto,
-            ColorPolicy::Always => Self::Always,
-            ColorPolicy::Never => Self::Never,
-        }
-    }
 }
 
 pub struct Suite<World> {
@@ -152,10 +132,6 @@ mod builder {
 
     use crate::builders::*;
 
-    mod suite {
-        pub(super) use super::*;
-    }
-
     pub struct RunnerBuilder<State: self::runner::BuilderState = self::runner::Empty> {
         trials: ::std::vec::Vec<::libtest_mimic::Trial>,
 
@@ -168,7 +144,7 @@ mod builder {
     }
 
     impl Runner {
-        pub fn new() -> RunnerBuilder {
+        pub fn builder() -> RunnerBuilder {
             RunnerBuilder {
                 trials: ::core::default::Default::default(),
 
@@ -182,18 +158,288 @@ mod builder {
         }
     }
 
-    impl<State: self::runner::BuilderState> RunnerBuilder<State> {
+    impl<State: self::runner::BuilderState> RunnerBuilder<State>
+    where
+        State::Hooks: self::marker::IsUnset,
+        State::Trials: self::marker::IsUnset,
+    {
+        pub fn include_only_ignored(mut self) -> RunnerBuilder<self::runner::SetIgnorePolicy<State>>
+        where
+            State::IgnorePolicy: self::marker::IsUnset,
+        {
+            self.configurations.ignore_policy = IgnorePolicy::RetainIgnored;
 
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn exclude_ignored(mut self) -> RunnerBuilder<self::runner::SetIgnorePolicy<State>>
+        where
+            State::IgnorePolicy: self::marker::IsUnset,
+        {
+            self.configurations.ignore_policy = IgnorePolicy::RetainUnignored;
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn include_ignored(mut self) -> RunnerBuilder<self::runner::SetIgnorePolicy<State>>
+        where
+            State::IgnorePolicy: self::marker::IsUnset,
+        {
+            self.configurations.ignore_policy = IgnorePolicy::None;
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn filter(mut self, value: impl IntoTagsFilter + 'static) -> RunnerBuilder<self::runner::SetTagsFilter<State>> {
+            self.configurations.tags_filter = ::core::option::Option::from(
+                ::std::boxed::Box::from(
+                    self.configurations.tags_filter.take()
+                        .unwrap_or_else(|| ::std::boxed::Box::new(|_| true))
+                        .chain(value)
+                ) as ::std::boxed::Box<dyn Fn(&Tags) -> bool>
+            );
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn format(mut self, value: Format) -> RunnerBuilder<self::runner::SetFormat<State>>
+        where
+            State::Format: self::marker::IsUnset,
+        {
+            self.configurations.format = value;
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn color(mut self, value: Color) -> RunnerBuilder<self::runner::SetColor<State>>
+        where
+            State::Color: self::marker::IsUnset,
+        {
+            self.configurations.color = value;
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn threads(mut self, value: impl Into<u64>) -> RunnerBuilder<self::runner::SetThreads<State>>
+        where
+            State::Threads: self::marker::IsUnset,
+        {
+            self.configurations.threads = ::core::option::Option::from(value.into());
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn logfile(mut self, value: impl Into<::std::borrow::Cow<'static, ::std::path::Path>>) -> RunnerBuilder<self::runner::SetLogFile<State>>
+        where
+            State::LogFile: self::marker::IsUnset,
+        {
+            self.configurations.logfile = ::core::option::Option::from(value.into());
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+    }
+
+    impl<State: self::runner::BuilderState> RunnerBuilder<State> {
+        pub fn before_all<Callback, Output>(mut self, tags: impl Into<Tags>, callback: Callback) -> RunnerBuilder<self::runner::SetHooks<State>>
+        where
+            Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+            Output: IntoFallible,
+        {
+            let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
+                as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+            let hook = Hook::builder()
+                .tags(tags)
+                .callback(callback)
+                .build();
+
+            self.before_global_hooks.push(hook);
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn after_all<Callback, Output>(mut self, tags: impl Into<Tags>, callback: Callback) -> RunnerBuilder<self::runner::SetHooks<State>>
+        where
+            Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+            Output: IntoFallible,
+        {
+            let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
+                as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+            let hook = Hook::builder()
+                .tags(tags)
+                .callback(callback)
+                .build();
+
+            self.after_global_hooks.push(hook);
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn suite<World>(mut self, suite: impl Into<Suite<World>>) -> RunnerBuilder<self::runner::SetTrials<State>>
+        where
+            World: ::core::default::Default + 'static,
+        {
+            let mut suite = suite.into();
+            
+            RetainByIgnorePolicy::retain(&mut suite, self.configurations.ignore_policy);
+
+            self.configurations.tags_filter.as_ref()
+                .map(|filter| RetainByTagsFilter::retain(&mut suite, filter));
+
+            self.trials.extend(suite.into_trials());
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+
+        pub fn feature<World>(mut self, feature: impl Into<Feature<World>>) -> RunnerBuilder<self::runner::SetTrials<State>>
+        where
+            World: ::core::default::Default + 'static,
+        {
+            let mut feature = feature.into();
+            
+            RetainByIgnorePolicy::retain(&mut feature, self.configurations.ignore_policy);
+
+            self.configurations.tags_filter.as_ref()
+                .map(|filter| RetainByTagsFilter::retain(&mut feature, filter));
+
+            self.trials.extend(feature.into_trials());
+
+            RunnerBuilder {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+
+                __phantom: ::core::default::Default::default(),
+            }
+        }
+    }
+
+    impl<State: self::runner::BuilderState> RunnerBuilder<State>
+    where
+        State: self::runner::IsComplete,
+    {
+        pub fn build(self) -> Runner {
+            Runner {
+                trials: self.trials,
+
+                configurations: self.configurations,
+
+                before_global_hooks: self.before_global_hooks,
+                after_global_hooks: self.after_global_hooks,
+            }
+        }
     }
 
     mod runner {
-        use seahash::State;
-
         pub(super) use super::*;
 
         #[sealed]
         pub trait BuilderState: ::core::marker::Sized {
             type Trials;
+            type Hooks;
 
             type IgnorePolicy;
             type TagsFilter;
@@ -217,6 +463,7 @@ mod builder {
         pub struct Empty;
 
         pub struct SetTrials<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
+        pub struct SetHooks<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
 
         pub struct SetIgnorePolicy<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
         pub struct SetTagsFilter<State: BuilderState = Empty>(self::marker::PhantomCovariant<State>);
@@ -229,6 +476,8 @@ mod builder {
         #[sealed]
         impl BuilderState for Empty {
             type Trials = self::marker::Unset<self::members::Trials>;
+            type Hooks = self::marker::Unset<self::members::Hooks>;
+
             type IgnorePolicy = self::marker::Unset<self::members::IgnorePolicy>;
             type TagsFilter = self::marker::Unset<self::members::TagsFilter>;
 
@@ -239,8 +488,37 @@ mod builder {
         }
 
         #[sealed]
+        impl<State: BuilderState> BuilderState for SetTrials<State> {
+            type Trials = self::marker::Set<self::members::Trials>;
+            type Hooks = State::Hooks;
+
+            type IgnorePolicy = State::IgnorePolicy;
+            type TagsFilter = State::TagsFilter;
+
+            type Format = State::Format;
+            type Color = State::Color;
+            type Threads = State::Threads;
+            type LogFile = State::LogFile;
+        }
+
+        #[sealed]
+        impl<State: BuilderState> BuilderState for SetHooks<State> {
+            type Trials = State::Trials;
+            type Hooks = self::marker::Set<self::members::Hooks>;
+
+            type IgnorePolicy = State::IgnorePolicy;
+            type TagsFilter = State::TagsFilter;
+
+            type Format = State::Format;
+            type Color = State::Color;
+            type Threads = State::Threads;
+            type LogFile = State::LogFile;
+        }
+
+        #[sealed]
         impl<State: BuilderState> BuilderState for SetIgnorePolicy<State> {
             type Trials = State::Trials;
+            type Hooks = State::Hooks;
 
             type IgnorePolicy = self::marker::Set<self::members::IgnorePolicy>;
             type TagsFilter = State::TagsFilter;
@@ -254,6 +532,7 @@ mod builder {
         #[sealed]
         impl<State: BuilderState> BuilderState for SetTagsFilter<State> {
             type Trials = State::Trials;
+            type Hooks = State::Hooks;
 
             type IgnorePolicy = State::IgnorePolicy;
             type TagsFilter = self::marker::Set<self::members::TagsFilter>;
@@ -267,6 +546,7 @@ mod builder {
         #[sealed]
         impl<State: BuilderState> BuilderState for SetFormat<State> {
             type Trials = State::Trials;
+            type Hooks = State::Hooks;
             
             type IgnorePolicy = State::IgnorePolicy;
             type TagsFilter = State::TagsFilter;
@@ -280,6 +560,7 @@ mod builder {
         #[sealed]
         impl<State: BuilderState> BuilderState for SetColor<State> {
             type Trials = State::Trials;
+            type Hooks = State::Hooks;
             
             type IgnorePolicy = State::IgnorePolicy;
             type TagsFilter = State::TagsFilter;
@@ -293,6 +574,7 @@ mod builder {
         #[sealed]
         impl<State: BuilderState> BuilderState for SetThreads<State> {
             type Trials = State::Trials;
+            type Hooks = State::Hooks;
             
             type IgnorePolicy = State::IgnorePolicy;
             type TagsFilter = State::TagsFilter;
@@ -306,6 +588,7 @@ mod builder {
         #[sealed]
         impl<State: BuilderState> BuilderState for SetLogFile<State> {
             type Trials = State::Trials;
+            type Hooks = State::Hooks;
             
             type IgnorePolicy = State::IgnorePolicy;
             type TagsFilter = State::TagsFilter;
@@ -318,6 +601,7 @@ mod builder {
 
         mod members {
             pub struct Trials;
+            pub struct Hooks;
 
             pub struct IgnorePolicy;
             pub struct TagsFilter;
@@ -449,24 +733,75 @@ mod builder {
             }
         }
     }
+
+    impl<World> From<SuiteBuilder<World>> for Suite<World> {
+        fn from(builder: SuiteBuilder<World>) -> Self {
+            builder.build()
+        }
+    }
 }
 
-trait RetainByIgnored {
-    fn retain(&mut self, filter: IgnorePolicy);
+trait RetainByIgnorePolicy {
+    fn retain(&mut self, policy: IgnorePolicy);
 }
 
-trait RetainByTags {
+impl<World> RetainByIgnorePolicy for Suite<World> {
+    fn retain(&mut self, policy: IgnorePolicy) {
+        match policy {
+            IgnorePolicy::RetainIgnored => self.features.retain(|features| features.ignored.as_ref().is_some_and(|ignored| *ignored)),
+            IgnorePolicy::RetainUnignored => self.features.retain(|features| features.ignored.as_ref().is_none_or(|ignored| !ignored)),
+            _ => {},
+        }
+
+        self.features.iter_mut()
+            .for_each(|feature| RetainByIgnorePolicy::retain(feature, policy));
+    }
+}
+
+impl<World> RetainByIgnorePolicy for Feature<World> {
+    fn retain(&mut self, policy: IgnorePolicy) {
+        match policy {
+            IgnorePolicy::RetainIgnored => {
+                self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_some_and(|ignored| *ignored));
+                self.rules.retain(|rule| rule.ignored.as_ref().is_some_and(|ignored| *ignored));
+            },
+            IgnorePolicy::RetainUnignored => {
+                self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_none_or(|ignored| !ignored));
+                self.rules.retain(|rule| rule.ignored.as_ref().is_none_or(|ignored| !ignored));
+            },
+            _ => {},
+        }
+
+        self.rules.iter_mut()
+            .for_each(|rule| RetainByIgnorePolicy::retain(rule, policy));
+    }
+}
+
+impl<World> RetainByIgnorePolicy for Rule<World> {
+    fn retain(&mut self, policy: IgnorePolicy) {
+        match policy {
+            IgnorePolicy::RetainIgnored => self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_some_and(|ignored| *ignored)),
+            IgnorePolicy::RetainUnignored => self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_none_or(|ignored| !ignored)),
+            _ => {},
+        }
+    }
+}
+
+trait RetainByTagsFilter {
     fn retain<Callback>(&mut self, filter: impl ::std::ops::Deref<Target = Callback> + ::core::clone::Clone)
     where
         Callback: Fn(&Tags) -> bool;
 }
 
-impl<World> RetainByTags for Suite<World> {
+impl<World> RetainByTagsFilter for Suite<World> {
     fn retain<Callback>(&mut self, filter: impl ::std::ops::Deref<Target = Callback> + ::core::clone::Clone)
     where
         Callback: Fn(&Tags) -> bool,
     {
         self.features.retain(|feature| feature.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
+
+        self.features.iter_mut()
+            .for_each(|feature| RetainByTagsFilter::retain(feature, filter.clone()));
 
         self.before_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
         self.after_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
@@ -476,7 +811,7 @@ impl<World> RetainByTags for Suite<World> {
     }
 }
 
-impl<World> RetainByTags for Feature<World> {
+impl<World> RetainByTagsFilter for Feature<World> {
     fn retain<Callback>(&mut self, filter: impl ::std::ops::Deref<Target = Callback> + ::core::clone::Clone)
     where
         Callback: Fn(&Tags) -> bool,
@@ -485,11 +820,11 @@ impl<World> RetainByTags for Feature<World> {
         self.rules.retain(|rule| rule.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
 
         self.rules.iter_mut()
-            .for_each(|rule| rule.retain(filter.clone()));
+            .for_each(|rule| RetainByTagsFilter::retain(rule, filter.clone()));
     }
 }
 
-impl<World> RetainByTags for Rule<World> {
+impl<World> RetainByTagsFilter for Rule<World> {
     fn retain<Callback>(&mut self, filter: impl ::std::ops::Deref<Target = Callback> + ::core::clone::Clone)
     where
         Callback: Fn(&Tags) -> bool,
@@ -614,7 +949,6 @@ where
 
         into_trial()
             .description(description)
-            .ignored(self.ignored)
             .tags(self.tags)
             .callback(callback)
             .call()
@@ -647,11 +981,31 @@ where
 
         into_trial()
             .description(description)
-            .ignored(self.ignored)
             .tags(self.tags)
             .callback(callback)
             .call()
     }
+}
+
+#[::bon::builder]
+#[builder(on(_, required))]
+fn into_trial(description: impl Into<::std::borrow::Cow<'static, str>>, tags: ::core::option::Option<impl Into<Tags>>, callback: impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ::libtest_mimic::Trial {
+    let callback = move || (callback)().map_err(|err| err.message.into());
+
+    let description = description.into();
+
+    let tags = tags
+        .map(Into::into)
+        .map(|tags| tags.to_description());
+
+    let trial = ::libtest_mimic::Trial::test(description, callback);
+    
+    let trial = match tags {
+        Some(tags) => trial.with_kind(tags),
+        None => trial,
+    };
+
+    trial
 }
 
 trait ToDescription {
@@ -703,33 +1057,6 @@ impl ToDescription for StepLabel {
             Self::But => "but".into(),
         }
     }
-}
-
-#[::bon::builder]
-#[builder(on(_, required))]
-fn into_trial(description: impl Into<::std::borrow::Cow<'static, str>>, ignored: ::core::option::Option<impl Into<bool>>, tags: ::core::option::Option<impl Into<Tags>>, callback: impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ::libtest_mimic::Trial {
-    let callback = move || (callback)().map_err(|err| err.message.into());
-
-    let description = description.into();
-    let ignored = ignored.map(Into::into);
-
-    let tags = tags
-        .map(Into::into)
-        .map(|tags| tags.to_description());
-
-    let trial = ::libtest_mimic::Trial::test(description, callback);
-    
-    let trial = match ignored {
-        Some(ignored) => trial.with_ignored_flag(ignored),
-        None => trial,
-    };
-
-    let trial = match tags {
-        Some(tags) => trial.with_kind(tags),
-        None => trial,
-    };
-
-    trial
 }
 
 trait ScenarioStepsExt<World> {
@@ -809,5 +1136,50 @@ impl GlobalHooksExt for ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> F
     fn to_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync {
         move || self.into_iter()
             .try_for_each(|hook| (hook.callback)())
+    }
+}
+
+impl Runner {
+    pub fn run(self) -> ::std::process::ExitCode {
+        let mut args = ::libtest_mimic::Arguments::from_args();
+        self.configurations.update(&mut args);
+
+        let _ = self.before_global_hooks.to_callback()();
+
+        let conclusion = ::libtest_mimic::run(&args, self.trials);
+        let exit_code = conclusion.exit_code();
+
+        let _ = self.after_global_hooks.to_callback()();
+
+        exit_code
+    }
+}
+
+impl RunnerConfigurations {
+    fn update(self, args: &mut ::libtest_mimic::Arguments) {
+        args.format = ::core::option::Option::from(self.format).map(Into::into);
+        args.color = ::core::option::Option::from(self.color).map(Into::into);
+        args.test_threads = self.threads.map(|threads| threads as usize);
+        args.logfile = self.logfile.map(|path| path.to_string_lossy().into_owned());
+    }
+}
+
+impl From<Format> for ::libtest_mimic::FormatSetting {
+    fn from(policy: Format) -> Self {
+        match policy {
+            Format::Pretty => Self::Pretty,
+            Format::Terse => Self::Terse,
+            Format::Json => Self::Json,
+        }
+    }
+}
+
+impl From<Color> for ::libtest_mimic::ColorSetting {
+    fn from(policy: Color) -> Self {
+        match policy {
+            Color::Auto => Self::Auto,
+            Color::Always => Self::Always,
+            Color::Never => Self::Never,
+        }
     }
 }
