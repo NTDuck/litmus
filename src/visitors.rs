@@ -108,6 +108,12 @@ mod builder {
     }
 
     impl Runner {
+        #[cfg(feature = "natural")]
+        #[inline(always)]
+        pub fn new() -> RunnerBuilder {
+            Self::builder()
+        }
+
         pub fn builder() -> RunnerBuilder {
             RunnerBuilder {
                 trials: ::core::default::Default::default(),
@@ -380,6 +386,12 @@ mod builder {
     where
         State: self::runner::IsComplete,
     {
+        #[cfg(feature = "natural")]
+        #[inline(always)]
+        pub fn run(self) -> ::std::process::ExitCode {
+            self.build().run()
+        }
+
         pub fn build(self) -> Runner {
             Runner {
                 trials: self.trials,
@@ -626,6 +638,12 @@ mod builder {
     }
 
     impl<World> Suite<World> {
+        #[cfg(feature = "natural")]
+        #[inline(always)]
+        pub fn new() -> SuiteBuilder<World> {
+            Self::builder()
+        }
+
         pub fn builder() -> SuiteBuilder<World> {
             SuiteBuilder {
                 features: ::core::default::Default::default(),
@@ -724,6 +742,7 @@ mod builder {
         }
     }
 
+    #[cfg(feature = "natural")]
     impl<World> From<SuiteBuilder<World>> for Suite<World> {
         fn from(builder: SuiteBuilder<World>) -> Self {
             builder.build()
@@ -863,12 +882,12 @@ where
                 self.before_step_hooks.clone(),
                 self.after_step_hooks.clone(),
             ]))
-            .flat_map(|(feature, context)| {
+            .flat_map(|(feature, hooks)| {
                 ::core::iter::Iterator::chain(
                     feature
                         .scenarios
                         .into_iter()
-                        .zip(::core::iter::repeat((context.clone(), [feature
+                        .zip(::core::iter::repeat((hooks.clone(), [feature
                             .background
                             .as_ref()
                             .map(|background| background.given.clone())])))
@@ -880,7 +899,7 @@ where
                         .map(move |(rule_scenarios, rule_background)| {
                             (
                                 rule_scenarios,
-                                (context.clone(), [
+                                (hooks.clone(), [
                                     feature.background.as_ref().map(|background| background.given.clone()),
                                     rule_background.as_ref().map(|background| background.given.clone()),
                                 ]),

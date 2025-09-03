@@ -4,25 +4,21 @@ struct World {
     capacity: usize,
 }
 
+#[rustfmt::skip]
 fn main() -> ::std::process::ExitCode {
-    #[rustfmt::skip]
-    let runner = ::litmus::Runner::builder()
+    ::litmus::Runner::new()
         .include_ignored()
         .color(::litmus::config::Color::Auto)
         .format(::litmus::config::Format::Terse)
-        .feature(::litmus::Feature::builder()
+        .feature(::litmus::Feature::new()
             .description("Eating too much cucumbers may not be good for you")
-            .scenario(::litmus::Scenario::builder()
+            .scenario(::litmus::Scenario::<World>::new()
                 .description("Eating a few isn't a problem")
-                .given("Alice is hungry", |w: &mut World| w.user = Some("Alice".to_owned()))
+                .given("Alice is hungry", |w| w.user = Some("Alice".to_owned()))
                 .when("she eats 3 cucumbers", |w| {
                     w.capacity += 3;
                     ::litmus::assert!(w.capacity < 4, "Alice exploded")
                 })
-                .then("she is full", |w| ::litmus::assert!(w.capacity == 3, "Alice isn't full!"))
-                .build())
-            .build())
-        .build();
-
-    runner.run()
+                .then("she is full", |w| ::litmus::assert!(w.capacity == 3, "Alice isn't full!"))))
+        .run()
 }
