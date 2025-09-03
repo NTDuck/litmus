@@ -36,7 +36,7 @@ harness = false
 ## Examples
 The [following example](./examples/hello-world.rs) replicates the [cucumber-rs example](https://cucumber-rs.github.io/cucumber/main/).
 ```rust
-# ./examples/hello-world.rs
+/// ./examples/hello-world.rs
 
 #[derive(::core::default::Default)]
 struct World {

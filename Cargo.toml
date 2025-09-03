@@ -1,6 +1,6 @@
 [package]
 name = "litmus"
-version = "0.5.0"
+version = "0.5.1"
 description = "a macro-free BDD test harness."
 edition = "2021"
 license = "BSD-3-Clause"
@@ -10,7 +10,8 @@ categories = ["development-tools::testing"]
 publish = true
 
 [features]
-default = ["libtest-mimic", "seahash", "num-cpus"]
+default = ["natural", "libtest-mimic", "seahash", "num-cpus"]
+natural = []
 ahash = ["dep:ahash"]
 fxhash = ["dep:fxhash"]
 libtest-mimic = ["dep:libtest-mimic"]

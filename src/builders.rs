@@ -16,6 +16,12 @@ pub struct FeatureBuilder<World, State: self::feature::BuilderState = self::feat
 }
 
 impl<World> Feature<World> {
+    #[cfg(feature = "natural")]
+    #[inline(always)]
+    pub fn new() -> FeatureBuilder<World> {
+        Self::builder()
+    }
+
     pub fn builder() -> FeatureBuilder<World> {
         FeatureBuilder {
             description: ::core::default::Default::default(),
@@ -182,6 +188,7 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
     }
 }
 
+#[cfg(feature = "natural")]
 impl<World, State: self::feature::BuilderState> From<FeatureBuilder<World, State>> for Feature<World> {
     fn from(builder: FeatureBuilder<World, State>) -> Self {
         builder.build()
@@ -269,6 +276,12 @@ pub struct RuleBuilder<World, State: self::rule::BuilderState = self::rule::Empt
 }
 
 impl<World> Rule<World> {
+    #[cfg(feature = "natural")]
+    #[inline(always)]
+    pub fn new() -> RuleBuilder<World> {
+        Self::builder()
+    }
+
     pub fn builder() -> RuleBuilder<World> {
         RuleBuilder {
             description: ::core::default::Default::default(),
@@ -408,6 +421,7 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
     }
 }
 
+#[cfg(feature = "natural")]
 impl<World, State: self::rule::BuilderState> From<RuleBuilder<World, State>> for Rule<World> {
     fn from(builder: RuleBuilder<World, State>) -> Self {
         builder.build()
@@ -498,6 +512,12 @@ pub struct ScenarioBuilder<World, State: self::scenario::BuilderState = self::sc
 }
 
 impl<World> Scenario<World> {
+    #[cfg(feature = "natural")]
+    #[inline(always)]
+    pub fn new() -> ScenarioBuilder<World> {
+        Self::builder()
+    }
+
     pub fn builder() -> ScenarioBuilder<World> {
         ScenarioBuilder {
             description: ::core::default::Default::default(),
@@ -873,6 +893,7 @@ where
     }
 }
 
+#[cfg(feature = "natural")]
 impl<World, State: self::scenario::BuilderState> From<ScenarioBuilder<World, State>> for Scenario<World>
 where
     State: self::scenario::IsComplete,
@@ -1014,6 +1035,12 @@ pub struct BackgroundBuilder<World, State: self::background::BuilderState = self
 }
 
 impl<World> Background<World> {
+    #[cfg(feature = "natural")]
+    #[inline(always)]
+    pub fn new() -> BackgroundBuilder<World> {
+        Self::builder()
+    }
+
     pub fn builder() -> BackgroundBuilder<World> {
         BackgroundBuilder {
             description: ::core::default::Default::default(),
@@ -1164,6 +1191,7 @@ where
     }
 }
 
+#[cfg(feature = "natural")]
 impl<World, State: self::background::BuilderState> From<BackgroundBuilder<World, State>> for Background<World>
 where
     State: self::background::IsComplete,
