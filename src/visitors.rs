@@ -328,7 +328,9 @@ mod builder {
 
             RetainByIgnorePolicy::retain(&mut suite, self.configurations.ignore_policy);
 
-            if let Some(filter) = self.configurations.tags_filter.as_ref() { RetainByTagsFilter::retain(&mut suite, filter) }
+            if let Some(filter) = self.configurations.tags_filter.as_ref() {
+                RetainByTagsFilter::retain(&mut suite, filter)
+            }
 
             self.trials.extend(suite.into_trials());
 
@@ -355,7 +357,9 @@ mod builder {
 
             RetainByIgnorePolicy::retain(&mut feature, self.configurations.ignore_policy);
 
-            if let Some(filter) = self.configurations.tags_filter.as_ref() { RetainByTagsFilter::retain(&mut feature, filter) }
+            if let Some(filter) = self.configurations.tags_filter.as_ref() {
+                RetainByTagsFilter::retain(&mut feature, filter)
+            }
 
             self.trials.extend(feature.into_trials());
 
