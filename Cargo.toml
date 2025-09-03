@@ -45,10 +45,10 @@ let_and_return = "allow"
 
 [[example]]
 name = "hello-world"
-path = "examples/hello-world.rs"
+path = "./examples/hello-world.rs"
 harness = false
 
 [[example]]
 name = "hello-world-cucumber"
-path = "examples/cucumber-rs/hello-world.rs"
+path = "./examples/cucumber-rs/hello-world.rs"
 harness = false
