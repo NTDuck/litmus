@@ -1,0 +1,5 @@
+[profile.default]
+default-filter = "!(kind(example) & binary(~cucumber-rs))"
+
+[profile.ci]
+fail-fast = false

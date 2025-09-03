@@ -28,4 +28,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build
-        run: cargo check --workspace --all-targets --all-features
+        run: cargo check --workspace --all-targets  # Removed `--all-features` due to mutually exlucisve feature flags
