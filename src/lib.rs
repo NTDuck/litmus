@@ -1,12 +1,14 @@
 pub mod assertions;
 pub mod builders;
 pub mod models;
+#[cfg(feature = "libtest-mimic")]
 pub mod visitors;
 
 mod utils;
 
 pub use self::builders::*;
 pub use self::models::*;
+#[cfg(feature = "libtest-mimic")]
 pub use self::visitors::*;
 
 #[cfg(any(
