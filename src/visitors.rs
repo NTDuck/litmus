@@ -601,6 +601,12 @@ mod builder {
         }
     }
 
+    impl From<u64> for self::configurations::ThreadsCount {
+        fn from(value: u64) -> Self {
+            Self::Custom(value)
+        }
+    }
+
     pub struct SuiteBuilder<World> {
         features: ::std::vec::Vec<Feature<World>>,
 
