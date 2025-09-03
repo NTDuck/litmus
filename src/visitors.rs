@@ -328,7 +328,7 @@ mod builder {
 
             RetainByIgnorePolicy::retain(&mut suite, self.configurations.ignore_policy);
 
-            self.configurations.tags_filter.as_ref().map(|filter| RetainByTagsFilter::retain(&mut suite, filter));
+            if let Some(filter) = self.configurations.tags_filter.as_ref() { RetainByTagsFilter::retain(&mut suite, filter) }
 
             self.trials.extend(suite.into_trials());
 
@@ -355,7 +355,7 @@ mod builder {
 
             RetainByIgnorePolicy::retain(&mut feature, self.configurations.ignore_policy);
 
-            self.configurations.tags_filter.as_ref().map(|filter| RetainByTagsFilter::retain(&mut feature, filter));
+            if let Some(filter) = self.configurations.tags_filter.as_ref() { RetainByTagsFilter::retain(&mut feature, filter) }
 
             self.trials.extend(feature.into_trials());
 
@@ -572,7 +572,7 @@ mod builder {
     }
 
     #[sealed]
-    impl<'a, T> IntoTagsFilter for &'a [T]
+    impl<T> IntoTagsFilter for &[T]
     where
         T: Into<::std::borrow::Cow<'static, str>> + ::core::clone::Clone,
     {
@@ -802,15 +802,15 @@ impl<World> RetainByTagsFilter for Suite<World> {
     where
         Callback: Fn(&Tags) -> bool,
     {
-        self.features.retain(|feature| feature.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
+        self.features.retain(|feature| feature.tags.as_ref().is_some_and(&*filter));
 
         self.features.iter_mut().for_each(|feature| RetainByTagsFilter::retain(feature, filter.clone()));
 
-        self.before_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
-        self.after_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
+        self.before_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(&*filter));
+        self.after_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(&*filter));
 
-        self.before_step_hooks.retain(|hook| hook.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
-        self.after_step_hooks.retain(|hook| hook.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
+        self.before_step_hooks.retain(|hook| hook.tags.as_ref().is_some_and(&*filter));
+        self.after_step_hooks.retain(|hook| hook.tags.as_ref().is_some_and(&*filter));
     }
 }
 
@@ -819,8 +819,8 @@ impl<World> RetainByTagsFilter for Feature<World> {
     where
         Callback: Fn(&Tags) -> bool,
     {
-        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
-        self.rules.retain(|rule| rule.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
+        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(&*filter));
+        self.rules.retain(|rule| rule.tags.as_ref().is_some_and(&*filter));
 
         self.rules.iter_mut().for_each(|rule| RetainByTagsFilter::retain(rule, filter.clone()));
     }
@@ -831,7 +831,7 @@ impl<World> RetainByTagsFilter for Rule<World> {
     where
         Callback: Fn(&Tags) -> bool,
     {
-        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
+        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(&*filter));
     }
 }
 #[sealed]
@@ -853,7 +853,7 @@ where
                 self.before_step_hooks.clone(),
                 self.after_step_hooks.clone(),
             ]))
-            .map(|(feature, context)| {
+            .flat_map(|(feature, context)| {
                 ::core::iter::Iterator::chain(
                     feature
                         .scenarios
@@ -876,16 +876,14 @@ where
                                 ]),
                             )
                         })
-                        .map(|(rule_scenarios, context)| {
+                        .flat_map(|(rule_scenarios, context)| {
                             rule_scenarios
                                 .into_iter()
                                 .zip(::core::iter::repeat(context))
                                 .map(|(scenario, context)| scenario.into_trial_with_context(context))
-                        })
-                        .flatten(),
+                        }),
                 )
             })
-            .flatten()
     }
 }
 
@@ -913,13 +911,12 @@ where
                         rule_background.as_ref().map(|background| background.given.clone()),
                     ])
                 })
-                .map(|(rule_scenarios, context)| {
+                .flat_map(|(rule_scenarios, context)| {
                     rule_scenarios
                         .into_iter()
                         .zip(::core::iter::repeat(context))
                         .map(|(scenario, context)| scenario.into_trial_with_context(context))
-                })
-                .flatten(),
+                }),
         )
     }
 }

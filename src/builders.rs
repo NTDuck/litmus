@@ -1485,7 +1485,7 @@ mod step {
 
 impl Tags {
     fn extend(&mut self, tags: Tags) {
-        self.0.extend(tags.0.into_iter());
+        self.0.extend(tags.0);
     }
 }
 
