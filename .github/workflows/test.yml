@@ -31,4 +31,4 @@ jobs:
         with:
           tool: nextest
       
-      - run: cargo nextest run --workspace --all-targets --all-features --no-tests=pass
+      - run: cargo nextest run --workspace --all-targets --no-tests=pass  # Removed `--all-features` due to mutually exlucisve feature flags
