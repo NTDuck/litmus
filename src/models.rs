@@ -26,9 +26,15 @@ pub struct Scenario<World> {
     pub(crate) ignored: ::core::option::Option<bool>,
     pub(crate) tags: ::core::option::Option<Tags>,
 
-    pub(crate) given: ::std::vec::Vec<Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    pub(crate) when: ::std::vec::Vec<Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    pub(crate) then: ::std::vec::Vec<Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    pub(crate) given: ::std::vec::Vec<
+        Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
+    pub(crate) when: ::std::vec::Vec<
+        Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
+    pub(crate) then: ::std::vec::Vec<
+        Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
 }
 
 pub struct Background<World> {
@@ -36,7 +42,9 @@ pub struct Background<World> {
     pub(crate) description: ::core::option::Option<::std::borrow::Cow<'static, str>>,
     pub(crate) ignored: ::core::option::Option<bool>,
 
-    pub(crate) given: ::std::vec::Vec<Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    pub(crate) given: ::std::vec::Vec<
+        Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
 }
 
 #[derive(::core::clone::Clone)]

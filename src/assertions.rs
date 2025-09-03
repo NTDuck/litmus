@@ -8,7 +8,9 @@ macro_rules! assert {
         }
     }};
 
-    ($expr:expr) => { $crate::assertions::assert!($expr, ::std::stringify!($expr)) };
+    ($expr:expr) => {
+        $crate::assertions::assert!($expr, ::std::stringify!($expr))
+    };
 }
 
 pub use assert;

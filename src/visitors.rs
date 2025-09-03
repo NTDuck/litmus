@@ -8,8 +8,12 @@ pub struct Runner {
 
     configurations: self::configurations::RunnerConfigurations,
 
-    before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    before_global_hooks: ::std::vec::Vec<
+        Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
+    after_global_hooks: ::std::vec::Vec<
+        Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
 }
 
 pub use configurations as config;
@@ -21,7 +25,7 @@ pub mod configurations {
     pub(crate) struct RunnerConfigurations {
         pub(crate) ignore_policy: IgnorePolicy,
         pub(crate) tags_filter: ::core::option::Option<::std::boxed::Box<dyn Fn(&Tags) -> bool>>,
-        
+
         /* Used by `::libtest_mimic::Arguments` */
         pub(crate) format: Format,
         pub(crate) color: Color,
@@ -35,7 +39,7 @@ pub mod configurations {
 
         #[default]
         RetainUnignored,
-        
+
         None,
     }
 
@@ -69,16 +73,23 @@ pub mod configurations {
 pub struct Suite<World> {
     pub(crate) features: ::std::vec::Vec<Feature<World>>,
 
-    pub(crate) before_scenario_hooks: ::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    pub(crate) after_scenario_hooks: ::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    pub(crate) before_scenario_hooks: ::std::vec::Vec<
+        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
+    pub(crate) after_scenario_hooks: ::std::vec::Vec<
+        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
 
-    pub(crate) before_step_hooks: ::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-    pub(crate) after_step_hooks: ::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+    pub(crate) before_step_hooks: ::std::vec::Vec<
+        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
+    pub(crate) after_step_hooks: ::std::vec::Vec<
+        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >,
 }
 
 mod builder {
     pub(super) use super::*;
-
     use crate::builders::*;
 
     pub struct RunnerBuilder<State: self::runner::BuilderState = self::runner::Empty> {
@@ -86,8 +97,12 @@ mod builder {
 
         configurations: self::configurations::RunnerConfigurations,
 
-        before_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-        after_global_hooks: ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+        before_global_hooks: ::std::vec::Vec<
+            Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >,
+        after_global_hooks: ::std::vec::Vec<
+            Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >,
 
         __phantom: self::marker::PhantomCovariant<State>,
     }
@@ -148,14 +163,14 @@ mod builder {
             }
         }
 
-        pub fn filter(mut self, value: impl IntoTagsFilter + 'static) -> RunnerBuilder<self::runner::SetTagsFilter<State>> {
-            self.configurations.tags_filter = ::core::option::Option::from(
-                ::std::boxed::Box::from(
-                    self.configurations.tags_filter.take()
-                        .unwrap_or_else(|| ::std::boxed::Box::new(|_| true))
-                        .chain(value)
-                ) as ::std::boxed::Box<dyn Fn(&Tags) -> bool>
-            );
+        pub fn filter(
+            mut self,
+            value: impl IntoTagsFilter + 'static,
+        ) -> RunnerBuilder<self::runner::SetTagsFilter<State>> {
+            self.configurations.tags_filter = ::core::option::Option::from(::std::boxed::Box::from(
+                self.configurations.tags_filter.take().unwrap_or_else(|| ::std::boxed::Box::new(|_| true)).chain(value),
+            )
+                as ::std::boxed::Box<dyn Fn(&Tags) -> bool>);
 
             RunnerBuilder {
                 trials: self.trials,
@@ -205,7 +220,10 @@ mod builder {
             }
         }
 
-        pub fn threads(mut self, value: impl Into<self::configurations::ThreadsCount>) -> RunnerBuilder<self::runner::SetThreads<State>>
+        pub fn threads(
+            mut self,
+            value: impl Into<self::configurations::ThreadsCount>,
+        ) -> RunnerBuilder<self::runner::SetThreads<State>>
         where
             State::Threads: self::marker::IsUnset,
         {
@@ -223,7 +241,10 @@ mod builder {
             }
         }
 
-        pub fn logfile(mut self, value: impl Into<::std::borrow::Cow<'static, ::std::path::Path>>) -> RunnerBuilder<self::runner::SetLogFile<State>>
+        pub fn logfile(
+            mut self,
+            value: impl Into<::std::borrow::Cow<'static, ::std::path::Path>>,
+        ) -> RunnerBuilder<self::runner::SetLogFile<State>>
         where
             State::LogFile: self::marker::IsUnset,
         {
@@ -243,7 +264,11 @@ mod builder {
     }
 
     impl<State: self::runner::BuilderState> RunnerBuilder<State> {
-        pub fn before_all<Callback, Output>(mut self, tags: impl Into<Tags>, callback: Callback) -> RunnerBuilder<self::runner::SetHooks<State>>
+        pub fn before_all<Callback, Output>(
+            mut self,
+            tags: impl Into<Tags>,
+            callback: Callback,
+        ) -> RunnerBuilder<self::runner::SetHooks<State>>
         where
             Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
             Output: IntoFallible,
@@ -251,10 +276,7 @@ mod builder {
             let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
                 as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
-            let hook = Hook::builder()
-                .tags(tags)
-                .callback(callback)
-                .build();
+            let hook = Hook::builder().tags(tags).callback(callback).build();
 
             self.before_global_hooks.push(hook);
 
@@ -270,7 +292,11 @@ mod builder {
             }
         }
 
-        pub fn after_all<Callback, Output>(mut self, tags: impl Into<Tags>, callback: Callback) -> RunnerBuilder<self::runner::SetHooks<State>>
+        pub fn after_all<Callback, Output>(
+            mut self,
+            tags: impl Into<Tags>,
+            callback: Callback,
+        ) -> RunnerBuilder<self::runner::SetHooks<State>>
         where
             Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
             Output: IntoFallible,
@@ -278,10 +304,7 @@ mod builder {
             let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
                 as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
-            let hook = Hook::builder()
-                .tags(tags)
-                .callback(callback)
-                .build();
+            let hook = Hook::builder().tags(tags).callback(callback).build();
 
             self.after_global_hooks.push(hook);
 
@@ -302,11 +325,10 @@ mod builder {
             World: ::core::default::Default + 'static,
         {
             let mut suite = suite.into();
-            
+
             RetainByIgnorePolicy::retain(&mut suite, self.configurations.ignore_policy);
 
-            self.configurations.tags_filter.as_ref()
-                .map(|filter| RetainByTagsFilter::retain(&mut suite, filter));
+            self.configurations.tags_filter.as_ref().map(|filter| RetainByTagsFilter::retain(&mut suite, filter));
 
             self.trials.extend(suite.into_trials());
 
@@ -322,16 +344,18 @@ mod builder {
             }
         }
 
-        pub fn feature<World>(mut self, feature: impl Into<Feature<World>>) -> RunnerBuilder<self::runner::SetTrials<State>>
+        pub fn feature<World>(
+            mut self,
+            feature: impl Into<Feature<World>>,
+        ) -> RunnerBuilder<self::runner::SetTrials<State>>
         where
             World: ::core::default::Default + 'static,
         {
             let mut feature = feature.into();
-            
+
             RetainByIgnorePolicy::retain(&mut feature, self.configurations.ignore_policy);
 
-            self.configurations.tags_filter.as_ref()
-                .map(|filter| RetainByTagsFilter::retain(&mut feature, filter));
+            self.configurations.tags_filter.as_ref().map(|filter| RetainByTagsFilter::retain(&mut feature, filter));
 
             self.trials.extend(feature.into_trials());
 
@@ -385,11 +409,7 @@ mod builder {
         pub trait IsComplete: BuilderState<Trials: self::marker::IsSet> {}
 
         #[sealed]
-        impl<State: BuilderState> IsComplete for State
-        where
-            State::Trials: self::marker::IsSet,
-        {
-        }
+        impl<State: BuilderState> IsComplete for State where State::Trials: self::marker::IsSet {}
 
         pub struct Empty;
 
@@ -406,128 +426,110 @@ mod builder {
 
         #[sealed]
         impl BuilderState for Empty {
-            type Trials = self::marker::Unset<self::members::Trials>;
-            type Hooks = self::marker::Unset<self::members::Hooks>;
-
-            type IgnorePolicy = self::marker::Unset<self::members::IgnorePolicy>;
-            type TagsFilter = self::marker::Unset<self::members::TagsFilter>;
-
-            type Format = self::marker::Unset<self::members::Format>;
             type Color = self::marker::Unset<self::members::Color>;
-            type Threads = self::marker::Unset<self::members::Threads>;
+            type Format = self::marker::Unset<self::members::Format>;
+            type Hooks = self::marker::Unset<self::members::Hooks>;
+            type IgnorePolicy = self::marker::Unset<self::members::IgnorePolicy>;
             type LogFile = self::marker::Unset<self::members::LogFile>;
+            type TagsFilter = self::marker::Unset<self::members::TagsFilter>;
+            type Threads = self::marker::Unset<self::members::Threads>;
+            type Trials = self::marker::Unset<self::members::Trials>;
         }
 
         #[sealed]
         impl<State: BuilderState> BuilderState for SetTrials<State> {
-            type Trials = self::marker::Set<self::members::Trials>;
-            type Hooks = State::Hooks;
-
-            type IgnorePolicy = State::IgnorePolicy;
-            type TagsFilter = State::TagsFilter;
-
-            type Format = State::Format;
             type Color = State::Color;
-            type Threads = State::Threads;
+            type Format = State::Format;
+            type Hooks = State::Hooks;
+            type IgnorePolicy = State::IgnorePolicy;
             type LogFile = State::LogFile;
+            type TagsFilter = State::TagsFilter;
+            type Threads = State::Threads;
+            type Trials = self::marker::Set<self::members::Trials>;
         }
 
         #[sealed]
         impl<State: BuilderState> BuilderState for SetHooks<State> {
-            type Trials = State::Trials;
-            type Hooks = self::marker::Set<self::members::Hooks>;
-
-            type IgnorePolicy = State::IgnorePolicy;
-            type TagsFilter = State::TagsFilter;
-
-            type Format = State::Format;
             type Color = State::Color;
-            type Threads = State::Threads;
+            type Format = State::Format;
+            type Hooks = self::marker::Set<self::members::Hooks>;
+            type IgnorePolicy = State::IgnorePolicy;
             type LogFile = State::LogFile;
+            type TagsFilter = State::TagsFilter;
+            type Threads = State::Threads;
+            type Trials = State::Trials;
         }
 
         #[sealed]
         impl<State: BuilderState> BuilderState for SetIgnorePolicy<State> {
-            type Trials = State::Trials;
-            type Hooks = State::Hooks;
-
-            type IgnorePolicy = self::marker::Set<self::members::IgnorePolicy>;
-            type TagsFilter = State::TagsFilter;
-
-            type Format = State::Format;
             type Color = State::Color;
-            type Threads = State::Threads;
+            type Format = State::Format;
+            type Hooks = State::Hooks;
+            type IgnorePolicy = self::marker::Set<self::members::IgnorePolicy>;
             type LogFile = State::LogFile;
+            type TagsFilter = State::TagsFilter;
+            type Threads = State::Threads;
+            type Trials = State::Trials;
         }
 
         #[sealed]
         impl<State: BuilderState> BuilderState for SetTagsFilter<State> {
-            type Trials = State::Trials;
-            type Hooks = State::Hooks;
-
-            type IgnorePolicy = State::IgnorePolicy;
-            type TagsFilter = self::marker::Set<self::members::TagsFilter>;
-
-            type Format = State::Format;
             type Color = State::Color;
-            type Threads = State::Threads;
+            type Format = State::Format;
+            type Hooks = State::Hooks;
+            type IgnorePolicy = State::IgnorePolicy;
             type LogFile = State::LogFile;
+            type TagsFilter = self::marker::Set<self::members::TagsFilter>;
+            type Threads = State::Threads;
+            type Trials = State::Trials;
         }
 
         #[sealed]
         impl<State: BuilderState> BuilderState for SetFormat<State> {
-            type Trials = State::Trials;
-            type Hooks = State::Hooks;
-            
-            type IgnorePolicy = State::IgnorePolicy;
-            type TagsFilter = State::TagsFilter;
-
-            type Format = self::marker::Set<self::members::Format>;
             type Color = State::Color;
-            type Threads = State::Threads;
+            type Format = self::marker::Set<self::members::Format>;
+            type Hooks = State::Hooks;
+            type IgnorePolicy = State::IgnorePolicy;
             type LogFile = State::LogFile;
+            type TagsFilter = State::TagsFilter;
+            type Threads = State::Threads;
+            type Trials = State::Trials;
         }
 
         #[sealed]
         impl<State: BuilderState> BuilderState for SetColor<State> {
-            type Trials = State::Trials;
-            type Hooks = State::Hooks;
-            
-            type IgnorePolicy = State::IgnorePolicy;
-            type TagsFilter = State::TagsFilter;
-
-            type Format = State::Format;
             type Color = self::marker::Set<self::members::Color>;
-            type Threads = State::Threads;
+            type Format = State::Format;
+            type Hooks = State::Hooks;
+            type IgnorePolicy = State::IgnorePolicy;
             type LogFile = State::LogFile;
+            type TagsFilter = State::TagsFilter;
+            type Threads = State::Threads;
+            type Trials = State::Trials;
         }
 
         #[sealed]
         impl<State: BuilderState> BuilderState for SetThreads<State> {
-            type Trials = State::Trials;
-            type Hooks = State::Hooks;
-            
-            type IgnorePolicy = State::IgnorePolicy;
-            type TagsFilter = State::TagsFilter;
-
-            type Format = State::Format;
             type Color = State::Color;
-            type Threads = self::marker::Set<self::members::Threads>;
+            type Format = State::Format;
+            type Hooks = State::Hooks;
+            type IgnorePolicy = State::IgnorePolicy;
             type LogFile = State::LogFile;
+            type TagsFilter = State::TagsFilter;
+            type Threads = self::marker::Set<self::members::Threads>;
+            type Trials = State::Trials;
         }
 
         #[sealed]
         impl<State: BuilderState> BuilderState for SetLogFile<State> {
-            type Trials = State::Trials;
-            type Hooks = State::Hooks;
-            
-            type IgnorePolicy = State::IgnorePolicy;
-            type TagsFilter = State::TagsFilter;
-
-            type Format = State::Format;
             type Color = State::Color;
-            type Threads = State::Threads;
+            type Format = State::Format;
+            type Hooks = State::Hooks;
+            type IgnorePolicy = State::IgnorePolicy;
             type LogFile = self::marker::Set<self::members::LogFile>;
+            type TagsFilter = State::TagsFilter;
+            type Threads = State::Threads;
+            type Trials = State::Trials;
         }
 
         mod members {
@@ -536,7 +538,7 @@ mod builder {
 
             pub struct IgnorePolicy;
             pub struct TagsFilter;
-            
+
             pub struct Format;
             pub struct Color;
             pub struct Threads;
@@ -598,11 +600,19 @@ mod builder {
     pub struct SuiteBuilder<World> {
         features: ::std::vec::Vec<Feature<World>>,
 
-        before_scenario_hooks: ::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-        after_scenario_hooks: ::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+        before_scenario_hooks: ::std::vec::Vec<
+            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >,
+        after_scenario_hooks: ::std::vec::Vec<
+            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >,
 
-        before_step_hooks: ::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
-        after_step_hooks: ::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>,
+        before_step_hooks: ::std::vec::Vec<
+            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >,
+        after_step_hooks: ::std::vec::Vec<
+            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >,
     }
 
     impl<World> Suite<World> {
@@ -638,13 +648,10 @@ mod builder {
             Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
             Output: IntoFallible,
         {
-            let callback  = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
+            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
                 as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
-            let hook = Hook::builder()
-                .tags(tags)
-                .callback(callback)
-                .build();
+            let hook = Hook::builder().tags(tags).callback(callback).build();
 
             self.before_scenario_hooks.push(hook);
             self
@@ -655,13 +662,10 @@ mod builder {
             Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
             Output: IntoFallible,
         {
-            let callback  = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
+            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
                 as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
-            let hook = Hook::builder()
-                .tags(tags)
-                .callback(callback)
-                .build();
+            let hook = Hook::builder().tags(tags).callback(callback).build();
 
             self.after_scenario_hooks.push(hook);
             self
@@ -672,13 +676,10 @@ mod builder {
             Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
             Output: IntoFallible,
         {
-            let callback  = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
+            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
                 as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
-            let hook = Hook::builder()
-                .tags(tags)
-                .callback(callback)
-                .build();
+            let hook = Hook::builder().tags(tags).callback(callback).build();
 
             self.before_step_hooks.push(hook);
             self
@@ -689,13 +690,10 @@ mod builder {
             Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
             Output: IntoFallible,
         {
-            let callback  = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
+            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
                 as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
-            let hook = Hook::builder()
-                .tags(tags)
-                .callback(callback)
-                .build();
+            let hook = Hook::builder().tags(tags).callback(callback).build();
 
             self.after_step_hooks.push(hook);
             self
@@ -730,13 +728,14 @@ trait RetainByIgnorePolicy {
 impl<World> RetainByIgnorePolicy for Suite<World> {
     fn retain(&mut self, policy: self::configurations::IgnorePolicy) {
         match policy {
-            self::configurations::IgnorePolicy::RetainIgnored => self.features.retain(|features| features.ignored.as_ref().is_some_and(|ignored| *ignored)),
-            self::configurations::IgnorePolicy::RetainUnignored => self.features.retain(|features| features.ignored.as_ref().is_none_or(|ignored| !ignored)),
+            self::configurations::IgnorePolicy::RetainIgnored =>
+                self.features.retain(|features| features.ignored.as_ref().is_some_and(|ignored| *ignored)),
+            self::configurations::IgnorePolicy::RetainUnignored =>
+                self.features.retain(|features| features.ignored.as_ref().is_none_or(|ignored| !ignored)),
             _ => {},
         }
 
-        self.features.iter_mut()
-            .for_each(|feature| RetainByIgnorePolicy::retain(feature, policy));
+        self.features.iter_mut().for_each(|feature| RetainByIgnorePolicy::retain(feature, policy));
     }
 }
 
@@ -744,14 +743,18 @@ impl<World> RetainByIgnorePolicy for Feature<World> {
     fn retain(&mut self, policy: self::configurations::IgnorePolicy) {
         match policy {
             self::configurations::IgnorePolicy::RetainIgnored => {
-                self.background = self.background.take()
+                self.background = self
+                    .background
+                    .take()
                     .filter(|background| background.ignored.as_ref().is_some_and(|ignored| *ignored));
                 self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_some_and(|ignored| *ignored));
                 self.rules.retain(|rule| rule.ignored.as_ref().is_some_and(|ignored| *ignored));
             },
 
             self::configurations::IgnorePolicy::RetainUnignored => {
-                self.background = self.background.take()
+                self.background = self
+                    .background
+                    .take()
                     .filter(|background| background.ignored.as_ref().is_none_or(|ignored| !ignored));
                 self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_none_or(|ignored| !ignored));
                 self.rules.retain(|rule| rule.ignored.as_ref().is_none_or(|ignored| !ignored));
@@ -760,8 +763,7 @@ impl<World> RetainByIgnorePolicy for Feature<World> {
             _ => {},
         }
 
-        self.rules.iter_mut()
-            .for_each(|rule| RetainByIgnorePolicy::retain(rule, policy));
+        self.rules.iter_mut().for_each(|rule| RetainByIgnorePolicy::retain(rule, policy));
     }
 }
 
@@ -769,13 +771,17 @@ impl<World> RetainByIgnorePolicy for Rule<World> {
     fn retain(&mut self, policy: self::configurations::IgnorePolicy) {
         match policy {
             self::configurations::IgnorePolicy::RetainIgnored => {
-                self.background = self.background.take()
+                self.background = self
+                    .background
+                    .take()
                     .filter(|background| background.ignored.as_ref().is_some_and(|ignored| *ignored));
                 self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_some_and(|ignored| *ignored));
             },
 
             self::configurations::IgnorePolicy::RetainUnignored => {
-                self.background = self.background.take()
+                self.background = self
+                    .background
+                    .take()
                     .filter(|background| background.ignored.as_ref().is_none_or(|ignored| !ignored));
                 self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_none_or(|ignored| !ignored));
             },
@@ -798,8 +804,7 @@ impl<World> RetainByTagsFilter for Suite<World> {
     {
         self.features.retain(|feature| feature.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
 
-        self.features.iter_mut()
-            .for_each(|feature| RetainByTagsFilter::retain(feature, filter.clone()));
+        self.features.iter_mut().for_each(|feature| RetainByTagsFilter::retain(feature, filter.clone()));
 
         self.before_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
         self.after_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
@@ -817,8 +822,7 @@ impl<World> RetainByTagsFilter for Feature<World> {
         self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
         self.rules.retain(|rule| rule.tags.as_ref().is_some_and(|tags| (filter)(&tags)));
 
-        self.rules.iter_mut()
-            .for_each(|rule| RetainByTagsFilter::retain(rule, filter.clone()));
+        self.rules.iter_mut().for_each(|rule| RetainByTagsFilter::retain(rule, filter.clone()));
     }
 }
 
@@ -841,31 +845,46 @@ where
     World: ::core::default::Default + 'static,
 {
     fn into_trials(self) -> impl IntoIterator<Item = ::libtest_mimic::Trial> {
-        self.features.into_iter()
+        self.features
+            .into_iter()
             .zip(::core::iter::repeat([
                 self.before_scenario_hooks.clone(),
                 self.after_scenario_hooks.clone(),
                 self.before_step_hooks.clone(),
                 self.after_step_hooks.clone(),
             ]))
-            .map(|(feature, context)| ::core::iter::Iterator::chain(
-                feature.scenarios.into_iter()
-                    .zip(::core::iter::repeat((context.clone(), [
-                        feature.background.as_ref().map(|background| background.given.clone()),
-                    ])))
-                    .map(|(scenario, context)| scenario.into_trial_with_context(context)),
-
-                feature.rules.into_iter()
-                    .map(|rule| (rule.scenarios, rule.background))
-                    .map(move |(rule_scenarios, rule_background)| (rule_scenarios, (context.clone(), [
-                        feature.background.as_ref().map(|background| background.given.clone()),
-                        rule_background.as_ref().map(|background| background.given.clone()),
-                    ])))
-                    .map(|(rule_scenarios, context)| rule_scenarios.into_iter()
-                        .zip(::core::iter::repeat(context))
-                        .map(|(scenario, context)| scenario.into_trial_with_context(context)))
-                    .flatten()
-            ))
+            .map(|(feature, context)| {
+                ::core::iter::Iterator::chain(
+                    feature
+                        .scenarios
+                        .into_iter()
+                        .zip(::core::iter::repeat((context.clone(), [feature
+                            .background
+                            .as_ref()
+                            .map(|background| background.given.clone())])))
+                        .map(|(scenario, context)| scenario.into_trial_with_context(context)),
+                    feature
+                        .rules
+                        .into_iter()
+                        .map(|rule| (rule.scenarios, rule.background))
+                        .map(move |(rule_scenarios, rule_background)| {
+                            (
+                                rule_scenarios,
+                                (context.clone(), [
+                                    feature.background.as_ref().map(|background| background.given.clone()),
+                                    rule_background.as_ref().map(|background| background.given.clone()),
+                                ]),
+                            )
+                        })
+                        .map(|(rule_scenarios, context)| {
+                            rule_scenarios
+                                .into_iter()
+                                .zip(::core::iter::repeat(context))
+                                .map(|(scenario, context)| scenario.into_trial_with_context(context))
+                        })
+                        .flatten(),
+                )
+            })
             .flatten()
     }
 }
@@ -879,22 +898,28 @@ where
         let feature = self;
 
         ::core::iter::Iterator::chain(
-            feature.scenarios.into_iter()
-                .zip(::core::iter::repeat([
-                    feature.background.as_ref().map(|background| background.given.clone()),
-                ]))
+            feature
+                .scenarios
+                .into_iter()
+                .zip(::core::iter::repeat([feature.background.as_ref().map(|background| background.given.clone())]))
                 .map(|(scenario, context)| scenario.into_trial_with_context(context)),
-
-            feature.rules.into_iter()
+            feature
+                .rules
+                .into_iter()
                 .map(|rule| (rule.scenarios, rule.background))
-                .map(move |(rule_scenarios, rule_background)| (rule_scenarios, [
-                    feature.background.as_ref().map(|background| background.given.clone()),
-                    rule_background.as_ref().map(|background| background.given.clone()),
-                ]))
-                .map(|(rule_scenarios, context)| rule_scenarios.into_iter()
-                    .zip(::core::iter::repeat(context))
-                    .map(|(scenario, context)| scenario.into_trial_with_context(context)))
-                .flatten()
+                .map(move |(rule_scenarios, rule_background)| {
+                    (rule_scenarios, [
+                        feature.background.as_ref().map(|background| background.given.clone()),
+                        rule_background.as_ref().map(|background| background.given.clone()),
+                    ])
+                })
+                .map(|(rule_scenarios, context)| {
+                    rule_scenarios
+                        .into_iter()
+                        .zip(::core::iter::repeat(context))
+                        .map(|(scenario, context)| scenario.into_trial_with_context(context))
+                })
+                .flatten(),
         )
     }
 }
@@ -903,17 +928,37 @@ trait ScenarioExt<Context> {
     fn into_trial_with_context(self, context: Context) -> ::libtest_mimic::Trial;
 }
 
-impl<const N: usize, World> ScenarioExt<(
-    [::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>; 4],
-    [::core::option::Option<::std::vec::Vec<Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>>; N],
-)> for Scenario<World>
+impl<const N: usize, World>
+    ScenarioExt<(
+        [::std::vec::Vec<
+            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >; 4],
+        [::core::option::Option<
+            ::std::vec::Vec<
+                Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+            >,
+        >; N],
+    )> for Scenario<World>
 where
     World: ::core::default::Default + 'static,
 {
-    fn into_trial_with_context(self, ([before_scenario_hooks, after_scenario_hooks, before_step_hooks, after_step_hooks], backgrounds): (
-        [::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>; 4],
-        [::core::option::Option<::std::vec::Vec<Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>>; N],
-    )) -> ::libtest_mimic::Trial {
+    fn into_trial_with_context(
+        self,
+        ([before_scenario_hooks, after_scenario_hooks, before_step_hooks, after_step_hooks], backgrounds): (
+            [::std::vec::Vec<
+                Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+            >; 4],
+            [::core::option::Option<
+                ::std::vec::Vec<
+                    Step<
+                        aliases::sync::Arc<
+                            dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync,
+                        >,
+                    >,
+                >,
+            >; N],
+        ),
+    ) -> ::libtest_mimic::Trial {
         let description = self.to_description();
 
         let callback = move || {
@@ -921,54 +966,50 @@ where
 
             before_scenario_hooks.to_callback()(&mut world)?;
 
-            backgrounds
-                .into_iter()
-                .flatten()
-                .try_for_each(|background| background.to_callback_with_context([
-                    before_step_hooks.clone(), after_step_hooks.clone(),
-                ])(&mut world))?;
+            backgrounds.into_iter().flatten().try_for_each(|background| {
+                background.to_callback_with_context([before_step_hooks.clone(), after_step_hooks.clone()])(&mut world)
+            })?;
 
-            self.given.into_callback_with_context([
-                before_step_hooks.clone(), after_step_hooks.clone(),
-            ])(&mut world)?;
+            self.given.into_callback_with_context([before_step_hooks.clone(), after_step_hooks.clone()])(&mut world)?;
 
-            self.when.into_callback_with_context([
-                before_step_hooks.clone(), after_step_hooks.clone(),
-            ])(&mut world)?;
+            self.when.into_callback_with_context([before_step_hooks.clone(), after_step_hooks.clone()])(&mut world)?;
 
-            self.then.into_callback_with_context([
-                before_step_hooks.clone(), after_step_hooks.clone(),
-            ])(&mut world)?;
+            self.then.into_callback_with_context([before_step_hooks.clone(), after_step_hooks.clone()])(&mut world)?;
 
             after_scenario_hooks.to_callback()(&mut world)?;
 
             Ok(())
         };
 
-        into_trial()
-            .description(description)
-            .tags(self.tags)
-            .callback(callback)
-            .call()
+        into_trial().description(description).tags(self.tags).callback(callback).call()
     }
 }
 
-impl<const N: usize, World> ScenarioExt<
-    [::core::option::Option<::std::vec::Vec<Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>>; N],
-> for Scenario<World>
+impl<const N: usize, World>
+    ScenarioExt<
+        [::core::option::Option<
+            ::std::vec::Vec<
+                Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+            >,
+        >; N],
+    > for Scenario<World>
 where
     World: ::core::default::Default + 'static,
 {
-    fn into_trial_with_context(self, backgrounds: [::core::option::Option<::std::vec::Vec<Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>>; N]) -> ::libtest_mimic::Trial {
+    fn into_trial_with_context(
+        self,
+        backgrounds: [::core::option::Option<
+            ::std::vec::Vec<
+                Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+            >,
+        >; N],
+    ) -> ::libtest_mimic::Trial {
         let description = self.to_description();
 
         let callback = move || {
             let mut world = ::core::default::Default::default();
 
-            backgrounds
-                .into_iter()
-                .flatten()
-                .try_for_each(|background| background.to_callback()(&mut world))?;
+            backgrounds.into_iter().flatten().try_for_each(|background| background.to_callback()(&mut world))?;
 
             self.given.into_callback()(&mut world)?;
             self.when.into_callback()(&mut world)?;
@@ -977,27 +1018,25 @@ where
             Ok(())
         };
 
-        into_trial()
-            .description(description)
-            .tags(self.tags)
-            .callback(callback)
-            .call()
+        into_trial().description(description).tags(self.tags).callback(callback).call()
     }
 }
 
 #[::bon::builder]
 #[builder(on(_, required))]
-fn into_trial(description: impl Into<::std::borrow::Cow<'static, str>>, tags: ::core::option::Option<impl Into<Tags>>, callback: impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static) -> ::libtest_mimic::Trial {
+fn into_trial(
+    description: impl Into<::std::borrow::Cow<'static, str>>,
+    tags: ::core::option::Option<impl Into<Tags>>,
+    callback: impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync + 'static,
+) -> ::libtest_mimic::Trial {
     let callback = move || (callback)().map_err(|err| err.message.into());
 
     let description = description.into();
 
-    let tags = tags
-        .map(Into::into)
-        .map(|tags| tags.to_description());
+    let tags = tags.map(Into::into).map(|tags| tags.to_description());
 
     let trial = ::libtest_mimic::Trial::test(description, callback);
-    
+
     let trial = match tags {
         Some(tags) => trial.with_kind(tags),
         None => trial,
@@ -1014,19 +1053,20 @@ impl<World> ToDescription for Scenario<World> {
     fn to_description(&self) -> ::std::borrow::Cow<'static, str> {
         match self.description {
             Some(ref description) => description.clone(),
-            None => ::std::format!("{}; {}; {}", self.given.to_description(), self.when.to_description(), self.then.to_description()).into()
+            None => ::std::format!(
+                "{}; {}; {}",
+                self.given.to_description(),
+                self.when.to_description(),
+                self.then.to_description()
+            )
+            .into(),
         }
     }
 }
 
 impl<Callback> ToDescription for ::std::vec::Vec<Step<Callback>> {
     fn to_description(&self) -> ::std::borrow::Cow<'static, str> {
-        self
-            .iter()
-            .map(ToDescription::to_description)
-            .collect::<::std::vec::Vec<_>>()
-            .join(", ")
-            .into()
+        self.iter().map(ToDescription::to_description).collect::<::std::vec::Vec<_>>().join(", ").into()
     }
 }
 
@@ -1038,12 +1078,7 @@ impl<Callback> ToDescription for Step<Callback> {
 
 impl ToDescription for Tags {
     fn to_description(&self) -> ::std::borrow::Cow<'static, str> {
-        self.0
-            .iter()
-            .cloned()
-            .collect::<::std::vec::Vec<_>>()
-            .join(",")
-            .into()
+        self.0.iter().cloned().collect::<::std::vec::Vec<_>>().join(",").into()
     }
 }
 
@@ -1063,55 +1098,80 @@ impl ToDescription for StepLabel {
 trait ScenarioStepsExt<World> {
     fn into_callback(self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 
-    fn into_callback_with_context(self, context: [::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>; 2]) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
+    fn into_callback_with_context(
+        self,
+        context: [::std::vec::Vec<
+            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >; 2],
+    ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
-impl<World> ScenarioStepsExt<World> for ::std::vec::Vec<Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>
+impl<World> ScenarioStepsExt<World>
+    for ::std::vec::Vec<
+        Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >
 where
     World: 'static,
 {
     fn into_callback(self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move |world: &mut World| self.into_iter()
-            .try_for_each(|step| (step.callback)(world))
+        move |world: &mut World| self.into_iter().try_for_each(|step| (step.callback)(world))
     }
 
-    fn into_callback_with_context(self, [before_step_hooks, after_step_hooks]: [::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>; 2]) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move |world: &mut World| self.into_iter()
-            .try_for_each(|step| {
+    fn into_callback_with_context(
+        self,
+        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<
+            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >; 2],
+    ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| {
+            self.into_iter().try_for_each(|step| {
                 (before_step_hooks.to_callback())(world)?;
                 (step.callback)(world)?;
                 (after_step_hooks.to_callback())(world)?;
 
                 Ok(())
             })
+        }
     }
 }
 
 trait BackgroundStepsExt<World> {
     fn to_callback(&self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 
-    fn to_callback_with_context(&self, context: [::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>; 2]) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
+    fn to_callback_with_context(
+        &self,
+        context: [::std::vec::Vec<
+            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >; 2],
+    ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
-
-impl<World> BackgroundStepsExt<World> for ::std::vec::Vec<Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>
+impl<World> BackgroundStepsExt<World>
+    for ::std::vec::Vec<
+        Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >
 where
     World: 'static,
 {
     fn to_callback(&self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move |world: &mut World| self.iter()
-            .try_for_each(|step| (step.callback)(world))
+        move |world: &mut World| self.iter().try_for_each(|step| (step.callback)(world))
     }
 
-    fn to_callback_with_context(&self, [before_step_hooks, after_step_hooks]: [::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>; 2]) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move |world: &mut World| self.iter()
-            .try_for_each(|step| {
+    fn to_callback_with_context(
+        &self,
+        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<
+            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+        >; 2],
+    ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| {
+            self.iter().try_for_each(|step| {
                 (before_step_hooks.to_callback())(world)?;
                 (step.callback)(world)?;
                 (after_step_hooks.to_callback())(world)?;
 
                 Ok(())
             })
+        }
     }
 }
 
@@ -1119,13 +1179,15 @@ trait NonGlobalHooksExt<World> {
     fn to_callback(&self) -> impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
-impl<World> NonGlobalHooksExt<World> for ::std::vec::Vec<Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>
+impl<World> NonGlobalHooksExt<World>
+    for ::std::vec::Vec<
+        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
+    >
 where
     World: 'static,
 {
     fn to_callback(&self) -> impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move |world: &mut World| self.iter()
-            .try_for_each(|hook| (hook.callback)(world))
+        move |world: &mut World| self.iter().try_for_each(|hook| (hook.callback)(world))
     }
 }
 
@@ -1133,10 +1195,11 @@ trait GlobalHooksExt {
     fn to_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
-impl GlobalHooksExt for ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>> {
+impl GlobalHooksExt
+    for ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>
+{
     fn to_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move || self.into_iter()
-            .try_for_each(|hook| (hook.callback)())
+        move || self.into_iter().try_for_each(|hook| (hook.callback)())
     }
 }
 

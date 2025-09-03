@@ -14,7 +14,7 @@ async fn someone_is_hungry(w: &mut World, user: String) {
 #[::cucumber::when(regex = r"^(?:he|she|they) eats? (\d+) cucumbers?$")]
 async fn eat_cucumbers(w: &mut World, count: usize) {
     w.capacity += count;
-    
+
     assert!(w.capacity < 4, "{} exploded!", w.user.as_ref().unwrap());
 }
 
