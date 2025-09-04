@@ -1,6 +1,6 @@
 #[derive(::core::default::Default)]
 struct World {
-    user: Option<String>,
+    user: ::core::option::Option<String>,
     capacity: usize,
 }
 
