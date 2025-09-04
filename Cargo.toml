@@ -32,8 +32,9 @@ sealed = "0.6.0"
 triomphe = { version = "0.1.14", optional = true }
 
 [dev-dependencies]
+async-trait = "0.1.89"
 cucumber = "0.21.1"
-tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "sync"] }
 
 [lib]
 test = false
