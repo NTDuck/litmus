@@ -270,21 +270,8 @@ mod builder {
     }
 
     impl<State: self::runner::BuilderState> RunnerBuilder<State> {
-        pub fn before_all<Callback, Output>(
-            mut self,
-            tags: impl Into<Tags>,
-            callback: Callback,
-        ) -> RunnerBuilder<self::runner::SetHooks<State>>
-        where
-            Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-            Output: IntoFallible,
-        {
-            let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
-                as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            let hook = Hook::builder().tags(tags).callback(callback).build();
-
-            self.before_global_hooks.push(hook);
+        pub fn before_all(mut self, value: impl IntoHook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> RunnerBuilder<self::runner::SetHooks<State>> {
+            self.before_global_hooks.push(value.into_hook());
 
             RunnerBuilder {
                 trials: self.trials,
@@ -298,21 +285,8 @@ mod builder {
             }
         }
 
-        pub fn after_all<Callback, Output>(
-            mut self,
-            tags: impl Into<Tags>,
-            callback: Callback,
-        ) -> RunnerBuilder<self::runner::SetHooks<State>>
-        where
-            Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-            Output: IntoFallible,
-        {
-            let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
-                as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            let hook = Hook::builder().tags(tags).callback(callback).build();
-
-            self.after_global_hooks.push(hook);
+        pub fn after_all(mut self, value: impl IntoHook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> RunnerBuilder<self::runner::SetHooks<State>> {
+            self.after_global_hooks.push(value.into_hook());
 
             RunnerBuilder {
                 trials: self.trials,
@@ -563,6 +537,83 @@ mod builder {
     }
 
     #[sealed]
+    pub trait IntoHook<Callback> {
+        fn into_hook(self) -> Hook<Callback>;
+    }
+
+    #[sealed]
+    impl<World, Callback, Output> IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>> for Callback
+    where
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        fn into_hook(self) -> Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>> {
+            let callback = aliases::sync::Arc::new(move |world: &mut World| (self)(world).into_fallible())
+                as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+            Hook::builder()
+                .callback(callback)
+                .build()
+        }
+    }
+
+    #[sealed]
+    impl<World, Tags_, Callback, Output> IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>> for (Tags_, Callback)
+    where
+        Tags_: Into<Tags>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        fn into_hook(self) -> Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>> {
+            let (tags, callback) = self;
+
+            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
+                as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+            Hook::builder()
+                .tags(tags.into())
+                .callback(callback)
+                .build()
+        }
+    }
+
+    #[sealed]
+    impl<Callback, Output> IntoHook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>> for Callback
+    where
+        Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        fn into_hook(self) -> Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>> {
+            let callback = ::std::boxed::Box::new(move || (self)().into_fallible())
+                as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+            Hook::builder()
+                .callback(callback)
+                .build()
+        }
+    }
+
+    #[sealed]
+    impl<Tags_, Callback, Output> IntoHook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>> for (Tags_, Callback)
+    where
+        Tags_: Into<Tags>,
+        Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        fn into_hook(self) -> Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>> {
+            let (tags, callback) = self;
+
+            let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
+                as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+            Hook::builder()
+                .tags(tags.into())
+                .callback(callback)
+                .build()
+        }
+    }
+
+    #[sealed]
     pub trait IntoTagsFilter {
         fn into_filter(self) -> impl Fn(&Tags) -> bool;
 
@@ -671,59 +722,23 @@ mod builder {
             self
         }
 
-        pub fn before_scenario<Callback, Output>(mut self, tags: impl Into<Tags>, callback: Callback) -> Self
-        where
-            Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-            Output: IntoFallible,
-        {
-            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
-                as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            let hook = Hook::builder().tags(tags).callback(callback).build();
-
-            self.before_scenario_hooks.push(hook);
+        pub fn before_scenario(mut self, value: impl IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> Self {
+            self.before_scenario_hooks.push(value.into_hook());
             self
         }
 
-        pub fn after_scenario<Callback, Output>(mut self, tags: impl Into<Tags>, callback: Callback) -> Self
-        where
-            Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-            Output: IntoFallible,
-        {
-            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
-                as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            let hook = Hook::builder().tags(tags).callback(callback).build();
-
-            self.after_scenario_hooks.push(hook);
+        pub fn after_scenario(mut self, value: impl IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> Self {
+            self.after_scenario_hooks.push(value.into_hook());
             self
         }
 
-        pub fn before_step<Callback, Output>(mut self, tags: impl Into<Tags>, callback: Callback) -> Self
-        where
-            Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-            Output: IntoFallible,
-        {
-            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
-                as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            let hook = Hook::builder().tags(tags).callback(callback).build();
-
-            self.before_step_hooks.push(hook);
+        pub fn before_step(mut self, value: impl IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> Self {
+            self.before_step_hooks.push(value.into_hook());
             self
         }
 
-        pub fn after_step<Callback, Output>(mut self, tags: impl Into<Tags>, callback: Callback) -> Self
-        where
-            Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-            Output: IntoFallible,
-        {
-            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
-                as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            let hook = Hook::builder().tags(tags).callback(callback).build();
-
-            self.after_step_hooks.push(hook);
+        pub fn after_step(mut self, value: impl IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> Self {
+            self.after_step_hooks.push(value.into_hook());
             self
         }
     }

@@ -48,7 +48,7 @@ pub struct Background<World> {
 }
 
 #[derive(::core::clone::Clone)]
-pub(crate) struct Hook<Callback> {
+pub struct Hook<Callback> {
     pub(crate) tags: ::core::option::Option<Tags>,
     pub(crate) callback: Callback,
 }

@@ -54,3 +54,8 @@ harness = false
 name = "hello-world-cucumber-rs"
 path = "./examples/cucumber-rs/hello-world.rs"
 harness = false
+
+[[example]]
+name = "generics"
+path = "./examples/generics.rs"
+harness = false
