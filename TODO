@@ -1,0 +1,4 @@
+- auto type deduction ||| the trick is: IntoFeature<World> instead of Into<Feature<World>>
+- scenario outline
+- async
+- more example & compare?

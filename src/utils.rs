@@ -16,6 +16,14 @@ pub mod aliases {
         pub type BuildHasher = ::std::hash::BuildHasherDefault<::seahash::SeaHasher>;
     }
 
+    pub mod marker {
+        pub type PhantomCovariant<State> = ::core::marker::PhantomData<State>;
+    }
+
+    pub mod string {
+        pub type String = ::std::string::String;
+    }
+
     pub mod sync {
         #[cfg(not(any(feature = "triomphe")))]
         pub type Arc<T> = ::std::sync::Arc<T>;

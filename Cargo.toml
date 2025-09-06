@@ -33,6 +33,7 @@ triomphe = { version = "0.1.14", optional = true }
 
 [dev-dependencies]
 async-trait = "0.1.89"
+bon = "3.7.2"
 cucumber = "0.21.1"
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "sync"] }
 

@@ -1,5 +1,3 @@
-#![allow(clippy::type_complexity)]
-
 #[cfg(any(
     all(feature = "ahash", any(feature = "fxhash", feature = "metrohash", feature = "seahash")),
     all(feature = "fxhash", any(feature = "ahash", feature = "metrohash", feature = "seahash")),

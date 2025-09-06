@@ -1511,20 +1511,65 @@ mod step {
     }
 }
 
-impl Tags {
-    fn extend(&mut self, tags: Tags) {
-        self.0.extend(tags.0);
+#[sealed]
+pub trait IntoScenarioStep<World> {
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> ScenarioStep<World>;
+}
+
+#[sealed]
+impl<World, Description, Callback, Output> IntoScenarioStep<World> for (Description, Callback)
+where
+    Description: Into<aliases::string::String>,
+    Callback: FnOnce(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> ScenarioStep<World> {
+        let (description, callback) = self;
+
+        let callback = ::std::boxed::Box::new(move |world: &mut World| (callback)(world).into_fallible())
+            as ::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+        Step::builder()
+            .label(label)
+            .description(description)
+            .callback(callback)
+            .build()
     }
 }
 
-impl<I, T> From<I> for Tags
+#[sealed]
+pub trait IntoBackgroundStep<Callback> {
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> BackgroundStep<Callback>;
+}
+
+#[sealed]
+impl<World, Description, Callback, Output> IntoBackgroundStep<World> for (Description, Callback)
 where
-    I: IntoIterator<Item = T>,
-    T: Into<::std::borrow::Cow<'static, str>>,
+    Description: Into<aliases::string::String>,
+    Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
 {
-    fn from(values: I) -> Self {
-        Self(values.into_iter().map(Into::into).collect())
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> BackgroundStep<World> {
+        let (description, callback) = self;
+
+        let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
+            as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+        Step::builder()
+            .label(label)
+            .description(description)
+            .callback(callback)
+            .build()
     }
+}
+
+#[sealed]
+pub trait IntoTags {
+    fn into_tags(self) -> Tags;
 }
 
 #[sealed]
@@ -1546,35 +1591,13 @@ impl IntoFallible for () {
     }
 }
 
-impl<Message> From<Message> for Failed
+impl<T> From<T> for Failed
 where
-    Message: Into<::std::borrow::Cow<'static, str>>,
+    T: Into<aliases::string::String>,
 {
-    fn from(message: Message) -> Failed {
+    fn from(message: T) -> Failed {
         Failed {
             message: message.into(),
         }
     }
-}
-
-pub(crate) mod marker {
-    pub(super) use super::*;
-
-    #[sealed]
-    pub trait IsSet {}
-
-    #[sealed]
-    pub trait IsUnset {}
-
-    pub struct Set<T>(::core::marker::PhantomData<T>);
-
-    pub struct Unset<T>(::core::marker::PhantomData<T>);
-
-    #[sealed]
-    impl<T> IsSet for Set<T> {}
-
-    #[sealed]
-    impl<T> IsUnset for Unset<T> {}
-
-    pub type PhantomCovariant<State> = ::core::marker::PhantomData<State>;
 }
