@@ -20,6 +20,10 @@ pub mod aliases {
         pub type PhantomCovariant<State> = ::core::marker::PhantomData<State>;
     }
 
+    pub mod path {
+        pub type Path = ::std::borrow::Cow<'static, ::std::path::Path>;
+    }
+
     pub mod string {
         pub type String = ::std::borrow::Cow<'static, str>;
     }
