@@ -4,16 +4,17 @@ use crate::models::*;
 use crate::utils::aliases;
 
 pub struct Runner {
-    trials: ::std::vec::Vec<::libtest_mimic::Trial>,
-
     configurations: self::configurations::RunnerConfigurations,
+    
+    before_global_hooks: ::std::vec::Vec<GlobalHook>,
+    after_global_hooks: ::std::vec::Vec<GlobalHook>,
+    
+    trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrials>>,
+}
 
-    before_global_hooks: ::std::vec::Vec<
-        Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-    >,
-    after_global_hooks: ::std::vec::Vec<
-        Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-    >,
+#[sealed]
+trait IntoTrials {
+    fn into_trials(self, configurations: self::configurations::RunnerConfigurations) -> ::std::vec::Vec<libtest_mimic::Trial>;
 }
 
 pub use configurations as config;
@@ -71,21 +72,13 @@ pub mod configurations {
 }
 
 pub struct Suite<World> {
+    pub(crate) before_scenario_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
+    pub(crate) after_scenario_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
+
+    pub(crate) before_step_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
+    pub(crate) after_step_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
+
     pub(crate) features: ::std::vec::Vec<Feature<World>>,
-
-    pub(crate) before_scenario_hooks: ::std::vec::Vec<
-        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-    >,
-    pub(crate) after_scenario_hooks: ::std::vec::Vec<
-        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-    >,
-
-    pub(crate) before_step_hooks: ::std::vec::Vec<
-        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-    >,
-    pub(crate) after_step_hooks: ::std::vec::Vec<
-        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-    >,
 }
 
 mod builder {
@@ -537,83 +530,6 @@ mod builder {
     }
 
     #[sealed]
-    pub trait IntoHook<Callback> {
-        fn into_hook(self) -> Hook<Callback>;
-    }
-
-    #[sealed]
-    impl<World, Callback, Output> IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>> for Callback
-    where
-        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Output: IntoFallible,
-    {
-        fn into_hook(self) -> Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>> {
-            let callback = aliases::sync::Arc::new(move |world: &mut World| (self)(world).into_fallible())
-                as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            Hook::builder()
-                .callback(callback)
-                .build()
-        }
-    }
-
-    #[sealed]
-    impl<World, Tags_, Callback, Output> IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>> for (Tags_, Callback)
-    where
-        Tags_: Into<Tags>,
-        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Output: IntoFallible,
-    {
-        fn into_hook(self) -> Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>> {
-            let (tags, callback) = self;
-
-            let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
-                as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            Hook::builder()
-                .tags(tags.into())
-                .callback(callback)
-                .build()
-        }
-    }
-
-    #[sealed]
-    impl<Callback, Output> IntoHook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>> for Callback
-    where
-        Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Output: IntoFallible,
-    {
-        fn into_hook(self) -> Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>> {
-            let callback = ::std::boxed::Box::new(move || (self)().into_fallible())
-                as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            Hook::builder()
-                .callback(callback)
-                .build()
-        }
-    }
-
-    #[sealed]
-    impl<Tags_, Callback, Output> IntoHook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>> for (Tags_, Callback)
-    where
-        Tags_: Into<Tags>,
-        Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Output: IntoFallible,
-    {
-        fn into_hook(self) -> Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>> {
-            let (tags, callback) = self;
-
-            let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
-                as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-            Hook::builder()
-                .tags(tags.into())
-                .callback(callback)
-                .build()
-        }
-    }
-
-    #[sealed]
     pub trait IntoTagsFilter {
         fn into_filter(self) -> impl Fn(&Tags) -> bool;
 
@@ -667,100 +583,6 @@ mod builder {
     impl From<u64> for self::configurations::ThreadsCount {
         fn from(value: u64) -> Self {
             Self::Custom(value)
-        }
-    }
-
-    pub struct SuiteBuilder<World> {
-        features: ::std::vec::Vec<Feature<World>>,
-
-        before_scenario_hooks: ::std::vec::Vec<
-            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-        >,
-        after_scenario_hooks: ::std::vec::Vec<
-            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-        >,
-
-        before_step_hooks: ::std::vec::Vec<
-            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-        >,
-        after_step_hooks: ::std::vec::Vec<
-            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-        >,
-    }
-
-    impl<World> Suite<World> {
-        #[cfg(feature = "natural")]
-        #[inline(always)]
-        pub fn new() -> SuiteBuilder<World> {
-            Self::builder()
-        }
-
-        pub fn builder() -> SuiteBuilder<World> {
-            SuiteBuilder {
-                features: ::core::default::Default::default(),
-
-                before_scenario_hooks: ::core::default::Default::default(),
-                after_scenario_hooks: ::core::default::Default::default(),
-
-                before_step_hooks: ::core::default::Default::default(),
-                after_step_hooks: ::core::default::Default::default(),
-            }
-        }
-    }
-
-    impl<World> SuiteBuilder<World> {
-        pub fn feature(mut self, value: impl Into<Feature<World>>) -> Self {
-            self.features.push(value.into());
-            self
-        }
-
-        pub fn features<T>(mut self, values: impl IntoIterator<Item = T>) -> Self
-        where
-            T: Into<Feature<World>>,
-        {
-            self.features.extend(values.into_iter().map(Into::into));
-            self
-        }
-
-        pub fn before_scenario(mut self, value: impl IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> Self {
-            self.before_scenario_hooks.push(value.into_hook());
-            self
-        }
-
-        pub fn after_scenario(mut self, value: impl IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> Self {
-            self.after_scenario_hooks.push(value.into_hook());
-            self
-        }
-
-        pub fn before_step(mut self, value: impl IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> Self {
-            self.before_step_hooks.push(value.into_hook());
-            self
-        }
-
-        pub fn after_step(mut self, value: impl IntoHook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>) -> Self {
-            self.after_step_hooks.push(value.into_hook());
-            self
-        }
-    }
-
-    impl<World> SuiteBuilder<World> {
-        pub fn build(self) -> Suite<World> {
-            Suite {
-                features: self.features,
-
-                before_scenario_hooks: self.before_scenario_hooks,
-                after_scenario_hooks: self.after_scenario_hooks,
-
-                before_step_hooks: self.before_step_hooks,
-                after_step_hooks: self.after_step_hooks,
-            }
-        }
-    }
-
-    #[cfg(feature = "natural")]
-    impl<World> From<SuiteBuilder<World>> for Suite<World> {
-        fn from(builder: SuiteBuilder<World>) -> Self {
-            builder.build()
         }
     }
 }

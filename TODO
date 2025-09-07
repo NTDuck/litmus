@@ -3,7 +3,7 @@ ONGOING
 * plus major refactoring
 
 PENDING
+- unallow empty feature/rule/suite/runner as opt feature flag
 - scenario outline
 - async
 - more example & compare?
-- unallow empty feature/rule as opt feature flag
