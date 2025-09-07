@@ -4,7 +4,8 @@ macro_rules! assert {
         if $expr {
             ::core::result::Result::Ok(())
         } else {
-            ::core::result::Result::Err($message.into())
+            // qualify?
+            ::core::result::Result::Err($message.into_failed())
         }
     }};
 

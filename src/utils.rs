@@ -21,7 +21,7 @@ pub mod aliases {
     }
 
     pub mod string {
-        pub type String = ::std::string::String;
+        pub type String = ::std::borrow::Cow<'static, str>;
     }
 
     pub mod sync {
