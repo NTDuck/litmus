@@ -18,7 +18,6 @@ pub struct FeatureBuilder<World, State: self::feature::BuilderState = self::feat
 
 impl<World> Feature<World> {
     #[cfg(feature = "natural")]
-    #[inline(always)]
     pub fn new() -> FeatureBuilder<World> {
         Self::builder()
     }
@@ -41,12 +40,12 @@ impl<World> Feature<World> {
 impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
     pub fn description(
         mut self,
-        value: impl Into<aliases::string::String>,
+        description: impl Into<aliases::string::String>,
     ) -> FeatureBuilder<World, self::feature::SetDescription<State>>
     where
         State::Description: self::marker::IsUnset,
     {
-        self.description = ::core::option::Option::from(value.into());
+        self.description = ::core::option::Option::from(description.into());
 
         FeatureBuilder {
             description: self.description,
@@ -61,11 +60,11 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
         }
     }
 
-    pub fn ignored(mut self, value: impl Into<bool>) -> FeatureBuilder<World, self::feature::SetIgnored<State>>
+    pub fn ignored(mut self, ignored: impl Into<bool>) -> FeatureBuilder<World, self::feature::SetIgnored<State>>
     where
         State::Ignored: self::marker::IsUnset,
     {
-        self.ignored = ::core::option::Option::from(value.into());
+        self.ignored = ::core::option::Option::from(ignored.into());
 
         FeatureBuilder {
             description: self.description,
@@ -80,11 +79,11 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
         }
     }
 
-    pub fn tags(mut self, value: impl Into<Tags>) -> FeatureBuilder<World, self::feature::SetTags<State>>
+    pub fn tags(mut self, tags: impl IntoTags) -> FeatureBuilder<World, self::feature::SetTags<State>>
     where
         State::Tags: self::marker::IsUnset,
     {
-        self.tags = ::core::option::Option::from(value.into());
+        self.tags = ::core::option::Option::from(tags.into_tags());
 
         FeatureBuilder {
             description: self.description,
@@ -101,12 +100,12 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
 
     pub fn background(
         mut self,
-        value: impl Into<Background<World>>,
+        background: impl IntoBackground<World>,
     ) -> FeatureBuilder<World, self::feature::SetBackground<State>>
     where
         State::Background: self::marker::IsUnset,
     {
-        self.background = ::core::option::Option::from(value.into());
+        self.background = ::core::option::Option::from(background.into_background());
 
         FeatureBuilder {
             description: self.description,
@@ -121,32 +120,37 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
         }
     }
 
-    pub fn scenario(mut self, value: impl Into<Scenario<World>>) -> Self {
-        self.scenarios.push(value.into());
+    pub fn scenario(mut self, scenario: impl IntoScenario<World>) -> Self {
+        self.scenarios.push(scenario.into_scenario());
         self
     }
 
-    pub fn scenarios<T>(mut self, values: impl IntoIterator<Item = T>) -> Self
+    pub fn scenarios<T>(mut self, scenarios: impl IntoIterator<Item = T>) -> Self
     where
-        T: Into<Scenario<World>>,
+        T: IntoScenario<World>,
     {
-        self.scenarios.extend(values.into_iter().map(Into::into));
+        self.scenarios.extend(scenarios.into_iter().map(IntoScenario::into_scenario));
         self
     }
 
-    pub fn rule(mut self, value: impl Into<Rule<World>>) -> Self {
-        self.rules.push(value.into());
+    pub fn rule(mut self, rule: impl IntoRule<World>) -> Self {
+        self.rules.push(rule.into_rule());
         self
     }
 
-    pub fn rules<T>(mut self, values: impl IntoIterator<Item = T>) -> Self
+    pub fn rules<T>(mut self, rules: impl IntoIterator<Item = T>) -> Self
     where
-        T: Into<Rule<World>>,
+        T: IntoRule<World>,
     {
-        self.rules.extend(values.into_iter().map(Into::into));
+        self.rules.extend(rules.into_iter().map(IntoRule::into_rule));
         self
     }
+}
 
+impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State>
+where
+    State: self::feature::IsComplete,
+{
     pub fn build(mut self) -> Feature<World> {
         self.propagate_ignored();
         self.propagate_tags();
@@ -163,36 +167,27 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
     }
 
     fn propagate_ignored(&mut self) {
-        if let Some(ignored) = self.ignored.as_ref() {
-            self.scenarios.iter_mut().for_each(|scenario| scenario.ignored = ::core::option::Option::from(*ignored));
-
-            self.rules.iter_mut().for_each(|rule| rule.ignored = ::core::option::Option::from(*ignored));
-        }
+        self.ignored.as_ref()
+            .map(|ignored| {
+                self.scenarios.iter_mut()
+                    .for_each(|scenario| scenario.ignored = ::core::option::Option::from(*ignored))
+            });
     }
 
     /// See also: [Tag inheritance](https://cucumber.io/docs/cucumber/api/#tag-inheritance)
     fn propagate_tags(&mut self) {
-        if let Some(tags) = self.tags.as_ref() {
-            self.scenarios.iter_mut().for_each(|scenario| {
-                scenario
-                    .tags
-                    .get_or_insert_with(|| Tags::from(::std::iter::empty::<aliases::string::String>()))
-                    .extend(tags.clone())
-            });
+        self.tags.as_ref()
+            .map(|tags| {
+                self.scenarios.iter_mut()
+                    .for_each(|scenario| scenario.tags
+                        .get_or_insert_default()
+                        .extend(tags.clone()));
 
-            self.rules.iter_mut().for_each(|rule| {
-                rule.tags
-                    .get_or_insert_with(|| Tags::from(::std::iter::empty::<aliases::string::String>()))
-                    .extend(tags.clone())
+                self.rules.iter_mut()
+                    .for_each(|rule| rule.tags
+                        .get_or_insert_default()
+                        .extend(tags.clone()));
             });
-        }
-    }
-}
-
-#[cfg(feature = "natural")]
-impl<World, State: self::feature::BuilderState> From<FeatureBuilder<World, State>> for Feature<World> {
-    fn from(builder: FeatureBuilder<World, State>) -> Self {
-        builder.build()
     }
 }
 
@@ -207,6 +202,12 @@ mod feature {
 
         type Background;
     }
+
+    #[sealed]
+    pub trait IsComplete: BuilderState {}
+
+    #[sealed]
+    impl<State: BuilderState> IsComplete for State {}
 
     pub struct Empty;
 
@@ -265,6 +266,29 @@ mod feature {
     }
 }
 
+#[sealed]
+pub trait IntoFeature<World> {
+    fn into_feature(self) -> Feature<World>;
+}
+
+#[sealed]
+impl<World> IntoFeature<World> for Feature<World> {
+    fn into_feature(self) -> Feature<World> {
+        self
+    }
+}
+
+#[cfg(feature = "natural")]
+#[sealed]
+impl<World, State: self::feature::BuilderState> IntoFeature<World> for FeatureBuilder<World, State>
+where
+    State: self::feature::IsComplete,
+{
+    fn into_feature(self) -> Feature<World> {
+        self.build()
+    }
+}
+
 pub struct RuleBuilder<World, State: self::rule::BuilderState = self::rule::Empty> {
     description: ::core::option::Option<aliases::string::String>,
     ignored: ::core::option::Option<bool>,
@@ -278,7 +302,6 @@ pub struct RuleBuilder<World, State: self::rule::BuilderState = self::rule::Empt
 
 impl<World> Rule<World> {
     #[cfg(feature = "natural")]
-    #[inline(always)]
     pub fn new() -> RuleBuilder<World> {
         Self::builder()
     }
@@ -300,12 +323,12 @@ impl<World> Rule<World> {
 impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
     pub fn description(
         mut self,
-        value: impl Into<aliases::string::String>,
+        description: impl Into<aliases::string::String>,
     ) -> RuleBuilder<World, self::rule::SetDescription<State>>
     where
         State::Description: self::marker::IsUnset,
     {
-        self.description = ::core::option::Option::from(value.into());
+        self.description = ::core::option::Option::from(description.into());
 
         RuleBuilder {
             description: self.description,
@@ -319,11 +342,11 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
         }
     }
 
-    pub fn ignored(mut self, value: impl Into<bool>) -> RuleBuilder<World, self::rule::SetIgnored<State>>
+    pub fn ignored(mut self, ignored: impl Into<bool>) -> RuleBuilder<World, self::rule::SetIgnored<State>>
     where
         State::Ignored: self::marker::IsUnset,
     {
-        self.ignored = ::core::option::Option::from(value.into());
+        self.ignored = ::core::option::Option::from(ignored.into());
 
         RuleBuilder {
             description: self.description,
@@ -337,11 +360,11 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
         }
     }
 
-    pub fn tags(mut self, value: impl Into<Tags>) -> RuleBuilder<World, self::rule::SetTags<State>>
+    pub fn tags(mut self, tags: impl IntoTags) -> RuleBuilder<World, self::rule::SetTags<State>>
     where
         State::Tags: self::marker::IsUnset,
     {
-        self.tags = ::core::option::Option::from(value.into());
+        self.tags = ::core::option::Option::from(tags.into_tags());
 
         RuleBuilder {
             description: self.description,
@@ -355,14 +378,11 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
         }
     }
 
-    pub fn background(
-        mut self,
-        value: impl Into<Background<World>>,
-    ) -> RuleBuilder<World, self::rule::SetBackground<State>>
+    pub fn background(mut self, background: impl IntoBackground<World>) -> RuleBuilder<World, self::rule::SetBackground<State>>
     where
         State::Background: self::marker::IsUnset,
     {
-        self.background = ::core::option::Option::from(value.into());
+        self.background = ::core::option::Option::from(background.into_background());
 
         RuleBuilder {
             description: self.description,
@@ -376,19 +396,24 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
         }
     }
 
-    pub fn scenario(mut self, value: impl Into<Scenario<World>>) -> Self {
-        self.scenarios.push(value.into());
+    pub fn scenario(mut self, scenario: impl IntoScenario<World>) -> Self {
+        self.scenarios.push(scenario.into_scenario());
         self
     }
 
-    pub fn scenarios<T>(mut self, values: impl IntoIterator<Item = T>) -> Self
+    pub fn scenarios<T>(mut self, scenarios: impl IntoIterator<Item = T>) -> Self
     where
-        T: Into<Scenario<World>>,
+        T: IntoScenario<World>,
     {
-        self.scenarios.extend(values.into_iter().map(Into::into));
+        self.scenarios.extend(scenarios.into_iter().map(IntoScenario::into_scenario));
         self
     }
+}
 
+impl<World, State: self::rule::BuilderState> RuleBuilder<World, State>
+where
+    State: self::rule::IsComplete,
+{
     pub fn build(mut self) -> Rule<World> {
         self.propagate_ignored();
         self.propagate_tags();
@@ -404,28 +429,22 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
     }
 
     fn propagate_ignored(&mut self) {
-        if let Some(ignored) = self.ignored.as_ref() {
-            self.scenarios.iter_mut().for_each(|scenario| scenario.ignored = ::core::option::Option::from(*ignored));
-        }
+        self.ignored.as_ref()
+            .map(|ignored| {
+                self.scenarios.iter_mut()
+                    .for_each(|scenario| scenario.ignored = ::core::option::Option::from(*ignored));
+            });
     }
 
     /// See also: [Tag inheritance](https://cucumber.io/docs/cucumber/api/#tag-inheritance)
     fn propagate_tags(&mut self) {
-        if let Some(tags) = self.tags.as_ref() {
-            self.scenarios.iter_mut().for_each(|scenario| {
-                scenario
-                    .tags
-                    .get_or_insert_with(|| Tags::from(::std::iter::empty::<aliases::string::String>()))
-                    .extend(tags.clone())
+        self.tags.as_ref()
+            .map(|tags| {
+                self.scenarios.iter_mut()
+                    .for_each(|scenario| scenario.tags
+                        .get_or_insert_default()
+                        .extend(tags.clone()));
             });
-        }
-    }
-}
-
-#[cfg(feature = "natural")]
-impl<World, State: self::rule::BuilderState> From<RuleBuilder<World, State>> for Rule<World> {
-    fn from(builder: RuleBuilder<World, State>) -> Self {
-        builder.build()
     }
 }
 
@@ -440,6 +459,12 @@ mod rule {
 
         type Background;
     }
+
+    #[sealed]
+    pub trait IsComplete: BuilderState {}
+
+    #[sealed]
+    impl<State: BuilderState> IsComplete for State {}
 
     pub struct Empty;
 
@@ -495,6 +520,29 @@ mod rule {
         pub struct Tags;
 
         pub struct Background;
+    }
+}
+
+#[sealed]
+pub trait IntoRule<World> {
+    fn into_rule(self) -> Rule<World>;
+}
+
+#[sealed]
+impl<World> IntoRule<World> for Rule<World> {
+    fn into_rule(self) -> Rule<World> {
+        self
+    }
+}
+
+#[cfg(feature = "natural")]
+#[sealed]
+impl<World, State: self::rule::BuilderState> IntoRule<World> for RuleBuilder<World, State>
+where
+    State: self::rule::IsComplete,
+{
+    fn into_rule(self) -> Rule<World> {
+        self.build()
     }
 }
 
@@ -1180,11 +1228,11 @@ impl<Callback> Hook<Callback> {
 }
 
 impl<Callback, State: self::hook::BuilderState> HookBuilder<Callback, State> {
-    pub(crate) fn tags(mut self, value: impl Into<Tags>) -> HookBuilder<Callback, self::hook::SetTags<State>>
+    pub(crate) fn tags(mut self, tags: impl IntoTags) -> HookBuilder<Callback, self::hook::SetTags<State>>
     where
         State::Tags: self::marker::IsUnset,
     {
-        self.tags = ::core::option::Option::from(value.into());
+        self.tags = ::core::option::Option::from(tags.into_tags());
 
         HookBuilder {
             tags: self.tags,
@@ -1194,11 +1242,11 @@ impl<Callback, State: self::hook::BuilderState> HookBuilder<Callback, State> {
         }
     }
 
-    pub(crate) fn callback(mut self, value: Callback) -> HookBuilder<Callback, self::hook::SetCallback<State>>
+    pub(crate) fn callback(mut self, callback: Callback) -> HookBuilder<Callback, self::hook::SetCallback<State>>
     where
         State::Callback: self::marker::IsUnset,
     {
-        self.callback = ::core::option::Option::from(value);
+        self.callback = ::core::option::Option::from(callback);
 
         HookBuilder {
             tags: self.tags,

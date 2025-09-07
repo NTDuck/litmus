@@ -1,7 +1,6 @@
 use crate::utils::aliases;
 
 pub struct Feature<World> {
-    #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<aliases::string::String>,
     pub(crate) ignored: ::core::option::Option<bool>,
     pub(crate) tags: ::core::option::Option<Tags>,
