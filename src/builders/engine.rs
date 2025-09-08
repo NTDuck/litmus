@@ -7,10 +7,10 @@ use crate::utils::aliases;
 
 pub struct RunnerBuilder<State: self::runner::BuilderState = self::runner::Empty> {
     configurations: self::configurations::RunnerConfigurations,
-    
+
     before_global_hooks: ::std::vec::Vec<GlobalHook>,
     after_global_hooks: ::std::vec::Vec<GlobalHook>,
-    
+
     trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrialsWithConfigurations>>,
 
     __phantom: aliases::marker::PhantomCovariant<State>,
@@ -18,6 +18,7 @@ pub struct RunnerBuilder<State: self::runner::BuilderState = self::runner::Empty
 
 impl Runner {
     #[cfg(feature = "natural")]
+    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> RunnerBuilder {
         Self::builder()
     }
@@ -77,7 +78,9 @@ impl<State: self::runner::BuilderState> RunnerBuilder<State> {
     where
         State::TagsFilter: self::marker::IsUnset,
     {
-        self.configurations.tags_filter = ::core::option::Option::from(::std::boxed::Box::new(filter.into_filter()) as self::configurations::TagsFilter);
+        self.configurations.tags_filter = ::core::option::Option::from(
+            ::std::boxed::Box::new(filter.into_filter()) as self::configurations::TagsFilter
+        );
 
         RunnerBuilder {
             configurations: self.configurations,
@@ -96,10 +99,10 @@ impl<State: self::runner::BuilderState> RunnerBuilder<State> {
         State::TagsFilter: self::marker::IsSet,
         State::IsInTagsFilterChain: self::marker::IsSet,
     {
-        let filter = unsafe { self.configurations.tags_filter.unwrap_unchecked() }
-            .and(filter);
+        let filter = unsafe { self.configurations.tags_filter.unwrap_unchecked() }.and(filter);
 
-        self.configurations.tags_filter = ::core::option::Option::from(::std::boxed::Box::new(filter) as self::configurations::TagsFilter);
+        self.configurations.tags_filter =
+            ::core::option::Option::from(::std::boxed::Box::new(filter) as self::configurations::TagsFilter);
 
         RunnerBuilder {
             configurations: self.configurations,
@@ -118,10 +121,10 @@ impl<State: self::runner::BuilderState> RunnerBuilder<State> {
         State::TagsFilter: self::marker::IsSet,
         State::IsInTagsFilterChain: self::marker::IsSet,
     {
-        let filter = unsafe { self.configurations.tags_filter.unwrap_unchecked() }
-            .or(filter);
+        let filter = unsafe { self.configurations.tags_filter.unwrap_unchecked() }.or(filter);
 
-        self.configurations.tags_filter = ::core::option::Option::from(::std::boxed::Box::new(filter) as self::configurations::TagsFilter);
+        self.configurations.tags_filter =
+            ::core::option::Option::from(::std::boxed::Box::new(filter) as self::configurations::TagsFilter);
 
         RunnerBuilder {
             configurations: self.configurations,
@@ -171,7 +174,10 @@ impl<State: self::runner::BuilderState> RunnerBuilder<State> {
         }
     }
 
-    pub fn threads(mut self, threads: impl Into<self::configurations::ThreadsCount>) -> RunnerBuilder<self::runner::SetThreads<State>>
+    pub fn threads(
+        mut self,
+        threads: impl Into<self::configurations::ThreadsCount>,
+    ) -> RunnerBuilder<self::runner::SetThreads<State>>
     where
         State::Threads: self::marker::IsUnset,
     {
@@ -204,7 +210,7 @@ impl<State: self::runner::BuilderState> RunnerBuilder<State> {
             trials: self.trials,
 
             __phantom: ::core::default::Default::default(),
-        }        
+        }
     }
 
     pub fn before_all(mut self, hook: impl IntoGlobalHook) -> RunnerBuilder<self::runner::SetHooks<State>> {
@@ -328,146 +334,119 @@ mod runner {
 
     #[sealed]
     impl BuilderState for Empty {
-        type IgnorePolicy = self::marker::Unset<self::members::IgnorePolicy>;
-        type TagsFilter = self::marker::Unset<self::members::TagsFilter>;
-
-        type Format = self::marker::Unset<self::members::Format>;
         type Color = self::marker::Unset<self::members::Color>;
-        type Threads = self::marker::Unset<self::members::Threads>;
-        type LogFile = self::marker::Unset<self::members::LogFile>;
-
+        type Format = self::marker::Unset<self::members::Format>;
         type Hooks = self::marker::Unset<self::members::Hooks>;
-        type Trials = self::marker::Unset<self::members::Trials>;
-
+        type IgnorePolicy = self::marker::Unset<self::members::IgnorePolicy>;
         type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
+        type LogFile = self::marker::Unset<self::members::LogFile>;
+        type TagsFilter = self::marker::Unset<self::members::TagsFilter>;
+        type Threads = self::marker::Unset<self::members::Threads>;
+        type Trials = self::marker::Unset<self::members::Trials>;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetIgnorePolicy<State> {
-        type IgnorePolicy = self::marker::Set<self::members::IgnorePolicy>;
-        type TagsFilter = State::TagsFilter;
-
-        type Format = State::Format;
         type Color = State::Color;
-        type Threads = State::Threads;
-        type LogFile = State::LogFile;
-
+        type Format = State::Format;
         type Hooks = State::Hooks;
-        type Trials = State::Trials;
-
+        type IgnorePolicy = self::marker::Set<self::members::IgnorePolicy>;
         type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
+        type LogFile = State::LogFile;
+        type TagsFilter = State::TagsFilter;
+        type Threads = State::Threads;
+        type Trials = State::Trials;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTagsFilter<State> {
-        type IgnorePolicy = State::IgnorePolicy;
-        type TagsFilter = self::marker::Set<self::members::TagsFilter>;
-
-        type Format = State::Format;
         type Color = State::Color;
-        type Threads = State::Threads;
-        type LogFile = State::LogFile;
-
+        type Format = State::Format;
         type Hooks = State::Hooks;
-        type Trials = State::Trials;
-
+        type IgnorePolicy = State::IgnorePolicy;
         type IsInTagsFilterChain = self::marker::Set<self::members::IsInTagsFilterChain>;
+        type LogFile = State::LogFile;
+        type TagsFilter = self::marker::Set<self::members::TagsFilter>;
+        type Threads = State::Threads;
+        type Trials = State::Trials;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetFormat<State> {
-        type IgnorePolicy = State::IgnorePolicy;
-        type TagsFilter = State::TagsFilter;
-
-        type Format = self::marker::Set<self::members::Format>;
         type Color = State::Color;
-        type Threads = State::Threads;
-        type LogFile = State::LogFile;
-
+        type Format = self::marker::Set<self::members::Format>;
         type Hooks = State::Hooks;
-        type Trials = State::Trials;
-        
+        type IgnorePolicy = State::IgnorePolicy;
         type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
+        type LogFile = State::LogFile;
+        type TagsFilter = State::TagsFilter;
+        type Threads = State::Threads;
+        type Trials = State::Trials;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetColor<State> {
-        type IgnorePolicy = State::IgnorePolicy;
-        type TagsFilter = State::TagsFilter;
-
-        type Format = State::Format;
         type Color = self::marker::Set<self::members::Color>;
-        type Threads = State::Threads;
-        type LogFile = State::LogFile;
-
+        type Format = State::Format;
         type Hooks = State::Hooks;
-        type Trials = State::Trials;
-        
+        type IgnorePolicy = State::IgnorePolicy;
         type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
+        type LogFile = State::LogFile;
+        type TagsFilter = State::TagsFilter;
+        type Threads = State::Threads;
+        type Trials = State::Trials;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetThreads<State> {
-        type IgnorePolicy = State::IgnorePolicy;
-        type TagsFilter = State::TagsFilter;
-
-        type Format = State::Format;
         type Color = State::Color;
-        type Threads = self::marker::Set<self::members::Threads>;
-        type LogFile = State::LogFile;
-
+        type Format = State::Format;
         type Hooks = State::Hooks;
-        type Trials = State::Trials;
-        
+        type IgnorePolicy = State::IgnorePolicy;
         type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
+        type LogFile = State::LogFile;
+        type TagsFilter = State::TagsFilter;
+        type Threads = self::marker::Set<self::members::Threads>;
+        type Trials = State::Trials;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetLogFile<State> {
-        type IgnorePolicy = State::IgnorePolicy;
-        type TagsFilter = State::TagsFilter;
-
-        type Format = State::Format;
         type Color = State::Color;
-        type Threads = State::Threads;
-        type LogFile = self::marker::Set<self::members::LogFile>;
-
+        type Format = State::Format;
         type Hooks = State::Hooks;
-        type Trials = State::Trials;
-        
+        type IgnorePolicy = State::IgnorePolicy;
         type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
+        type LogFile = self::marker::Set<self::members::LogFile>;
+        type TagsFilter = State::TagsFilter;
+        type Threads = State::Threads;
+        type Trials = State::Trials;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetHooks<State> {
-        type IgnorePolicy = State::IgnorePolicy;
-        type TagsFilter = State::TagsFilter;
-
-        type Format = State::Format;
         type Color = State::Color;
-        type Threads = State::Threads;
-        type LogFile = State::LogFile;
-
+        type Format = State::Format;
         type Hooks = self::marker::Set<self::members::Hooks>;
-        type Trials = State::Trials;
-        
+        type IgnorePolicy = State::IgnorePolicy;
         type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
+        type LogFile = State::LogFile;
+        type TagsFilter = State::TagsFilter;
+        type Threads = State::Threads;
+        type Trials = State::Trials;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTrials<State> {
-        type IgnorePolicy = State::IgnorePolicy;
-        type TagsFilter = State::TagsFilter;
-
-        type Format = State::Format;
         type Color = State::Color;
-        type Threads = State::Threads;
-        type LogFile = State::LogFile;
-
+        type Format = State::Format;
         type Hooks = State::Hooks;
-        type Trials = self::marker::Set<self::members::Trials>;
-        
+        type IgnorePolicy = State::IgnorePolicy;
         type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
+        type LogFile = State::LogFile;
+        type TagsFilter = State::TagsFilter;
+        type Threads = State::Threads;
+        type Trials = self::marker::Set<self::members::Trials>;
     }
 
     mod members {
@@ -567,6 +546,7 @@ pub struct SuiteBuilder<World, State: self::suite::BuilderState = self::suite::E
 
 impl<World> Suite<World> {
     #[cfg(feature = "natural")]
+    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> SuiteBuilder<World> {
         Self::builder()
     }
@@ -575,10 +555,10 @@ impl<World> Suite<World> {
         SuiteBuilder {
             before_scenario_hooks: ::core::default::Default::default(),
             after_scenario_hooks: ::core::default::Default::default(),
-            
+
             before_step_hooks: ::core::default::Default::default(),
             after_step_hooks: ::core::default::Default::default(),
-            
+
             features: ::core::default::Default::default(),
 
             __phantom: ::core::default::Default::default(),
@@ -587,64 +567,76 @@ impl<World> Suite<World> {
 }
 
 impl<World, State: self::suite::BuilderState> SuiteBuilder<World, State> {
-    pub fn before_scenario(mut self, hook: impl IntoScenarioOrStepHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
+    pub fn before_scenario(
+        mut self,
+        hook: impl IntoScenarioOrStepHook<World>,
+    ) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
         self.before_scenario_hooks.push(hook.into_hook());
-        
+
         SuiteBuilder {
             before_scenario_hooks: self.before_scenario_hooks,
             after_scenario_hooks: self.after_scenario_hooks,
-            
+
             before_step_hooks: self.before_step_hooks,
             after_step_hooks: self.after_step_hooks,
-            
+
             features: self.features,
 
             __phantom: ::core::default::Default::default(),
         }
     }
 
-    pub fn after_scenario(mut self, hook: impl IntoScenarioOrStepHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
+    pub fn after_scenario(
+        mut self,
+        hook: impl IntoScenarioOrStepHook<World>,
+    ) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
         self.after_scenario_hooks.push(hook.into_hook());
-        
+
         SuiteBuilder {
             before_scenario_hooks: self.before_scenario_hooks,
             after_scenario_hooks: self.after_scenario_hooks,
-            
+
             before_step_hooks: self.before_step_hooks,
             after_step_hooks: self.after_step_hooks,
-            
+
             features: self.features,
 
             __phantom: ::core::default::Default::default(),
         }
     }
 
-    pub fn before_step(mut self, hook: impl IntoScenarioOrStepHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
+    pub fn before_step(
+        mut self,
+        hook: impl IntoScenarioOrStepHook<World>,
+    ) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
         self.before_step_hooks.push(hook.into_hook());
 
         SuiteBuilder {
             before_scenario_hooks: self.before_scenario_hooks,
             after_scenario_hooks: self.after_scenario_hooks,
-            
+
             before_step_hooks: self.before_step_hooks,
             after_step_hooks: self.after_step_hooks,
-            
+
             features: self.features,
 
             __phantom: ::core::default::Default::default(),
         }
     }
 
-    pub fn after_step(mut self, hook: impl IntoScenarioOrStepHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
+    pub fn after_step(
+        mut self,
+        hook: impl IntoScenarioOrStepHook<World>,
+    ) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
         self.after_step_hooks.push(hook.into_hook());
 
         SuiteBuilder {
             before_scenario_hooks: self.before_scenario_hooks,
             after_scenario_hooks: self.after_scenario_hooks,
-            
+
             before_step_hooks: self.before_step_hooks,
             after_step_hooks: self.after_step_hooks,
-            
+
             features: self.features,
 
             __phantom: ::core::default::Default::default(),
@@ -657,17 +649,20 @@ impl<World, State: self::suite::BuilderState> SuiteBuilder<World, State> {
         SuiteBuilder {
             before_scenario_hooks: self.before_scenario_hooks,
             after_scenario_hooks: self.after_scenario_hooks,
-            
+
             before_step_hooks: self.before_step_hooks,
             after_step_hooks: self.after_step_hooks,
-            
+
             features: self.features,
 
             __phantom: ::core::default::Default::default(),
         }
     }
 
-    pub fn features<T>(mut self, features: impl IntoIterator<Item = T>) -> SuiteBuilder<World, self::suite::SetFeatures<State>>
+    pub fn features<T>(
+        mut self,
+        features: impl IntoIterator<Item = T>,
+    ) -> SuiteBuilder<World, self::suite::SetFeatures<State>>
     where
         T: IntoFeature<World>,
     {
@@ -676,10 +671,10 @@ impl<World, State: self::suite::BuilderState> SuiteBuilder<World, State> {
         SuiteBuilder {
             before_scenario_hooks: self.before_scenario_hooks,
             after_scenario_hooks: self.after_scenario_hooks,
-            
+
             before_step_hooks: self.before_step_hooks,
             after_step_hooks: self.after_step_hooks,
-            
+
             features: self.features,
 
             __phantom: ::core::default::Default::default(),
@@ -726,20 +721,20 @@ mod suite {
 
     #[sealed]
     impl BuilderState for Empty {
-        type Hooks = self::marker::Unset<self::members::Hooks>;
         type Features = self::marker::Unset<self::members::Features>;
+        type Hooks = self::marker::Unset<self::members::Hooks>;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetHooks<State> {
-        type Hooks = self::marker::Set<self::members::Hooks>;
         type Features = State::Features;
+        type Hooks = self::marker::Set<self::members::Hooks>;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetFeatures<State> {
-        type Hooks = State::Hooks;
         type Features = self::marker::Set<self::members::Features>;
+        type Hooks = State::Hooks;
     }
 
     mod members {

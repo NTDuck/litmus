@@ -5,10 +5,10 @@ use crate::utils::aliases;
 
 pub struct Runner {
     pub(crate) configurations: self::configurations::RunnerConfigurations,
-    
+
     pub(crate) before_global_hooks: ::std::vec::Vec<GlobalHook>,
     pub(crate) after_global_hooks: ::std::vec::Vec<GlobalHook>,
-    
+
     pub(crate) trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrialsWithConfigurations>>,
 }
 
@@ -81,7 +81,10 @@ pub use configurations as config;
 #[sealed]
 pub trait IntoTrialsWithConfigurations: 'static {
     #[allow(private_interfaces)]
-    fn into_trials_with_configurations(self: ::std::boxed::Box<Self>, configurations: &self::configurations::RunnerConfigurations) -> ::std::vec::Vec<libtest_mimic::Trial>;
+    fn into_trials_with_configurations(
+        self: ::std::boxed::Box<Self>,
+        configurations: &self::configurations::RunnerConfigurations,
+    ) -> ::std::vec::Vec<libtest_mimic::Trial>;
 }
 
 #[sealed]
@@ -90,7 +93,10 @@ where
     T: IntoTrials + RetainByConfigurations + 'static,
 {
     #[allow(private_interfaces)]
-    fn into_trials_with_configurations(mut self: ::std::boxed::Box<Self>, configurations: &self::configurations::RunnerConfigurations) -> ::std::vec::Vec<libtest_mimic::Trial> {
+    fn into_trials_with_configurations(
+        mut self: ::std::boxed::Box<Self>,
+        configurations: &self::configurations::RunnerConfigurations,
+    ) -> ::std::vec::Vec<libtest_mimic::Trial> {
         self.retain(configurations);
         self.into_trials()
     }
@@ -106,9 +112,10 @@ where
 {
     fn retain(&mut self, configurations: &self::configurations::RunnerConfigurations) {
         RetainByIgnorePolicy::retain(self, configurations.ignore_policy);
-        
-        configurations.tags_filter.as_ref()
-            .map(|filter| RetainByTagsFilter::retain(self, filter));
+
+        if let Some(filter) = configurations.tags_filter.as_ref() {
+            RetainByTagsFilter::retain(self, filter)
+        }
     }
 }
 
@@ -315,10 +322,11 @@ trait ScenarioExt<Context> {
     fn into_trial_with_context(self, context: Context) -> ::libtest_mimic::Trial;
 }
 
-impl<const N: usize, World> ScenarioExt<(
-    [::std::vec::Vec<ScenarioOrStepHook<World>>; 4],
-    [::core::option::Option<::std::vec::Vec<BackgroundGivenStep<World>>>; N],
-)> for Scenario<World>
+impl<const N: usize, World>
+    ScenarioExt<(
+        [::std::vec::Vec<ScenarioOrStepHook<World>>; 4],
+        [::core::option::Option<::std::vec::Vec<BackgroundGivenStep<World>>>; N],
+    )> for Scenario<World>
 where
     World: ::core::default::Default + 'static,
 {
@@ -338,9 +346,10 @@ where
 
             before_scenario_hooks.to_callback()(&mut world)?;
 
-            backgrounds.into_iter().flatten().try_for_each(|background| {
-                background.to_callback_with_context(context.clone())(&mut world)
-            })?;
+            backgrounds
+                .into_iter()
+                .flatten()
+                .try_for_each(|background| background.to_callback_with_context(context.clone())(&mut world))?;
 
             self.given.into_callback_with_context(context.clone())(&mut world)?;
             self.when.into_callback_with_context(context.clone())(&mut world)?;
@@ -355,7 +364,8 @@ where
     }
 }
 
-impl<const N: usize, World> ScenarioExt<[::core::option::Option<::std::vec::Vec<BackgroundGivenStep<World>>>; N]> for Scenario<World>
+impl<const N: usize, World> ScenarioExt<[::core::option::Option<::std::vec::Vec<BackgroundGivenStep<World>>>; N]>
+    for Scenario<World>
 where
     World: ::core::default::Default + 'static,
 {
@@ -560,8 +570,7 @@ where
     World: 'static,
 {
     fn to_callback(&self) -> impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move |world: &mut World| self.iter()
-            .try_for_each(|hook| (hook.callback)(world))
+        move |world: &mut World| self.iter().try_for_each(|hook| (hook.callback)(world))
     }
 }
 
@@ -571,22 +580,21 @@ trait GlobalHooksExt {
 
 impl GlobalHooksExt for ::std::vec::Vec<GlobalHook> {
     fn to_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move || self.into_iter()
-            .try_for_each(|hook| (hook.callback)())
+        move || self.into_iter().try_for_each(|hook| (hook.callback)())
     }
 }
 
 impl Runner {
     pub fn run(self) -> ::std::process::ExitCode {
-        let trials = self.trials
+        let trials = self
+            .trials
             .into_iter()
-            .map(|trials| trials.into_trials_with_configurations(&self.configurations))
-            .flatten()
+            .flat_map(|trials| trials.into_trials_with_configurations(&self.configurations))
             .collect();
-        
+
         let mut args = ::libtest_mimic::Arguments::from_args();
         self.configurations.update(&mut args);
-        
+
         let _ = self.before_global_hooks.to_callback()();
 
         let conclusion = ::libtest_mimic::run(&args, trials);

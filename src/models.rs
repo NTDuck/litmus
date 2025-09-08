@@ -45,21 +45,25 @@ pub(crate) struct Hook<Callback> {
     pub(crate) callback: Callback,
 }
 
-pub(crate) type ScenarioOrStepHook<World> = Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
-pub(crate) type GlobalHook = Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type ScenarioOrStepHook<World> =
+    Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type GlobalHook =
+    Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 
 #[derive(::core::clone::Clone)]
 pub(crate) struct Step<Callback> {
     pub(crate) label: StepLabel,
     pub(crate) description: aliases::string::String,
-    
+
     pub(crate) callback: Callback,
 }
 
-pub(crate) type ScenarioGivenOrWhenStep<World> = Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
-pub(crate) type ScenarioThenStep<World> = Step<::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
-
-pub(crate) type BackgroundGivenStep<World> = Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type ScenarioGivenOrWhenStep<World> =
+    Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type ScenarioThenStep<World> =
+    Step<::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type BackgroundGivenStep<World> =
+    Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 
 pub type Tags = ::std::collections::HashSet<aliases::string::String, aliases::hash::BuildHasher>;
 
