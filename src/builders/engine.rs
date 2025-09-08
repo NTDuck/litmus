@@ -17,7 +17,7 @@ pub struct RunnerBuilder<State: self::runner::BuilderState = self::runner::Empty
 }
 
 impl Runner {
-    #[cfg(feature = "natural")]
+    #[cfg(feature = "allow-natural")]
     #[allow(clippy::new_ret_no_self)]
     pub fn new() -> RunnerBuilder {
         Self::builder()
@@ -288,7 +288,7 @@ where
         }
     }
 
-    #[cfg(feature = "natural")]
+    #[cfg(feature = "allow-natural")]
     pub fn run(self) -> ::std::process::ExitCode {
         self.build().run()
     }
@@ -545,7 +545,7 @@ pub struct SuiteBuilder<World, State: self::suite::BuilderState = self::suite::E
 }
 
 impl<World> Suite<World> {
-    #[cfg(feature = "natural")]
+    #[cfg(feature = "allow-natural")]
     #[allow(clippy::new_ret_no_self)]
     pub fn new() -> SuiteBuilder<World> {
         Self::builder()
@@ -755,7 +755,7 @@ impl<World> IntoSuite<World> for Suite<World> {
     }
 }
 
-#[cfg(feature = "natural")]
+#[cfg(feature = "allow-natural")]
 #[sealed]
 impl<World, State: self::suite::BuilderState> IntoSuite<World> for SuiteBuilder<World, State>
 where

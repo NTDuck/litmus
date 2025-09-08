@@ -10,8 +10,10 @@ categories = ["development-tools::testing"]
 publish = true
 
 [features]
-default = ["natural", "libtest-mimic", "seahash", "num-cpus"]
-natural = []
+default = ["allow-natural", "libtest-mimic", "seahash", "num-cpus"]
+
+allow-natural = []
+
 ahash = ["dep:ahash"]
 fxhash = ["dep:fxhash"]
 libtest-mimic = ["dep:libtest-mimic"]
@@ -22,7 +24,6 @@ triomphe = ["dep:triomphe"]
 
 [dependencies]
 ahash = { version = "0.8.12", optional = true }
-bon = "3.7.2"
 fxhash = { version = "0.2.1", optional = true }
 libtest-mimic = { version = "0.8", optional = true }
 metrohash = { version = "1.0.7", optional = true }

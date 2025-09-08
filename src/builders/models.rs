@@ -17,7 +17,7 @@ pub struct FeatureBuilder<World, State: self::feature::BuilderState = self::feat
 }
 
 impl<World> Feature<World> {
-    #[cfg(feature = "natural")]
+    #[cfg(feature = "allow-natural")]
     #[allow(clippy::new_ret_no_self)]
     pub fn new() -> FeatureBuilder<World> {
         Self::builder()
@@ -358,7 +358,7 @@ impl<World> IntoFeature<World> for Feature<World> {
     }
 }
 
-#[cfg(feature = "natural")]
+#[cfg(feature = "allow-natural")]
 #[sealed]
 impl<World, State: self::feature::BuilderState> IntoFeature<World> for FeatureBuilder<World, State>
 where
@@ -381,7 +381,7 @@ pub struct RuleBuilder<World, State: self::rule::BuilderState = self::rule::Empt
 }
 
 impl<World> Rule<World> {
-    #[cfg(feature = "natural")]
+    #[cfg(feature = "allow-natural")]
     #[allow(clippy::new_ret_no_self)]
     pub fn new() -> RuleBuilder<World> {
         Self::builder()
@@ -656,7 +656,7 @@ impl<World> IntoRule<World> for Rule<World> {
     }
 }
 
-#[cfg(feature = "natural")]
+#[cfg(feature = "allow-natural")]
 #[sealed]
 impl<World, State: self::rule::BuilderState> IntoRule<World> for RuleBuilder<World, State>
 where
@@ -680,7 +680,7 @@ pub struct ScenarioBuilder<World, State: self::scenario::BuilderState = self::sc
 }
 
 impl<World> Scenario<World> {
-    #[cfg(feature = "natural")]
+    #[cfg(feature = "allow-natural")]
     #[allow(clippy::new_ret_no_self)]
     pub fn new() -> ScenarioBuilder<World> {
         Self::builder()
@@ -1172,7 +1172,7 @@ impl<World> IntoScenario<World> for Scenario<World> {
     }
 }
 
-#[cfg(feature = "natural")]
+#[cfg(feature = "allow-natural")]
 #[sealed]
 impl<World, State: self::scenario::BuilderState> IntoScenario<World> for ScenarioBuilder<World, State>
 where
@@ -1193,7 +1193,7 @@ pub struct BackgroundBuilder<World, State: self::background::BuilderState = self
 }
 
 impl<World> Background<World> {
-    #[cfg(feature = "natural")]
+    #[cfg(feature = "allow-natural")]
     #[allow(clippy::new_ret_no_self)]
     pub fn new() -> BackgroundBuilder<World> {
         Self::builder()
@@ -1408,7 +1408,7 @@ impl<World> IntoBackground<World> for Background<World> {
     }
 }
 
-#[cfg(feature = "natural")]
+#[cfg(feature = "allow-natural")]
 #[sealed]
 impl<World, State: self::background::BuilderState> IntoBackground<World> for BackgroundBuilder<World, State>
 where
