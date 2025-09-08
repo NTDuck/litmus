@@ -24,8 +24,8 @@ pub struct Scenario<World> {
     pub(crate) ignored: ::core::option::Option<bool>,
     pub(crate) tags: ::core::option::Option<Tags>,
 
-    pub(crate) given: ::std::vec::Vec<ScenarioGivenStep<World>>,
-    pub(crate) when: ::std::vec::Vec<ScenarioWhenStep<World>>,
+    pub(crate) given: ::std::vec::Vec<ScenarioGivenOrWhenStep<World>>,
+    pub(crate) when: ::std::vec::Vec<ScenarioGivenOrWhenStep<World>>,
     pub(crate) then: ::std::vec::Vec<ScenarioThenStep<World>>,
 }
 
@@ -42,7 +42,7 @@ pub(crate) struct Hook<Callback> {
     pub(crate) callback: Callback,
 }
 
-pub(crate) type NonGlobalHook<World> = Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type ScenarioOrStepHook<World> = Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type GlobalHook = Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 
 #[derive(::core::clone::Clone)]
@@ -53,8 +53,7 @@ pub(crate) struct Step<Callback> {
     pub(crate) callback: Callback,
 }
 
-pub(crate) type ScenarioGivenStep<World> = Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
-pub(crate) type ScenarioWhenStep<World> = Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type ScenarioGivenOrWhenStep<World> = Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type ScenarioThenStep<World> = Step<::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 
 pub(crate) type BackgroundGivenStep<World> = Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;

@@ -9,20 +9,20 @@ pub trait UserRepository {
 pub struct UserRepositoryFeature;
 
 impl UserRepositoryFeature {
-    pub fn new<World>() -> impl Into<::litmus::Feature<World>>
+    pub fn new<World>() -> impl ::litmus::IntoFeature<World>
     where
         World: UserRepository,
     {
         ::litmus::Feature::new()
             .scenario(::litmus::Scenario::<World>::new()
-                .given("an empty repository", |_| {})
-                .when("inserting user `Alice` with ID `1`", |repo| repo.save(1, "Alice"))
-                .then("it contains `Alice`", |repo| ::litmus::assert!(repo.get(&1) == Some(&"Alice"))))
+                .given(("an empty repository", |_| {}))
+                .when(("inserting user `Alice` with ID `1`", |repo| repo.save(1, "Alice")))
+                .then(("it contains `Alice`", |repo| ::litmus::assert!(repo.get(&1) == Some(&"Alice")))))
             .scenario(::litmus::Scenario::<World>::new()
-                .given("an empty repository", |_| {})
-                .when("inserting user `Bob` with ID `2`", |repo| repo.save(2, "Bob"))
-                .then("it contains `Bob`", |repo| ::litmus::assert!(repo.get(&2) == Some(&"Bob")))
-                .but("it does not contain `Alice`", |repo| ::litmus::assert!(repo.get(&2) != Some(&"Alice"))))
+                .given(("an empty repository", |_| {}))
+                .when(("inserting user `Bob` with ID `2`", |repo| repo.save(2, "Bob")))
+                .then(("it contains `Bob`", |repo| ::litmus::assert!(repo.get(&2) == Some(&"Bob"))))
+                .but(("it does not contain `Alice`", |repo| ::litmus::assert!(repo.get(&2) != Some(&"Alice")))))
     }
 }
 
@@ -61,7 +61,7 @@ impl UserRepository for UserDatabase {
 pub struct UserDatabaseSuite;
 
 impl UserDatabaseSuite {
-    pub fn new() -> impl Into<::litmus::Suite<UserDatabase>> {
+    pub fn new() -> impl ::litmus::IntoSuite<UserDatabase> {
         ::litmus::Suite::new()
             .feature(UserRepositoryFeature::new())
             .before_scenario(|db: &mut UserDatabase| db.connect())

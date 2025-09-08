@@ -9,15 +9,18 @@ pub struct Runner {
     pub(crate) before_global_hooks: ::std::vec::Vec<GlobalHook>,
     pub(crate) after_global_hooks: ::std::vec::Vec<GlobalHook>,
     
-    pub(crate) trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrials_>>,
+    pub(crate) trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrialsWithConfigurations>>,
 }
 
-#[sealed]
-pub(crate) trait IntoTrials_: 'static {
-    fn into_trials(self, configurations: self::configurations::RunnerConfigurations) -> ::std::vec::Vec<libtest_mimic::Trial>;
-}
+pub struct Suite<World> {
+    pub(crate) before_scenario_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
+    pub(crate) after_scenario_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
 
-pub use configurations as config;
+    pub(crate) before_step_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
+    pub(crate) after_step_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
+
+    pub(crate) features: ::std::vec::Vec<Feature<World>>,
+}
 
 pub mod configurations {
     pub(super) use super::*;
@@ -73,14 +76,40 @@ pub mod configurations {
     }
 }
 
-pub struct Suite<World> {
-    pub(crate) before_scenario_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
-    pub(crate) after_scenario_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
+pub use configurations as config;
 
-    pub(crate) before_step_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
-    pub(crate) after_step_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
+#[sealed]
+pub trait IntoTrialsWithConfigurations: 'static {
+    #[allow(private_interfaces)]
+    fn into_trials_with_configurations(self: ::std::boxed::Box<Self>, configurations: &self::configurations::RunnerConfigurations) -> ::std::vec::Vec<libtest_mimic::Trial>;
+}
 
-    pub(crate) features: ::std::vec::Vec<Feature<World>>,
+#[sealed]
+impl<T> IntoTrialsWithConfigurations for T
+where
+    T: IntoTrials + RetainByConfigurations + 'static,
+{
+    #[allow(private_interfaces)]
+    fn into_trials_with_configurations(mut self: ::std::boxed::Box<Self>, configurations: &self::configurations::RunnerConfigurations) -> ::std::vec::Vec<libtest_mimic::Trial> {
+        self.retain(configurations);
+        self.into_trials()
+    }
+}
+
+trait RetainByConfigurations {
+    fn retain(&mut self, configurations: &self::configurations::RunnerConfigurations);
+}
+
+impl<T> RetainByConfigurations for T
+where
+    T: RetainByIgnorePolicy + RetainByTagsFilter,
+{
+    fn retain(&mut self, configurations: &self::configurations::RunnerConfigurations) {
+        RetainByIgnorePolicy::retain(self, configurations.ignore_policy);
+        
+        configurations.tags_filter.as_ref()
+            .map(|filter| RetainByTagsFilter::retain(self, filter));
+    }
 }
 
 trait RetainByIgnorePolicy {
@@ -196,17 +225,15 @@ impl<World> RetainByTagsFilter for Rule<World> {
         self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(&*filter));
     }
 }
-#[sealed]
-pub trait IntoTrials {
-    fn into_trials(self) -> impl IntoIterator<Item = ::libtest_mimic::Trial>;
+trait IntoTrials {
+    fn into_trials(self) -> ::std::vec::Vec<::libtest_mimic::Trial>;
 }
 
-#[sealed]
 impl<World> IntoTrials for Suite<World>
 where
     World: ::core::default::Default + 'static,
 {
-    fn into_trials(self) -> impl IntoIterator<Item = ::libtest_mimic::Trial> {
+    fn into_trials(self) -> ::std::vec::Vec<::libtest_mimic::Trial> {
         self.features
             .into_iter()
             .zip(::core::iter::repeat([
@@ -246,15 +273,15 @@ where
                         }),
                 )
             })
+            .collect()
     }
 }
 
-#[sealed]
 impl<World> IntoTrials for Feature<World>
 where
     World: ::core::default::Default + 'static,
 {
-    fn into_trials(self) -> impl IntoIterator<Item = ::libtest_mimic::Trial> {
+    fn into_trials(self) -> ::std::vec::Vec<::libtest_mimic::Trial> {
         let feature = self;
 
         ::core::iter::Iterator::chain(
@@ -280,6 +307,7 @@ where
                         .map(|(scenario, context)| scenario.into_trial_with_context(context))
                 }),
         )
+        .collect()
     }
 }
 
@@ -287,38 +315,23 @@ trait ScenarioExt<Context> {
     fn into_trial_with_context(self, context: Context) -> ::libtest_mimic::Trial;
 }
 
-impl<const N: usize, World>
-    ScenarioExt<(
-        [::std::vec::Vec<
-            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-        >; 4],
-        [::core::option::Option<
-            ::std::vec::Vec<
-                Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-            >,
-        >; N],
-    )> for Scenario<World>
+impl<const N: usize, World> ScenarioExt<(
+    [::std::vec::Vec<ScenarioOrStepHook<World>>; 4],
+    [::core::option::Option<::std::vec::Vec<BackgroundGivenStep<World>>>; N],
+)> for Scenario<World>
 where
     World: ::core::default::Default + 'static,
 {
     fn into_trial_with_context(
         self,
         ([before_scenario_hooks, after_scenario_hooks, before_step_hooks, after_step_hooks], backgrounds): (
-            [::std::vec::Vec<
-                Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-            >; 4],
-            [::core::option::Option<
-                ::std::vec::Vec<
-                    Step<
-                        aliases::sync::Arc<
-                            dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync,
-                        >,
-                    >,
-                >,
-            >; N],
+            [::std::vec::Vec<ScenarioOrStepHook<World>>; 4],
+            [::core::option::Option<::std::vec::Vec<BackgroundGivenStep<World>>>; N],
         ),
     ) -> ::libtest_mimic::Trial {
         let description = self.to_description();
+
+        let context = [before_step_hooks.clone(), after_step_hooks.clone()];
 
         let callback = move || {
             let mut world = ::core::default::Default::default();
@@ -326,42 +339,29 @@ where
             before_scenario_hooks.to_callback()(&mut world)?;
 
             backgrounds.into_iter().flatten().try_for_each(|background| {
-                background.to_callback_with_context([before_step_hooks.clone(), after_step_hooks.clone()])(&mut world)
+                background.to_callback_with_context(context.clone())(&mut world)
             })?;
 
-            self.given.into_callback_with_context([before_step_hooks.clone(), after_step_hooks.clone()])(&mut world)?;
-
-            self.when.into_callback_with_context([before_step_hooks.clone(), after_step_hooks.clone()])(&mut world)?;
-
-            self.then.into_callback_with_context([before_step_hooks.clone(), after_step_hooks.clone()])(&mut world)?;
+            self.given.into_callback_with_context(context.clone())(&mut world)?;
+            self.when.into_callback_with_context(context.clone())(&mut world)?;
+            self.then.into_callback_with_context(context.clone())(&mut world)?;
 
             after_scenario_hooks.to_callback()(&mut world)?;
 
             Ok(())
         };
 
-        into_trial().description(description).tags(self.tags).callback(callback).call()
+        into_trial(description, self.tags, callback)
     }
 }
 
-impl<const N: usize, World>
-    ScenarioExt<
-        [::core::option::Option<
-            ::std::vec::Vec<
-                Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-            >,
-        >; N],
-    > for Scenario<World>
+impl<const N: usize, World> ScenarioExt<[::core::option::Option<::std::vec::Vec<BackgroundGivenStep<World>>>; N]> for Scenario<World>
 where
     World: ::core::default::Default + 'static,
 {
     fn into_trial_with_context(
         self,
-        backgrounds: [::core::option::Option<
-            ::std::vec::Vec<
-                Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-            >,
-        >; N],
+        backgrounds: [::core::option::Option<::std::vec::Vec<BackgroundGivenStep<World>>>; N],
     ) -> ::libtest_mimic::Trial {
         let description = self.to_description();
 
@@ -377,12 +377,10 @@ where
             Ok(())
         };
 
-        into_trial().description(description).tags(self.tags).callback(callback).call()
+        into_trial(description, self.tags, callback)
     }
 }
 
-#[::bon::builder]
-#[builder(on(_, required))]
 fn into_trial(
     description: impl Into<::std::borrow::Cow<'static, str>>,
     tags: ::core::option::Option<impl Into<Tags>>,
@@ -437,7 +435,7 @@ impl<Callback> ToDescription for Step<Callback> {
 
 impl ToDescription for Tags {
     fn to_description(&self) -> ::std::borrow::Cow<'static, str> {
-        self.0.iter().cloned().collect::<::std::vec::Vec<_>>().join(",").into()
+        self.iter().cloned().collect::<::std::vec::Vec<_>>().join(",").into()
     }
 }
 
@@ -454,21 +452,16 @@ impl ToDescription for StepLabel {
     }
 }
 
-trait ScenarioStepsExt<World> {
+trait ScenarioGivenOrWhenStepsExt<World> {
     fn into_callback(self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 
     fn into_callback_with_context(
         self,
-        context: [::std::vec::Vec<
-            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-        >; 2],
+        context: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2],
     ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
-impl<World> ScenarioStepsExt<World>
-    for ::std::vec::Vec<
-        Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-    >
+impl<World> ScenarioGivenOrWhenStepsExt<World> for ::std::vec::Vec<ScenarioGivenOrWhenStep<World>>
 where
     World: 'static,
 {
@@ -478,9 +471,7 @@ where
 
     fn into_callback_with_context(
         self,
-        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<
-            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-        >; 2],
+        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2],
     ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
         move |world: &mut World| {
             self.into_iter().try_for_each(|step| {
@@ -494,21 +485,49 @@ where
     }
 }
 
-trait BackgroundStepsExt<World> {
+trait ScenarioThenStepsExt<World> {
+    fn into_callback(self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
+
+    fn into_callback_with_context(
+        self,
+        context: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2],
+    ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
+}
+
+impl<World> ScenarioThenStepsExt<World> for ::std::vec::Vec<ScenarioThenStep<World>>
+where
+    World: 'static,
+{
+    fn into_callback(self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| self.into_iter().try_for_each(|step| (step.callback)(world))
+    }
+
+    fn into_callback_with_context(
+        self,
+        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2],
+    ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| {
+            self.into_iter().try_for_each(|step| {
+                (before_step_hooks.to_callback())(world)?;
+                (step.callback)(world)?;
+                (after_step_hooks.to_callback())(world)?;
+
+                Ok(())
+            })
+        }
+    }
+}
+
+trait BackgroundGivenStepsExt<World> {
     fn to_callback(&self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 
     fn to_callback_with_context(
         &self,
-        context: [::std::vec::Vec<
-            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-        >; 2],
+        context: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2],
     ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
-impl<World> BackgroundStepsExt<World>
-    for ::std::vec::Vec<
-        Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-    >
+impl<World> BackgroundGivenStepsExt<World> for ::std::vec::Vec<BackgroundGivenStep<World>>
 where
     World: 'static,
 {
@@ -518,9 +537,7 @@ where
 
     fn to_callback_with_context(
         &self,
-        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<
-            Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-        >; 2],
+        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2],
     ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
         move |world: &mut World| {
             self.iter().try_for_each(|step| {
@@ -534,19 +551,17 @@ where
     }
 }
 
-trait NonGlobalHooksExt<World> {
+trait ScenarioOrStepHooksExt<World> {
     fn to_callback(&self) -> impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
-impl<World> NonGlobalHooksExt<World>
-    for ::std::vec::Vec<
-        Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>,
-    >
+impl<World> ScenarioOrStepHooksExt<World> for ::std::vec::Vec<ScenarioOrStepHook<World>>
 where
     World: 'static,
 {
     fn to_callback(&self) -> impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move |world: &mut World| self.iter().try_for_each(|hook| (hook.callback)(world))
+        move |world: &mut World| self.iter()
+            .try_for_each(|hook| (hook.callback)(world))
     }
 }
 
@@ -554,22 +569,27 @@ trait GlobalHooksExt {
     fn to_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
-impl GlobalHooksExt
-    for ::std::vec::Vec<Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>>
-{
+impl GlobalHooksExt for ::std::vec::Vec<GlobalHook> {
     fn to_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync {
-        move || self.into_iter().try_for_each(|hook| (hook.callback)())
+        move || self.into_iter()
+            .try_for_each(|hook| (hook.callback)())
     }
 }
 
 impl Runner {
     pub fn run(self) -> ::std::process::ExitCode {
+        let trials = self.trials
+            .into_iter()
+            .map(|trials| trials.into_trials_with_configurations(&self.configurations))
+            .flatten()
+            .collect();
+        
         let mut args = ::libtest_mimic::Arguments::from_args();
         self.configurations.update(&mut args);
-
+        
         let _ = self.before_global_hooks.to_callback()();
 
-        let conclusion = ::libtest_mimic::run(&args, self.trials);
+        let conclusion = ::libtest_mimic::run(&args, trials);
         let exit_code = conclusion.exit_code();
 
         let _ = self.after_global_hooks.to_callback()();

@@ -11,7 +11,7 @@ pub struct RunnerBuilder<State: self::runner::BuilderState = self::runner::Empty
     before_global_hooks: ::std::vec::Vec<GlobalHook>,
     after_global_hooks: ::std::vec::Vec<GlobalHook>,
     
-    trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrials_>>,
+    trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrialsWithConfigurations>>,
 
     __phantom: aliases::marker::PhantomCovariant<State>,
 }
@@ -237,7 +237,21 @@ impl<State: self::runner::BuilderState> RunnerBuilder<State> {
         }
     }
 
-    pub fn add(mut self, trials: impl IntoTrials_) -> RunnerBuilder<self::runner::SetTrials<State>> {
+    pub fn suite<World>(self, suite: impl IntoSuite<World>) -> RunnerBuilder<self::runner::SetTrials<State>>
+    where
+        World: ::core::default::Default + 'static,
+    {
+        self.add(suite.into_suite())
+    }
+
+    pub fn feature<World>(self, feature: impl IntoFeature<World>) -> RunnerBuilder<self::runner::SetTrials<State>>
+    where
+        World: ::core::default::Default + 'static,
+    {
+        self.add(feature.into_feature())
+    }
+
+    fn add(mut self, trials: impl IntoTrialsWithConfigurations) -> RunnerBuilder<self::runner::SetTrials<State>> {
         self.trials.push(::std::boxed::Box::new(trials));
 
         RunnerBuilder {
@@ -266,6 +280,11 @@ where
 
             trials: self.trials,
         }
+    }
+
+    #[cfg(feature = "natural")]
+    pub fn run(self) -> ::std::process::ExitCode {
+        self.build().run()
     }
 }
 
@@ -535,11 +554,11 @@ impl From<u64> for self::configurations::ThreadsCount {
 }
 
 pub struct SuiteBuilder<World, State: self::suite::BuilderState = self::suite::Empty> {
-    before_scenario_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
-    after_scenario_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
+    before_scenario_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
+    after_scenario_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
 
-    before_step_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
-    after_step_hooks: ::std::vec::Vec<NonGlobalHook<World>>,
+    before_step_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
+    after_step_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
 
     features: ::std::vec::Vec<Feature<World>>,
 
@@ -568,7 +587,7 @@ impl<World> Suite<World> {
 }
 
 impl<World, State: self::suite::BuilderState> SuiteBuilder<World, State> {
-    pub fn before_scenario(mut self, hook: impl IntoNonGlobalHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
+    pub fn before_scenario(mut self, hook: impl IntoScenarioOrStepHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
         self.before_scenario_hooks.push(hook.into_hook());
         
         SuiteBuilder {
@@ -584,7 +603,7 @@ impl<World, State: self::suite::BuilderState> SuiteBuilder<World, State> {
         }
     }
 
-    pub fn after_scenario(mut self, hook: impl IntoNonGlobalHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
+    pub fn after_scenario(mut self, hook: impl IntoScenarioOrStepHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
         self.after_scenario_hooks.push(hook.into_hook());
         
         SuiteBuilder {
@@ -600,7 +619,7 @@ impl<World, State: self::suite::BuilderState> SuiteBuilder<World, State> {
         }
     }
 
-    pub fn before_step(mut self, hook: impl IntoNonGlobalHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
+    pub fn before_step(mut self, hook: impl IntoScenarioOrStepHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
         self.before_step_hooks.push(hook.into_hook());
 
         SuiteBuilder {
@@ -616,7 +635,7 @@ impl<World, State: self::suite::BuilderState> SuiteBuilder<World, State> {
         }
     }
 
-    pub fn after_step(mut self, hook: impl IntoNonGlobalHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
+    pub fn after_step(mut self, hook: impl IntoScenarioOrStepHook<World>) -> SuiteBuilder<World, self::suite::SetHooks<State>> {
         self.after_step_hooks.push(hook.into_hook());
 
         SuiteBuilder {
@@ -726,5 +745,28 @@ mod suite {
     mod members {
         pub struct Hooks;
         pub struct Features;
+    }
+}
+
+#[sealed]
+pub trait IntoSuite<World> {
+    fn into_suite(self) -> Suite<World>;
+}
+
+#[sealed]
+impl<World> IntoSuite<World> for Suite<World> {
+    fn into_suite(self) -> Suite<World> {
+        self
+    }
+}
+
+#[cfg(feature = "natural")]
+#[sealed]
+impl<World, State: self::suite::BuilderState> IntoSuite<World> for SuiteBuilder<World, State>
+where
+    State: self::suite::IsComplete,
+{
+    fn into_suite(self) -> Suite<World> {
+        self.build()
     }
 }

@@ -4,8 +4,7 @@ macro_rules! assert {
         if $expr {
             ::core::result::Result::Ok(())
         } else {
-            // qualify?
-            ::core::result::Result::Err($message.into_failed())
+            ::core::result::Result::Err(::litmus::builders::models::IntoFailed::into_failed($message))
         }
     }};
 
