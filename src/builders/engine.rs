@@ -153,7 +153,7 @@ impl<State: self::runner::BuilderState> RunnerBuilder<State> {
         }
     }
 
-    pub fn color(mut self, color: self::configurations::Color) -> RunnerBuilder<self::runner::SetFormat<State>>
+    pub fn color(mut self, color: self::configurations::Color) -> RunnerBuilder<self::runner::SetColor<State>>
     where
         State::Color: self::marker::IsUnset,
     {

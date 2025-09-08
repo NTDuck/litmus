@@ -1,9 +1,0 @@
-ONGOING
-- auto type deduction ||| the trick is: IntoFeature<World> instead of Into<Feature<World>>
-* plus major refactoring
-
-PENDING
-- unallow empty feature/rule/suite/runner as opt feature flag
-- scenario outline
-- async
-- more example & compare?

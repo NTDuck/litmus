@@ -120,30 +120,74 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
         }
     }
 
-    pub fn scenario(mut self, scenario: impl IntoScenario<World>) -> Self {
+    pub fn scenario(mut self, scenario: impl IntoScenario<World>) -> FeatureBuilder<World, self::feature::SetScenarios<State>> {
         self.scenarios.push(scenario.into_scenario());
-        self
+
+        FeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
     }
 
-    pub fn scenarios<T>(mut self, scenarios: impl IntoIterator<Item = T>) -> Self
+    pub fn scenarios<T>(mut self, scenarios: impl IntoIterator<Item = T>) -> FeatureBuilder<World, self::feature::SetScenarios<State>>
     where
         T: IntoScenario<World>,
     {
         self.scenarios.extend(scenarios.into_iter().map(IntoScenario::into_scenario));
-        self
+
+        FeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
     }
 
-    pub fn rule(mut self, rule: impl IntoRule<World>) -> Self {
+    pub fn rule(mut self, rule: impl IntoRule<World>) -> FeatureBuilder<World, self::feature::SetRules<State>> {
         self.rules.push(rule.into_rule());
-        self
+
+        FeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
     }
 
-    pub fn rules<T>(mut self, rules: impl IntoIterator<Item = T>) -> Self
+    pub fn rules<T>(mut self, rules: impl IntoIterator<Item = T>) -> FeatureBuilder<World, self::feature::SetRules<State>>
     where
         T: IntoRule<World>,
     {
         self.rules.extend(rules.into_iter().map(IntoRule::into_rule));
-        self
+
+        FeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
     }
 }
 
@@ -201,6 +245,8 @@ mod feature {
         type Tags;
 
         type Background;
+        type Scenarios;
+        type Rules;
     }
 
     #[sealed]
@@ -216,45 +262,84 @@ mod feature {
     pub struct SetTags<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
     pub struct SetBackground<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetScenarios<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetRules<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
     #[sealed]
     impl BuilderState for Empty {
-        type Background = self::marker::Unset<self::members::Background>;
         type Description = self::marker::Unset<self::members::Description>;
         type Ignored = self::marker::Unset<self::members::Ignored>;
         type Tags = self::marker::Unset<self::members::Tags>;
+
+        type Background = self::marker::Unset<self::members::Background>;
+        type Scenarios = self::marker::Unset<self::members::Scenarios>;
+        type Rules = self::marker::Unset<self::members::Rules>;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetDescription<State> {
-        type Background = State::Background;
         type Description = self::marker::Set<self::members::Description>;
         type Ignored = State::Ignored;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
+        type Rules = State::Rules;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetIgnored<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = self::marker::Set<self::members::Ignored>;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
+        type Rules = State::Rules;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTags<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = State::Ignored;
         type Tags = self::marker::Set<self::members::Tags>;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
+        type Rules = State::Rules;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetBackground<State> {
-        type Background = self::marker::Set<self::members::Background>;
         type Description = State::Description;
         type Ignored = State::Ignored;
         type Tags = State::Tags;
+
+        type Background = self::marker::Set<self::members::Background>;
+        type Scenarios = State::Scenarios;
+        type Rules = State::Rules;
+    }
+
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetScenarios<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = self::marker::Set<self::members::Scenarios>;
+        type Rules = State::Rules;
+    }
+
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetRules<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
+        type Rules = self::marker::Set<self::members::Rules>;
     }
 
     mod members {
@@ -263,6 +348,8 @@ mod feature {
         pub struct Tags;
 
         pub struct Background;
+        pub struct Scenarios;
+        pub struct Rules;
     }
 }
 
@@ -396,17 +483,37 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
         }
     }
 
-    pub fn scenario(mut self, scenario: impl IntoScenario<World>) -> Self {
+    pub fn scenario(mut self, scenario: impl IntoScenario<World>) -> RuleBuilder<World, self::rule::SetScenarios<State>> {
         self.scenarios.push(scenario.into_scenario());
-        self
+
+        RuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
     }
 
-    pub fn scenarios<T>(mut self, scenarios: impl IntoIterator<Item = T>) -> Self
+    pub fn scenarios<T>(mut self, scenarios: impl IntoIterator<Item = T>) -> RuleBuilder<World, self::rule::SetScenarios<State>>
     where
         T: IntoScenario<World>,
     {
         self.scenarios.extend(scenarios.into_iter().map(IntoScenario::into_scenario));
-        self
+
+        RuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
     }
 }
 
@@ -458,6 +565,7 @@ mod rule {
         type Tags;
 
         type Background;
+        type Scenarios;
     }
 
     #[sealed]
@@ -473,45 +581,66 @@ mod rule {
     pub struct SetTags<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
     pub struct SetBackground<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetScenarios<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
     #[sealed]
     impl BuilderState for Empty {
-        type Background = self::marker::Unset<self::members::Background>;
         type Description = self::marker::Unset<self::members::Description>;
         type Ignored = self::marker::Unset<self::members::Ignored>;
         type Tags = self::marker::Unset<self::members::Tags>;
+
+        type Background = self::marker::Unset<self::members::Background>;
+        type Scenarios = self::marker::Unset<self::members::Scenarios>;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetDescription<State> {
-        type Background = State::Background;
         type Description = self::marker::Set<self::members::Description>;
         type Ignored = State::Ignored;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetIgnored<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = self::marker::Set<self::members::Ignored>;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTags<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = State::Ignored;
         type Tags = self::marker::Set<self::members::Tags>;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
     }
 
     #[sealed]
     impl<State: BuilderState> BuilderState for SetBackground<State> {
-        type Background = self::marker::Set<self::members::Background>;
         type Description = State::Description;
         type Ignored = State::Ignored;
         type Tags = State::Tags;
+
+        type Background = self::marker::Set<self::members::Background>;
+        type Scenarios = State::Scenarios;
+    }
+
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetScenarios<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = self::marker::Set<self::members::Scenarios>;
     }
 
     mod members {
@@ -520,6 +649,7 @@ mod rule {
         pub struct Tags;
 
         pub struct Background;
+        pub struct Scenarios;
     }
 }
 
@@ -645,11 +775,16 @@ where
         }
     }
 
-    pub fn given<Callback, Output>(
-        mut self,
-        step: impl IntoScenarioGivenOrWhenStep<World>,
-    ) -> ScenarioBuilder<World, self::scenario::SetGiven<State>> {
-        self.given.push(step.into_step(StepLabel::Given));
+    pub fn given<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioBuilder<World, self::scenario::SetGiven<State>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::Given);
+        self.given.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -671,11 +806,16 @@ where
     <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::When: self::marker::IsUnset,
     <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
 {
-    pub fn and(
-        mut self,
-        step: impl IntoScenarioGivenOrWhenStep<World>,
-    ) -> ScenarioBuilder<World, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
-        self.given.push(step.into_step(StepLabel::And));
+    pub fn and<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioBuilder<World, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::And);
+        self.given.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -690,11 +830,16 @@ where
         }
     }
 
-    pub fn but(
-        mut self,
-        step: impl IntoScenarioGivenOrWhenStep<World>,
-    ) -> ScenarioBuilder<World, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>> {
-        self.given.push(step.into_step(StepLabel::But));
+    pub fn but<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioBuilder<World, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::But);
+        self.given.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -709,11 +854,16 @@ where
         }
     }
 
-    pub fn when(
-        mut self,
-        step: impl IntoScenarioGivenOrWhenStep<World>,
-    ) -> ScenarioBuilder<World, self::scenario::SetWhen<self::scenario::SetGiven<InnerState>>> {
-        self.when.push(step.into_step(StepLabel::When));
+    pub fn when<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioBuilder<World, self::scenario::SetWhen<self::scenario::SetGiven<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::When);
+        self.when.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -735,11 +885,16 @@ where
     <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
     <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
 {
-    pub fn and(
-        mut self,
-        step: impl IntoScenarioGivenOrWhenStep<World>,
-    ) -> ScenarioBuilder<World, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
-        self.when.push(step.into_step(StepLabel::And));
+    pub fn and<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioBuilder<World, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::And);
+        self.when.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -754,11 +909,16 @@ where
         }
     }
 
-    pub fn but(
-        mut self,
-        step: impl IntoScenarioGivenOrWhenStep<World>,
-    ) -> ScenarioBuilder<World, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>> {
-        self.when.push(step.into_step(StepLabel::But));
+    pub fn but<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioBuilder<World, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::But);
+        self.when.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -773,11 +933,16 @@ where
         }
     }
 
-    pub fn then(
-        mut self,
-        step: impl IntoScenarioThenStep<World>,
-    ) -> ScenarioBuilder<World, self::scenario::SetThen<self::scenario::SetWhen<InnerState>>> {
-        self.then.push(step.into_step(StepLabel::Then));
+    pub fn then<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioBuilder<World, self::scenario::SetThen<self::scenario::SetWhen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioThenStep::into_step((description, callback), StepLabel::Then);
+        self.then.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -799,11 +964,16 @@ where
     <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
     <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsSet,
 {
-    pub fn and(
-        mut self,
-        step: impl IntoScenarioThenStep<World>,
-    ) -> ScenarioBuilder<World, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
-        self.then.push(step.into_step(StepLabel::And));
+    pub fn and<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioBuilder<World, self::scenario::SetThen<self::scenario::SetThen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioThenStep::into_step((description, callback), StepLabel::And);
+        self.then.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -818,11 +988,16 @@ where
         }
     }
 
-    pub fn but(
-        mut self,
-        step: impl IntoScenarioThenStep<World>,
-    ) -> ScenarioBuilder<World, self::scenario::SetThen<self::scenario::SetThen<InnerState>>> {
-        self.then.push(step.into_step(StepLabel::But));
+    pub fn but<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioBuilder<World, self::scenario::SetThen<self::scenario::SetThen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioThenStep::into_step((description, callback), StepLabel::But);
+        self.then.push(step);
 
         ScenarioBuilder {
             description: self.description,
@@ -1064,8 +1239,14 @@ where
         }
     }
 
-    pub fn given(mut self, step: impl IntoBackgroundGivenStep<World>) -> BackgroundBuilder<World, self::background::SetGiven<State>> {
-        self.given.push(step.into_step(StepLabel::Given));
+    pub fn given<Description, Callback, Output>(mut self, description: Description, callback: Callback) -> BackgroundBuilder<World, self::background::SetGiven<State>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoBackgroundGivenStep::into_step((description, callback), StepLabel::Given);
+        self.given.push(step);
 
         BackgroundBuilder {
             description: self.description,
@@ -1082,11 +1263,16 @@ impl<World, InnerState: self::background::BuilderState> BackgroundBuilder<World,
 where
     <self::background::SetGiven<InnerState> as self::background::BuilderState>::Given: self::marker::IsSet,
 {
-    pub fn and<Callback, Output>(
-        mut self,
-        step: impl IntoBackgroundGivenStep<World>
-    ) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
-        self.given.push(step.into_step(StepLabel::And));
+    pub fn and<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoBackgroundGivenStep::into_step((description, callback), StepLabel::And);
+        self.given.push(step);
 
         BackgroundBuilder {
             description: self.description,
@@ -1098,11 +1284,16 @@ where
         }
     }
 
-    pub fn but<Callback, Output>(
-        mut self,
-        step: impl IntoBackgroundGivenStep<World>
-    ) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>> {
-        self.given.push(step.into_step(StepLabel::But));
+    pub fn but<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> BackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoBackgroundGivenStep::into_step((description, callback), StepLabel::But);
+        self.given.push(step);
 
         BackgroundBuilder {
             description: self.description,
@@ -1370,6 +1561,7 @@ where
     Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
+    #[allow(private_interfaces)]
     fn into_hook(self) -> GlobalHook {
         let callback = ::std::boxed::Box::new(move || (self)().into_fallible())
             as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
@@ -1387,6 +1579,7 @@ where
     Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
+    #[allow(private_interfaces)]
     fn into_hook(self) -> GlobalHook {
         let (tags, callback) = self;
 
