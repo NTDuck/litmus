@@ -1,6 +1,6 @@
 [package]
 name = "litmus"
-version = "0.5.2"
+version = "0.5.3"
 description = "a macro-free BDD test harness."
 edition = "2021"
 license = "BSD-3-Clause"
@@ -10,8 +10,10 @@ categories = ["development-tools::testing"]
 publish = true
 
 [features]
-default = ["natural", "libtest-mimic", "seahash", "num-cpus"]
-natural = []
+default = ["allow-natural", "libtest-mimic", "seahash", "num-cpus"]
+
+allow-natural = []
+
 ahash = ["dep:ahash"]
 fxhash = ["dep:fxhash"]
 libtest-mimic = ["dep:libtest-mimic"]
@@ -22,7 +24,6 @@ triomphe = ["dep:triomphe"]
 
 [dependencies]
 ahash = { version = "0.8.12", optional = true }
-bon = "3.7.2"
 fxhash = { version = "0.2.1", optional = true }
 libtest-mimic = { version = "0.8", optional = true }
 metrohash = { version = "1.0.7", optional = true }
@@ -32,8 +33,9 @@ sealed = "0.6.0"
 triomphe = { version = "0.1.14", optional = true }
 
 [dev-dependencies]
+async-trait = "0.1.89"
 cucumber = "0.21.1"
-tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "sync"] }
 
 [lib]
 test = false
@@ -52,4 +54,9 @@ harness = false
 [[example]]
 name = "hello-world-cucumber-rs"
 path = "./examples/cucumber-rs/hello-world.rs"
+harness = false
+
+[[example]]
+name = "generics"
+path = "./examples/generics.rs"
 harness = false

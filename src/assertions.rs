@@ -4,7 +4,7 @@ macro_rules! assert {
         if $expr {
             ::core::result::Result::Ok(())
         } else {
-            ::core::result::Result::Err($message.into())
+            ::core::result::Result::Err(::litmus::builders::models::IntoFailed::into_failed($message))
         }
     }};
 
@@ -13,4 +13,12 @@ macro_rules! assert {
     };
 }
 
+#[macro_export]
+macro_rules! panic {
+    ($message:expr) => {
+        ::core::result::Result::Err(::litmus::builders::models::IntoFailed::into_failed($message))
+    };
+}
+
 pub use assert;
+pub use panic;

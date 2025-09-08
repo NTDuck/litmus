@@ -20,7 +20,7 @@ Add this to your `Cargo.toml`:
 # ./Cargo.toml
 
 [dev-dependencies]
-litmus = "0.5.0"
+litmus = "0.5.3"
 ```
 
 Disable the default harness for your test targets:
@@ -37,7 +37,7 @@ harness = false
 The [following example](./examples/hello-world.rs) replicates the [cucumber-rs example](https://cucumber-rs.github.io/cucumber/main/).
 ```rust
 /// ./examples/hello-world.rs
-/// 
+
 #[derive(::core::default::Default)]
 struct World {
     user: ::core::option::Option<String>,
@@ -76,7 +76,7 @@ harness = false
 We recommend [cargo-nextest](https://nexte.st) for a better experience, although [cargo-test](https://doc.rust-lang.org/cargo/commands/cargo-test.html) is supported.
 ```bash
 $ cargo nextest run --example hello-world
-   Compiling litmus v0.5.0 (D:\root\dev\rs\litmus)
+   Compiling litmus v0.5.3 (D:\root\dev\rs\litmus)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 1.80s
 ────────────
  Nextest run ID c544a979-c5f2-4302-8f59-a387d06e66bc with nextest profile: default

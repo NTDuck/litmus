@@ -1,5 +1,3 @@
-#![allow(clippy::type_complexity)]
-
 #[cfg(any(
     all(feature = "ahash", any(feature = "fxhash", feature = "metrohash", feature = "seahash")),
     all(feature = "fxhash", any(feature = "ahash", feature = "metrohash", feature = "seahash")),
@@ -10,14 +8,14 @@
 
 pub mod assertions;
 pub mod builders;
-pub mod models;
-
 #[cfg(feature = "libtest-mimic")]
-pub mod visitors;
+pub mod engine;
+pub mod models;
+pub mod prelude;
 
 mod utils;
 
 pub use self::builders::*;
-pub use self::models::*;
 #[cfg(feature = "libtest-mimic")]
-pub use self::visitors::*;
+pub use self::engine::*;
+pub use self::models::*;
