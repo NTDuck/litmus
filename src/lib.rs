@@ -11,6 +11,7 @@ pub mod builders;
 #[cfg(feature = "libtest-mimic")]
 pub mod engine;
 pub mod models;
+pub mod prelude;
 
 mod utils;
 

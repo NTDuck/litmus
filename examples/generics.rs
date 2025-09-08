@@ -1,3 +1,5 @@
+use ::litmus::prelude::*;
+
 pub type User = &'static str;
 pub type UserId = u64;
 
@@ -64,7 +66,8 @@ impl UserDatabaseSuite {
     pub fn new() -> impl ::litmus::IntoSuite<UserDatabase> {
         ::litmus::Suite::new()
             .feature(UserRepositoryFeature::new())
-            .before_scenario(|db: &mut UserDatabase| db.connect())
+            .before_scenario((|db: &mut UserDatabase| db.connect())
+                .tags(["u1, u2"]))
             .after_scenario(|db: &mut UserDatabase| db.disconnect())
     }
 }

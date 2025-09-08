@@ -1511,6 +1511,14 @@ pub trait IntoScenarioOrStepHook<World> {
 }
 
 #[sealed]
+impl<World> IntoScenarioOrStepHook<World> for ScenarioOrStepHook<World> {
+    #[allow(private_interfaces)]
+    fn into_hook(self) -> ScenarioOrStepHook<World> {
+        self
+    }
+}
+
+#[sealed]
 impl<World, Callback, Output> IntoScenarioOrStepHook<World> for Callback
 where
     Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
@@ -1528,18 +1536,19 @@ where
 }
 
 #[sealed]
-impl<World, TagsLike, Callback, Output> IntoScenarioOrStepHook<World> for (TagsLike, Callback)
+pub trait ScenarioOrStepHookCallbackExt<World> {
+    fn tags(self, tags: impl IntoTags) -> impl IntoScenarioOrStepHook<World>;
+}
+
+#[sealed]
+impl<World, Callback, Output> ScenarioOrStepHookCallbackExt<World> for Callback
 where
-    TagsLike: IntoTags,
     Callback: Fn(&mut World) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
-    #[allow(private_interfaces)]
-    fn into_hook(self) -> ScenarioOrStepHook<World> {
-        let (tags, callback) = self;
-
+    fn tags(self, tags: impl IntoTags) -> impl IntoScenarioOrStepHook<World> {
         let tags = tags.into_tags();
-        let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
+        let callback = aliases::sync::Arc::new(move |world: &mut World| (self)(world).into_fallible())
             as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
         Hook::builder()
@@ -1553,6 +1562,14 @@ where
 pub trait IntoGlobalHook {
     #[allow(private_interfaces)]
     fn into_hook(self) -> GlobalHook;
+}
+
+#[sealed]
+impl IntoGlobalHook for GlobalHook {
+    #[allow(private_interfaces)]
+    fn into_hook(self) -> GlobalHook {
+        self
+    }
 }
 
 #[sealed]
@@ -1573,18 +1590,19 @@ where
 }
 
 #[sealed]
-impl<TagsLike, Callback, Output> IntoGlobalHook for (TagsLike, Callback)
+pub trait GlobalHookCallbackExt {
+    fn tags(self, tags: impl IntoTags) -> impl IntoGlobalHook;
+}
+
+#[sealed]
+impl<Callback, Output> GlobalHookCallbackExt for Callback
 where
-    TagsLike: IntoTags,
     Callback: FnOnce() -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
-    #[allow(private_interfaces)]
-    fn into_hook(self) -> GlobalHook {
-        let (tags, callback) = self;
-
+    fn tags(self, tags: impl IntoTags) -> impl IntoGlobalHook {
         let tags = tags.into_tags();
-        let callback = ::std::boxed::Box::new(move || (callback)().into_fallible())
+        let callback = ::std::boxed::Box::new(move || (self)().into_fallible())
             as ::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
         Hook::builder()
