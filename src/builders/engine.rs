@@ -312,10 +312,18 @@ mod runner {
 
         type IsInTagsFilterChain;
     }
+    
+    #[cfg(not(feature = "deny-empty"))]
+    pub trait IsComplete: BuilderState {}
 
+    #[cfg(not(feature = "deny-empty"))]
+    impl<State: BuilderState> IsComplete for State {}
+    
+    #[cfg(feature = "deny-empty")]
     #[sealed]
     pub trait IsComplete: BuilderState<Trials: self::marker::IsSet> {}
 
+    #[cfg(feature = "deny-empty")]
     #[sealed]
     impl<State: BuilderState> IsComplete for State where State::Trials: self::marker::IsSet {}
 
