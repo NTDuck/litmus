@@ -124,7 +124,7 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
     pub fn scenario(
         mut self,
         scenario: impl IntoScenario<World>,
-    ) -> FeatureBuilder<World, self::feature::SetScenarios<State>> {
+    ) -> FeatureBuilder<World, self::feature::SetScenariosOrRules<State>> {
         self.scenarios.push(scenario.into_scenario());
 
         FeatureBuilder {
@@ -143,7 +143,7 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
     pub fn scenarios<T>(
         mut self,
         scenarios: impl IntoIterator<Item = T>,
-    ) -> FeatureBuilder<World, self::feature::SetScenarios<State>>
+    ) -> FeatureBuilder<World, self::feature::SetScenariosOrRules<State>>
     where
         T: IntoScenario<World>,
     {
@@ -162,7 +162,7 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
         }
     }
 
-    pub fn rule(mut self, rule: impl IntoRule<World>) -> FeatureBuilder<World, self::feature::SetRules<State>> {
+    pub fn rule(mut self, rule: impl IntoRule<World>) -> FeatureBuilder<World, self::feature::SetScenariosOrRules<State>> {
         self.rules.push(rule.into_rule());
 
         FeatureBuilder {
@@ -181,7 +181,7 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
     pub fn rules<T>(
         mut self,
         rules: impl IntoIterator<Item = T>,
-    ) -> FeatureBuilder<World, self::feature::SetRules<State>>
+    ) -> FeatureBuilder<World, self::feature::SetScenariosOrRules<State>>
     where
         T: IntoRule<World>,
     {
@@ -245,15 +245,27 @@ mod feature {
         type Tags;
 
         type Background;
-        type Scenarios;
-        type Rules;
+        type ScenariosOrRules;
     }
 
+    #[cfg(not(feature = "deny-empty"))]
     #[sealed]
     pub trait IsComplete: BuilderState {}
 
+    #[cfg(not(feature = "deny-empty"))]
     #[sealed]
     impl<State: BuilderState> IsComplete for State {}
+
+    #[cfg(feature = "deny-empty")]
+    #[sealed]
+    pub trait IsComplete: BuilderState<ScenariosOrRules: self::marker::IsSet> {}
+
+    #[cfg(feature = "deny-empty")]
+    #[sealed]
+    impl<State: BuilderState> IsComplete for State
+    where
+        State::ScenariosOrRules: self::marker::IsSet,
+    {}
 
     pub struct Empty;
 
@@ -262,16 +274,14 @@ mod feature {
     pub struct SetTags<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
     pub struct SetBackground<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
-    pub struct SetScenarios<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
-    pub struct SetRules<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetScenariosOrRules<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
     #[sealed]
     impl BuilderState for Empty {
         type Background = self::marker::Unset<self::members::Background>;
         type Description = self::marker::Unset<self::members::Description>;
         type Ignored = self::marker::Unset<self::members::Ignored>;
-        type Rules = self::marker::Unset<self::members::Rules>;
-        type Scenarios = self::marker::Unset<self::members::Scenarios>;
+        type ScenariosOrRules = self::marker::Unset<self::members::ScenariosOrRules>;
         type Tags = self::marker::Unset<self::members::Tags>;
     }
 
@@ -280,8 +290,7 @@ mod feature {
         type Background = State::Background;
         type Description = self::marker::Set<self::members::Description>;
         type Ignored = State::Ignored;
-        type Rules = State::Rules;
-        type Scenarios = State::Scenarios;
+        type ScenariosOrRules = State::ScenariosOrRules;
         type Tags = State::Tags;
     }
 
@@ -290,8 +299,7 @@ mod feature {
         type Background = State::Background;
         type Description = State::Description;
         type Ignored = self::marker::Set<self::members::Ignored>;
-        type Rules = State::Rules;
-        type Scenarios = State::Scenarios;
+        type ScenariosOrRules = State::ScenariosOrRules;
         type Tags = State::Tags;
     }
 
@@ -300,8 +308,7 @@ mod feature {
         type Background = State::Background;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Rules = State::Rules;
-        type Scenarios = State::Scenarios;
+        type ScenariosOrRules = State::ScenariosOrRules;
         type Tags = self::marker::Set<self::members::Tags>;
     }
 
@@ -310,28 +317,16 @@ mod feature {
         type Background = self::marker::Set<self::members::Background>;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Rules = State::Rules;
-        type Scenarios = State::Scenarios;
+        type ScenariosOrRules = State::ScenariosOrRules;
         type Tags = State::Tags;
     }
 
     #[sealed]
-    impl<State: BuilderState> BuilderState for SetScenarios<State> {
+    impl<State: BuilderState> BuilderState for SetScenariosOrRules<State> {
         type Background = State::Background;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Rules = State::Rules;
-        type Scenarios = self::marker::Set<self::members::Scenarios>;
-        type Tags = State::Tags;
-    }
-
-    #[sealed]
-    impl<State: BuilderState> BuilderState for SetRules<State> {
-        type Background = State::Background;
-        type Description = State::Description;
-        type Ignored = State::Ignored;
-        type Rules = self::marker::Set<self::members::Rules>;
-        type Scenarios = State::Scenarios;
+        type ScenariosOrRules = self::marker::Set<self::members::ScenariosOrRules>;
         type Tags = State::Tags;
     }
 
@@ -341,8 +336,7 @@ mod feature {
         pub struct Tags;
 
         pub struct Background;
-        pub struct Scenarios;
-        pub struct Rules;
+        pub struct ScenariosOrRules;
     }
 }
 
@@ -565,11 +559,23 @@ mod rule {
         type Scenarios;
     }
 
+    #[cfg(not(feature = "deny-empty"))]
     #[sealed]
     pub trait IsComplete: BuilderState {}
 
+    #[cfg(not(feature = "deny-empty"))]
     #[sealed]
     impl<State: BuilderState> IsComplete for State {}
+
+    #[cfg(feature = "deny-empty")]
+    pub trait IsComplete: BuilderState<Scenarios: self::marker::IsSet> {}
+
+    #[cfg(feature = "deny-empty")]
+    impl<State: BuilderState> IsComplete for State
+    where
+        State::Scenarios: self::marker::IsSet,
+    {
+    }
 
     pub struct Empty;
 

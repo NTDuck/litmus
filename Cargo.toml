@@ -10,9 +10,10 @@ categories = ["development-tools::testing"]
 publish = true
 
 [features]
-default = ["allow-natural", "libtest-mimic", "seahash", "num-cpus"]
+default = ["allow-natural", "deny-empty", "libtest-mimic", "seahash", "num-cpus"]
 
 allow-natural = []
+deny-empty = []
 
 ahash = ["dep:ahash"]
 fxhash = ["dep:fxhash"]
