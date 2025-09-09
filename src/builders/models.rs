@@ -162,10 +162,7 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
         }
     }
 
-    pub fn rule(
-        mut self,
-        rule: impl IntoRule<World>,
-    ) -> FeatureBuilder<World, self::feature::SetRules<State>> {
+    pub fn rule(mut self, rule: impl IntoRule<World>) -> FeatureBuilder<World, self::feature::SetRules<State>> {
         self.rules.push(rule.into_rule());
 
         FeatureBuilder {

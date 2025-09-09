@@ -751,7 +751,7 @@ mod suite {
         type Hooks;
         type Features;
     }
-    
+
     #[cfg(feature = "allow-empty")]
     #[sealed]
     pub trait IsComplete: BuilderState {}
@@ -762,9 +762,7 @@ mod suite {
 
     #[cfg(not(feature = "allow-empty"))]
     #[sealed]
-    pub trait IsComplete: BuilderState<Hooks: self::marker::IsSet, Features: self::marker::IsSet>
-    {
-    }
+    pub trait IsComplete: BuilderState<Hooks: self::marker::IsSet, Features: self::marker::IsSet> {}
 
     #[cfg(not(feature = "allow-empty"))]
     #[sealed]
