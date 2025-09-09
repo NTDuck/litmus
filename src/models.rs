@@ -31,6 +31,18 @@ pub struct Scenario<World> {
     pub(crate) then: ::std::vec::Vec<ScenarioThenStep<World>>,
 }
 
+pub struct ScenarioOutline<World, Example> {
+    pub(crate) description: ::core::option::Option<aliases::string::String>,
+    pub(crate) ignored: ::core::option::Option<bool>,
+    pub(crate) tags: ::core::option::Option<Tags>,
+
+    pub(crate) given: ::std::vec::Vec<ScenarioOutlineGivenOrWhenStep<World, Example>>,
+    pub(crate) when: ::std::vec::Vec<ScenarioOutlineGivenOrWhenStep<World, Example>>,
+    pub(crate) then: ::std::vec::Vec<ScenarioOutlineThenStep<World, Example>>,
+
+    pub(crate) examples: ::std::vec::Vec<Example>,
+}
+
 pub struct Background<World> {
     #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<aliases::string::String>,
@@ -62,6 +74,10 @@ pub(crate) type ScenarioGivenOrWhenStep<World> =
     Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type ScenarioThenStep<World> =
     Step<::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type ScenarioOutlineGivenOrWhenStep<World, Example> =
+    Step<aliases::sync::Arc<dyn Fn(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type ScenarioOutlineThenStep<World, Example> =
+    Step<aliases::sync::Arc<dyn Fn(&World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type BackgroundGivenStep<World> =
     Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 

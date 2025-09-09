@@ -1149,8 +1149,8 @@ mod scenario {
         type Tags = self::marker::Unset<self::members::Tags>;
 
         type Given = self::marker::Unset<self::members::Given>;
-        type Then = self::marker::Unset<self::members::Then>;
         type When = self::marker::Unset<self::members::When>;
+        type Then = self::marker::Unset<self::members::Then>;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1161,8 +1161,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = State::Given;
-        type Then = State::Then;
         type When = State::When;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1173,8 +1173,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = State::Given;
-        type Then = State::Then;
         type When = State::When;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1185,8 +1185,8 @@ mod scenario {
         type Tags = self::marker::Set<self::members::Tags>;
 
         type Given = State::Given;
-        type Then = State::Then;
         type When = State::When;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1197,8 +1197,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = self::marker::Set<self::members::Given>;
-        type Then = State::Then;
         type When = State::When;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1209,8 +1209,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = State::Given;
-        type Then = State::Then;
         type When = self::marker::Set<self::members::When>;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1221,8 +1221,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = State::Given;
-        type Then = self::marker::Set<self::members::Then>;
         type When = State::When;
+        type Then = self::marker::Set<self::members::Then>;
     }
 
     mod members {
@@ -1255,6 +1255,660 @@ where
     State: self::scenario::IsComplete,
 {
     fn into_scenario(self) -> Scenario<World> {
+        self.build()
+    }
+}
+
+pub struct ScenarioOutlineBuilder<World, Example, State: self::scenario_outline::BuilderState = self::scenario_outline::Empty> {
+    description: ::core::option::Option<aliases::string::String>,
+    ignored: ::core::option::Option<bool>,
+    tags: ::core::option::Option<Tags>,
+
+    given: ::std::vec::Vec<ScenarioOutlineGivenOrWhenStep<World, Example>>,
+    when: ::std::vec::Vec<ScenarioOutlineGivenOrWhenStep<World, Example>>,
+    then: ::std::vec::Vec<ScenarioOutlineThenStep<World, Example>>,
+
+    examples: ::std::vec::Vec<Example>,
+
+    __phantom: aliases::marker::PhantomCovariant<State>,
+}
+
+impl<World, Example> ScenarioOutline<World, Example> {
+    #[cfg(feature = "allow-natural")]
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> ScenarioOutlineBuilder<World, Example> {
+        Self::builder()
+    }
+
+    pub fn builder() -> ScenarioOutlineBuilder<World, Example> {
+        ScenarioOutlineBuilder {
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+            tags: ::core::default::Default::default(),
+
+            given: ::core::default::Default::default(),
+            when: ::core::default::Default::default(),
+            then: ::core::default::Default::default(),
+
+            examples: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlineBuilder<World, Example, State>
+where
+    State::Given: self::marker::IsUnset,
+    State::When: self::marker::IsUnset,
+    State::Then: self::marker::IsUnset,
+    State::Examples: self::marker::IsUnset,
+{
+    pub fn description(mut self, description: impl Into<aliases::string::String>) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetDescription<State>>
+    where
+        State::Description: self::marker::IsUnset,
+    {
+        self.description = ::core::option::Option::from(description.into());
+        
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn ignored(mut self, ignored: impl Into<bool>) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetIgnored<State>>
+    where
+        State::Ignored: self::marker::IsUnset,
+    {
+        self.ignored = ::core::option::Option::from(ignored.into());
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn tags(mut self, tags: impl IntoTags) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetTags<State>>
+    where
+        State::Tags: self::marker::IsUnset,
+    {
+        self.tags = ::core::option::Option::from(tags.into_tags());
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn given<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetGiven<State>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioOutlineGivenOrWhenStep::into_step((description, callback), StepLabel::Given);
+        self.given.push(step);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, InnerState: self::scenario_outline::BuilderState> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetGiven<InnerState>>
+where
+    <self::scenario_outline::SetGiven<InnerState> as self::scenario_outline::BuilderState>::Given: self::marker::IsSet,
+    <self::scenario_outline::SetGiven<InnerState> as self::scenario_outline::BuilderState>::When: self::marker::IsUnset,
+    <self::scenario_outline::SetGiven<InnerState> as self::scenario_outline::BuilderState>::Then: self::marker::IsUnset,
+    <self::scenario_outline::SetGiven<InnerState> as self::scenario_outline::BuilderState>::Examples: self::marker::IsUnset,
+{
+    pub fn and<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetGiven<self::scenario_outline::SetGiven<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioOutlineGivenOrWhenStep::into_step((description, callback), StepLabel::And);
+        self.given.push(step);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn but<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetGiven<self::scenario_outline::SetGiven<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioOutlineGivenOrWhenStep::into_step((description, callback), StepLabel::But);
+        self.given.push(step);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn when<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetWhen<self::scenario_outline::SetGiven<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioOutlineGivenOrWhenStep::into_step((description, callback), StepLabel::When);
+        self.when.push(step);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, InnerState: self::scenario_outline::BuilderState> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetWhen<InnerState>>
+where
+    <self::scenario_outline::SetWhen<InnerState> as self::scenario_outline::BuilderState>::Given: self::marker::IsSet,
+    <self::scenario_outline::SetWhen<InnerState> as self::scenario_outline::BuilderState>::When: self::marker::IsSet,
+    <self::scenario_outline::SetWhen<InnerState> as self::scenario_outline::BuilderState>::Then: self::marker::IsUnset,
+    <self::scenario_outline::SetWhen<InnerState> as self::scenario_outline::BuilderState>::Examples: self::marker::IsUnset,
+{
+    pub fn and<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetWhen<self::scenario_outline::SetWhen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioOutlineGivenOrWhenStep::into_step((description, callback), StepLabel::And);
+        self.when.push(step);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn but<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetWhen<self::scenario_outline::SetWhen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&mut World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioOutlineGivenOrWhenStep::into_step((description, callback), StepLabel::But);
+        self.when.push(step);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn then<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetThen<self::scenario_outline::SetWhen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioOutlineThenStep::into_step((description, callback), StepLabel::Then);
+        self.then.push(step);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, InnerState: self::scenario_outline::BuilderState> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetThen<InnerState>>
+where
+    <self::scenario_outline::SetThen<InnerState> as self::scenario_outline::BuilderState>::Given: self::marker::IsSet,
+    <self::scenario_outline::SetThen<InnerState> as self::scenario_outline::BuilderState>::When: self::marker::IsSet,
+    <self::scenario_outline::SetThen<InnerState> as self::scenario_outline::BuilderState>::Then: self::marker::IsSet,
+    <self::scenario_outline::SetThen<InnerState> as self::scenario_outline::BuilderState>::Examples: self::marker::IsUnset,
+{
+    pub fn and<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetThen<self::scenario_outline::SetThen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioOutlineThenStep::into_step((description, callback), StepLabel::And);
+        self.then.push(step);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn but<Description, Callback, Output>(
+        mut self, description: Description, callback: Callback,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetThen<self::scenario_outline::SetThen<InnerState>>>
+    where
+        Description: Into<aliases::string::String>,
+        Callback: Fn(&World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoScenarioOutlineThenStep::into_step((description, callback), StepLabel::But);
+        self.then.push(step);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn example(mut self, example: Example) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<self::scenario_outline::SetThen<InnerState>>> {
+        self.examples.push(example);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn examples(mut self, examples: impl IntoIterator<Item = Example>) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<self::scenario_outline::SetThen<InnerState>>> {
+        self.examples.extend(examples);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, InnerState: self::scenario_outline::BuilderState> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<InnerState>> {
+    pub fn example(mut self, example: Example) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<self::scenario_outline::SetExamples<InnerState>>> {
+        self.examples.push(example);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn examples(mut self, examples: impl IntoIterator<Item = Example>) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<self::scenario_outline::SetExamples<InnerState>>> {
+        self.examples.extend(examples);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlineBuilder<World, Example, State>
+where
+    State: self::scenario_outline::IsComplete,
+{
+    pub fn build(self) -> ScenarioOutline<World, Example> {
+        ScenarioOutline {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+            
+            examples: self.examples,
+        }
+    }
+}
+
+mod scenario_outline {
+    pub(super) use super::*;
+
+    #[sealed]
+    pub trait BuilderState: ::core::marker::Sized {
+        type Description;
+        type Ignored;
+        type Tags;
+
+        type Given;
+        type When;
+        type Then;
+
+        type Examples;
+    }
+
+    #[sealed]
+    pub trait IsComplete:
+        BuilderState<Given: self::marker::IsSet, When: self::marker::IsSet, Then: self::marker::IsSet, Examples: self::marker::IsSet>
+    {
+    }
+
+    #[sealed]
+    impl<State: BuilderState> IsComplete for State
+    where
+        State::Given: self::marker::IsSet,
+        State::When: self::marker::IsSet,
+        State::Then: self::marker::IsSet,
+        State::Examples: self::marker::IsSet,
+    {
+    }
+
+    pub struct Empty;
+
+    pub struct SetDescription<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetIgnored<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetTags<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+
+    pub struct SetGiven<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetWhen<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetThen<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+
+    pub struct SetExamples<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl BuilderState for Empty {
+        type Description = self::marker::Unset<self::members::Description>;
+        type Ignored = self::marker::Unset<self::members::Ignored>;
+        type Tags = self::marker::Unset<self::members::Tags>;
+
+        type Given = self::marker::Unset<self::members::Given>;
+        type When = self::marker::Unset<self::members::When>;
+        type Then = self::marker::Unset<self::members::Then>;
+
+        type Examples = self::marker::Unset<self::members::Examples>;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetDescription<State> {
+        type Description = self::marker::Set<self::members::Description>;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetIgnored<State> {
+        type Description = State::Description;
+        type Ignored = self::marker::Set<self::members::Ignored>;
+        type Tags = State::Tags;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetTags<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = self::marker::Set<self::members::Tags>;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetGiven<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Given = self::marker::Set<self::members::Given>;
+        type When = State::When;
+        type Then = State::Then;
+
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetWhen<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Given = State::Given;
+        type When = self::marker::Set<self::members::When>;
+        type Then = State::Then;
+
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetThen<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = self::marker::Set<self::members::Then>;
+
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetExamples<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Given = State::Given;
+        type When = State::When;
+        type Then = State::Then;
+
+        type Examples = self::marker::Set<self::members::Examples>;
+    }
+
+    mod members {
+        pub struct Description;
+        pub struct Ignored;
+        pub struct Tags;
+
+        pub struct Given;
+        pub struct When;
+        pub struct Then;
+
+        pub struct Examples;
+    }
+}
+
+#[sealed]
+pub trait IntoScenarioOutline<World, Example> {
+    fn into_scenario_outline(self) -> ScenarioOutline<World, Example>;
+}
+
+#[sealed]
+impl<World, Example> IntoScenarioOutline<World, Example> for ScenarioOutline<World, Example> {
+    fn into_scenario_outline(self) -> ScenarioOutline<World, Example> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, Example, State: self::scenario_outline::BuilderState> IntoScenarioOutline<World, Example> for ScenarioOutlineBuilder<World, Example, State>
+where
+    State: self::scenario_outline::IsComplete,
+{
+    fn into_scenario_outline(self) -> ScenarioOutline<World, Example> {
         self.build()
     }
 }
@@ -1900,6 +2554,60 @@ where
 
         let callback = ::std::boxed::Box::new(move |world: &World| (callback)(world).into_fallible())
             as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+        Step::builder().label(label).description(description).callback(callback).build()
+    }
+}
+
+#[sealed]
+pub trait IntoScenarioOutlineGivenOrWhenStep<World, Example> {
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> ScenarioOutlineGivenOrWhenStep<World, Example>;
+}
+
+#[sealed]
+impl<World, Example, Description, Callback, Output> IntoScenarioOutlineGivenOrWhenStep<World, Example>
+    for (Description, Callback)
+where
+    Description: Into<aliases::string::String>,
+    Callback: Fn(&mut World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> ScenarioOutlineGivenOrWhenStep<World, Example> {
+        let (description, callback) = self;
+
+        let callback = aliases::sync::Arc::new(move |world: &mut World, example: Example| {
+            (callback)(world, example).into_fallible()
+        })
+            as aliases::sync::Arc<dyn Fn(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+        Step::builder().label(label).description(description).callback(callback).build()
+    }
+}
+
+#[sealed]
+pub trait IntoScenarioOutlineThenStep<World, Example> {
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> ScenarioOutlineThenStep<World, Example>;
+}
+
+#[sealed]
+impl<World, Example, Description, Callback, Output> IntoScenarioOutlineThenStep<World, Example>
+    for (Description, Callback)
+where
+    Description: Into<aliases::string::String>,
+    Callback: Fn(&World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> ScenarioOutlineThenStep<World, Example> {
+        let (description, callback) = self;
+
+        let callback = aliases::sync::Arc::new(move |world: &World, example: Example| {
+            (callback)(world, example).into_fallible()
+        })
+            as aliases::sync::Arc<dyn Fn(&World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
         Step::builder().label(label).description(description).callback(callback).build()
     }
