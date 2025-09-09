@@ -97,7 +97,7 @@ impl<State: self::runner::BuilderState> RunnerBuilder<State> {
     pub fn and(mut self, filter: impl IntoTagsFilter) -> RunnerBuilder<self::runner::SetTagsFilter<State>>
     where
         State::TagsFilter: self::marker::IsSet,
-        State::IsInTagsFilterChain: self::marker::IsSet,
+        State::InTagsFilterChain: self::marker::IsSet,
     {
         let filter = unsafe { self.configurations.tags_filter.unwrap_unchecked() }.and(filter);
 
@@ -119,7 +119,7 @@ impl<State: self::runner::BuilderState> RunnerBuilder<State> {
     pub fn or(mut self, filter: impl IntoTagsFilter) -> RunnerBuilder<self::runner::SetTagsFilter<State>>
     where
         State::TagsFilter: self::marker::IsSet,
-        State::IsInTagsFilterChain: self::marker::IsSet,
+        State::InTagsFilterChain: self::marker::IsSet,
     {
         let filter = unsafe { self.configurations.tags_filter.unwrap_unchecked() }.or(filter);
 
@@ -310,12 +310,20 @@ mod runner {
         type Hooks;
         type Trials;
 
-        type IsInTagsFilterChain;
+        type InTagsFilterChain;
     }
 
+    #[cfg(feature = "allow-empty")]
+    pub trait IsComplete: BuilderState {}
+
+    #[cfg(feature = "allow-empty")]
+    impl<State: BuilderState> IsComplete for State {}
+
+    #[cfg(not(feature = "allow-empty"))]
     #[sealed]
     pub trait IsComplete: BuilderState<Trials: self::marker::IsSet> {}
 
+    #[cfg(not(feature = "allow-empty"))]
     #[sealed]
     impl<State: BuilderState> IsComplete for State where State::Trials: self::marker::IsSet {}
 
@@ -332,121 +340,157 @@ mod runner {
     pub struct SetHooks<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
     pub struct SetTrials<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl BuilderState for Empty {
-        type Color = self::marker::Unset<self::members::Color>;
-        type Format = self::marker::Unset<self::members::Format>;
-        type Hooks = self::marker::Unset<self::members::Hooks>;
         type IgnorePolicy = self::marker::Unset<self::members::IgnorePolicy>;
-        type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
-        type LogFile = self::marker::Unset<self::members::LogFile>;
         type TagsFilter = self::marker::Unset<self::members::TagsFilter>;
+
+        type Format = self::marker::Unset<self::members::Format>;
+        type Color = self::marker::Unset<self::members::Color>;
         type Threads = self::marker::Unset<self::members::Threads>;
+        type LogFile = self::marker::Unset<self::members::LogFile>;
+
+        type Hooks = self::marker::Unset<self::members::Hooks>;
         type Trials = self::marker::Unset<self::members::Trials>;
+
+        type InTagsFilterChain = self::marker::Unset<self::members::InTagsFilterChain>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetIgnorePolicy<State> {
-        type Color = State::Color;
-        type Format = State::Format;
-        type Hooks = State::Hooks;
         type IgnorePolicy = self::marker::Set<self::members::IgnorePolicy>;
-        type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
-        type LogFile = State::LogFile;
         type TagsFilter = State::TagsFilter;
+
+        type Format = State::Format;
+        type Color = State::Color;
         type Threads = State::Threads;
+        type LogFile = State::LogFile;
+
+        type Hooks = State::Hooks;
         type Trials = State::Trials;
+
+        type InTagsFilterChain = self::marker::Unset<self::members::InTagsFilterChain>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTagsFilter<State> {
-        type Color = State::Color;
-        type Format = State::Format;
-        type Hooks = State::Hooks;
         type IgnorePolicy = State::IgnorePolicy;
-        type IsInTagsFilterChain = self::marker::Set<self::members::IsInTagsFilterChain>;
-        type LogFile = State::LogFile;
         type TagsFilter = self::marker::Set<self::members::TagsFilter>;
+
+        type Format = State::Format;
+        type Color = State::Color;
         type Threads = State::Threads;
+        type LogFile = State::LogFile;
+
+        type Hooks = State::Hooks;
         type Trials = State::Trials;
+
+        type InTagsFilterChain = self::marker::Set<self::members::InTagsFilterChain>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetFormat<State> {
-        type Color = State::Color;
-        type Format = self::marker::Set<self::members::Format>;
-        type Hooks = State::Hooks;
         type IgnorePolicy = State::IgnorePolicy;
-        type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
-        type LogFile = State::LogFile;
         type TagsFilter = State::TagsFilter;
+
+        type Format = self::marker::Set<self::members::Format>;
+        type Color = State::Color;
         type Threads = State::Threads;
+        type LogFile = State::LogFile;
+
+        type Hooks = State::Hooks;
         type Trials = State::Trials;
+
+        type InTagsFilterChain = self::marker::Unset<self::members::InTagsFilterChain>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetColor<State> {
-        type Color = self::marker::Set<self::members::Color>;
-        type Format = State::Format;
-        type Hooks = State::Hooks;
         type IgnorePolicy = State::IgnorePolicy;
-        type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
-        type LogFile = State::LogFile;
         type TagsFilter = State::TagsFilter;
+
+        type Format = State::Format;
+        type Color = self::marker::Set<self::members::Color>;
         type Threads = State::Threads;
+        type LogFile = State::LogFile;
+
+        type Hooks = State::Hooks;
         type Trials = State::Trials;
+
+        type InTagsFilterChain = self::marker::Unset<self::members::InTagsFilterChain>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetThreads<State> {
-        type Color = State::Color;
-        type Format = State::Format;
-        type Hooks = State::Hooks;
         type IgnorePolicy = State::IgnorePolicy;
-        type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
-        type LogFile = State::LogFile;
         type TagsFilter = State::TagsFilter;
+
+        type Format = State::Format;
+        type Color = State::Color;
         type Threads = self::marker::Set<self::members::Threads>;
+        type LogFile = State::LogFile;
+
+        type Hooks = State::Hooks;
         type Trials = State::Trials;
+
+        type InTagsFilterChain = self::marker::Unset<self::members::InTagsFilterChain>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetLogFile<State> {
-        type Color = State::Color;
-        type Format = State::Format;
-        type Hooks = State::Hooks;
         type IgnorePolicy = State::IgnorePolicy;
-        type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
-        type LogFile = self::marker::Set<self::members::LogFile>;
         type TagsFilter = State::TagsFilter;
+
+        type Format = State::Format;
+        type Color = State::Color;
         type Threads = State::Threads;
+        type LogFile = self::marker::Set<self::members::LogFile>;
+
+        type Hooks = State::Hooks;
         type Trials = State::Trials;
+
+        type InTagsFilterChain = self::marker::Unset<self::members::InTagsFilterChain>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetHooks<State> {
-        type Color = State::Color;
-        type Format = State::Format;
-        type Hooks = self::marker::Set<self::members::Hooks>;
         type IgnorePolicy = State::IgnorePolicy;
-        type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
-        type LogFile = State::LogFile;
         type TagsFilter = State::TagsFilter;
+
+        type Format = State::Format;
+        type Color = State::Color;
         type Threads = State::Threads;
+        type LogFile = State::LogFile;
+
+        type Hooks = self::marker::Set<self::members::Hooks>;
         type Trials = State::Trials;
+
+        type InTagsFilterChain = self::marker::Unset<self::members::InTagsFilterChain>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTrials<State> {
-        type Color = State::Color;
-        type Format = State::Format;
-        type Hooks = State::Hooks;
         type IgnorePolicy = State::IgnorePolicy;
-        type IsInTagsFilterChain = self::marker::Unset<self::members::IsInTagsFilterChain>;
-        type LogFile = State::LogFile;
         type TagsFilter = State::TagsFilter;
+
+        type Format = State::Format;
+        type Color = State::Color;
         type Threads = State::Threads;
+        type LogFile = State::LogFile;
+
+        type Hooks = State::Hooks;
         type Trials = self::marker::Set<self::members::Trials>;
+
+        type InTagsFilterChain = self::marker::Unset<self::members::InTagsFilterChain>;
     }
 
     mod members {
@@ -461,7 +505,7 @@ mod runner {
         pub struct Hooks;
         pub struct Trials;
 
-        pub struct IsInTagsFilterChain;
+        pub struct InTagsFilterChain;
     }
 }
 
@@ -708,33 +752,51 @@ mod suite {
         type Features;
     }
 
+    #[cfg(feature = "allow-empty")]
     #[sealed]
     pub trait IsComplete: BuilderState {}
 
+    #[cfg(feature = "allow-empty")]
     #[sealed]
     impl<State: BuilderState> IsComplete for State {}
+
+    #[cfg(not(feature = "allow-empty"))]
+    #[sealed]
+    pub trait IsComplete: BuilderState<Hooks: self::marker::IsSet, Features: self::marker::IsSet> {}
+
+    #[cfg(not(feature = "allow-empty"))]
+    #[sealed]
+    impl<State: BuilderState> IsComplete for State
+    where
+        State::Hooks: self::marker::IsSet,
+        State::Features: self::marker::IsSet,
+    {
+    }
 
     pub struct Empty;
 
     pub struct SetHooks<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
     pub struct SetFeatures<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl BuilderState for Empty {
-        type Features = self::marker::Unset<self::members::Features>;
         type Hooks = self::marker::Unset<self::members::Hooks>;
+        type Features = self::marker::Unset<self::members::Features>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetHooks<State> {
-        type Features = State::Features;
         type Hooks = self::marker::Set<self::members::Hooks>;
+        type Features = State::Features;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetFeatures<State> {
-        type Features = self::marker::Set<self::members::Features>;
         type Hooks = State::Hooks;
+        type Features = self::marker::Set<self::members::Features>;
     }
 
     mod members {

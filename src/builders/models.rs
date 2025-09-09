@@ -247,13 +247,25 @@ mod feature {
         type Background;
         type Scenarios;
         type Rules;
+
+        type ScenariosOrRules;
     }
 
+    #[cfg(feature = "allow-empty")]
     #[sealed]
     pub trait IsComplete: BuilderState {}
 
+    #[cfg(feature = "allow-empty")]
     #[sealed]
     impl<State: BuilderState> IsComplete for State {}
+
+    #[cfg(not(feature = "allow-empty"))]
+    #[sealed]
+    pub trait IsComplete: BuilderState<ScenariosOrRules: self::marker::IsSet> {}
+
+    #[cfg(not(feature = "allow-empty"))]
+    #[sealed]
+    impl<State: BuilderState> IsComplete for State where State::ScenariosOrRules: self::marker::IsSet {}
 
     pub struct Empty;
 
@@ -265,74 +277,102 @@ mod feature {
     pub struct SetScenarios<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
     pub struct SetRules<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl BuilderState for Empty {
-        type Background = self::marker::Unset<self::members::Background>;
         type Description = self::marker::Unset<self::members::Description>;
         type Ignored = self::marker::Unset<self::members::Ignored>;
-        type Rules = self::marker::Unset<self::members::Rules>;
-        type Scenarios = self::marker::Unset<self::members::Scenarios>;
         type Tags = self::marker::Unset<self::members::Tags>;
+
+        type Background = self::marker::Unset<self::members::Background>;
+        type Scenarios = self::marker::Unset<self::members::Scenarios>;
+        type Rules = self::marker::Unset<self::members::Rules>;
+
+        type ScenariosOrRules = self::marker::Unset<self::members::Scenarios>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetDescription<State> {
-        type Background = State::Background;
         type Description = self::marker::Set<self::members::Description>;
         type Ignored = State::Ignored;
-        type Rules = State::Rules;
-        type Scenarios = State::Scenarios;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
+        type Rules = State::Rules;
+
+        type ScenariosOrRules = State::ScenariosOrRules;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetIgnored<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = self::marker::Set<self::members::Ignored>;
-        type Rules = State::Rules;
-        type Scenarios = State::Scenarios;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
+        type Rules = State::Rules;
+
+        type ScenariosOrRules = State::ScenariosOrRules;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTags<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Rules = State::Rules;
-        type Scenarios = State::Scenarios;
         type Tags = self::marker::Set<self::members::Tags>;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
+        type Rules = State::Rules;
+
+        type ScenariosOrRules = State::ScenariosOrRules;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetBackground<State> {
-        type Background = self::marker::Set<self::members::Background>;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Rules = State::Rules;
-        type Scenarios = State::Scenarios;
         type Tags = State::Tags;
+
+        type Background = self::marker::Set<self::members::Background>;
+        type Scenarios = State::Scenarios;
+        type Rules = State::Rules;
+
+        type ScenariosOrRules = State::ScenariosOrRules;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetScenarios<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Rules = State::Rules;
-        type Scenarios = self::marker::Set<self::members::Scenarios>;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = self::marker::Set<self::members::Scenarios>;
+        type Rules = State::Rules;
+
+        type ScenariosOrRules = self::marker::Set<self::members::ScenariosOrRules>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetRules<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Rules = self::marker::Set<self::members::Rules>;
-        type Scenarios = State::Scenarios;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
+        type Rules = self::marker::Set<self::members::Rules>;
+
+        type ScenariosOrRules = self::marker::Set<self::members::ScenariosOrRules>;
     }
 
     mod members {
@@ -343,6 +383,8 @@ mod feature {
         pub struct Background;
         pub struct Scenarios;
         pub struct Rules;
+
+        pub struct ScenariosOrRules;
     }
 }
 
@@ -565,11 +607,19 @@ mod rule {
         type Scenarios;
     }
 
+    #[cfg(feature = "allow-empty")]
     #[sealed]
     pub trait IsComplete: BuilderState {}
 
+    #[cfg(feature = "allow-empty")]
     #[sealed]
     impl<State: BuilderState> IsComplete for State {}
+
+    #[cfg(not(feature = "allow-empty"))]
+    pub trait IsComplete: BuilderState<Scenarios: self::marker::IsSet> {}
+
+    #[cfg(not(feature = "allow-empty"))]
+    impl<State: BuilderState> IsComplete for State where State::Scenarios: self::marker::IsSet {}
 
     pub struct Empty;
 
@@ -580,58 +630,70 @@ mod rule {
     pub struct SetBackground<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
     pub struct SetScenarios<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl BuilderState for Empty {
-        type Background = self::marker::Unset<self::members::Background>;
         type Description = self::marker::Unset<self::members::Description>;
         type Ignored = self::marker::Unset<self::members::Ignored>;
-        type Scenarios = self::marker::Unset<self::members::Scenarios>;
         type Tags = self::marker::Unset<self::members::Tags>;
+
+        type Background = self::marker::Unset<self::members::Background>;
+        type Scenarios = self::marker::Unset<self::members::Scenarios>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetDescription<State> {
-        type Background = State::Background;
         type Description = self::marker::Set<self::members::Description>;
         type Ignored = State::Ignored;
-        type Scenarios = State::Scenarios;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetIgnored<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = self::marker::Set<self::members::Ignored>;
-        type Scenarios = State::Scenarios;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;        
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTags<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Scenarios = State::Scenarios;
         type Tags = self::marker::Set<self::members::Tags>;
+
+        type Background = State::Background;
+        type Scenarios = State::Scenarios;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetBackground<State> {
-        type Background = self::marker::Set<self::members::Background>;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Scenarios = State::Scenarios;
         type Tags = State::Tags;
+
+        type Background = self::marker::Set<self::members::Background>;
+        type Scenarios = State::Scenarios;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetScenarios<State> {
-        type Background = State::Background;
         type Description = State::Description;
         type Ignored = State::Ignored;
-        type Scenarios = self::marker::Set<self::members::Scenarios>;
         type Tags = State::Tags;
+
+        type Background = State::Background;
+        type Scenarios = self::marker::Set<self::members::Scenarios>;
     }
 
     mod members {
@@ -1079,72 +1141,86 @@ mod scenario {
     pub struct SetWhen<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
     pub struct SetThen<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl BuilderState for Empty {
         type Description = self::marker::Unset<self::members::Description>;
-        type Given = self::marker::Unset<self::members::Given>;
         type Ignored = self::marker::Unset<self::members::Ignored>;
         type Tags = self::marker::Unset<self::members::Tags>;
+
+        type Given = self::marker::Unset<self::members::Given>;
         type Then = self::marker::Unset<self::members::Then>;
         type When = self::marker::Unset<self::members::When>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetDescription<State> {
         type Description = self::marker::Set<self::members::Description>;
-        type Given = State::Given;
         type Ignored = State::Ignored;
         type Tags = State::Tags;
+
+        type Given = State::Given;
         type Then = State::Then;
         type When = State::When;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetIgnored<State> {
         type Description = State::Description;
-        type Given = State::Given;
         type Ignored = self::marker::Set<self::members::Ignored>;
         type Tags = State::Tags;
+
+        type Given = State::Given;
         type Then = State::Then;
         type When = State::When;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTags<State> {
         type Description = State::Description;
-        type Given = State::Given;
         type Ignored = State::Ignored;
         type Tags = self::marker::Set<self::members::Tags>;
+
+        type Given = State::Given;
         type Then = State::Then;
         type When = State::When;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetGiven<State> {
         type Description = State::Description;
-        type Given = self::marker::Set<self::members::Given>;
         type Ignored = State::Ignored;
         type Tags = State::Tags;
+
+        type Given = self::marker::Set<self::members::Given>;
         type Then = State::Then;
         type When = State::When;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetWhen<State> {
         type Description = State::Description;
-        type Given = State::Given;
         type Ignored = State::Ignored;
         type Tags = State::Tags;
+
+        type Given = State::Given;
         type Then = State::Then;
         type When = self::marker::Set<self::members::When>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetThen<State> {
         type Description = State::Description;
-        type Given = State::Given;
         type Ignored = State::Ignored;
         type Tags = State::Tags;
+
+        type Given = State::Given;
         type Then = self::marker::Set<self::members::Then>;
         type When = State::When;
     }
@@ -1361,32 +1437,36 @@ mod background {
     pub struct SetIgnored<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
     pub struct SetGiven<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl BuilderState for Empty {
         type Description = self::marker::Unset<self::members::Description>;
-        type Given = self::marker::Unset<self::members::Given>;
         type Ignored = self::marker::Unset<self::members::Ignored>;
+        type Given = self::marker::Unset<self::members::Given>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetDescription<State> {
         type Description = self::marker::Set<self::members::Description>;
-        type Given = State::Given;
         type Ignored = State::Ignored;
+        type Given = State::Given;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetIgnored<State> {
         type Description = State::Description;
-        type Given = State::Given;
         type Ignored = self::marker::Set<self::members::Ignored>;
+        type Given = State::Given;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetGiven<State> {
         type Description = State::Description;
-        type Given = self::marker::Set<self::members::Given>;
         type Ignored = State::Ignored;
+        type Given = self::marker::Set<self::members::Given>;
     }
 
     mod members {
@@ -1499,22 +1579,25 @@ mod hook {
     pub struct SetTags<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
     pub struct SetCallback<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl BuilderState for Empty {
-        type Callback = self::marker::Unset<self::members::Callback>;
         type Tags = self::marker::Unset<self::members::Tags>;
+        type Callback = self::marker::Unset<self::members::Callback>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetTags<State> {
-        type Callback = State::Callback;
         type Tags = self::marker::Set<self::members::Tags>;
+        type Callback = State::Callback;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetCallback<State> {
-        type Callback = self::marker::Set<self::members::Callback>;
         type Tags = State::Tags;
+        type Callback = self::marker::Set<self::members::Callback>;
     }
 
     mod members {
@@ -1735,32 +1818,36 @@ mod step {
     pub struct SetDescription<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
     pub struct SetCallback<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl BuilderState for Empty {
-        type Callback = self::marker::Unset<self::members::Callback>;
-        type Description = self::marker::Unset<self::members::Description>;
         type Label = self::marker::Unset<self::members::Label>;
+        type Description = self::marker::Unset<self::members::Description>;
+        type Callback = self::marker::Unset<self::members::Callback>;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetLabel<State> {
-        type Callback = State::Callback;
-        type Description = State::Description;
         type Label = self::marker::Set<self::members::Label>;
+        type Description = State::Description;
+        type Callback = State::Callback;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetDescription<State> {
-        type Callback = State::Callback;
-        type Description = self::marker::Set<self::members::Description>;
         type Label = State::Label;
+        type Description = self::marker::Set<self::members::Description>;
+        type Callback = State::Callback;
     }
 
+    #[rustfmt::skip] // `reorder_impl_items`
     #[sealed]
     impl<State: BuilderState> BuilderState for SetCallback<State> {
-        type Callback = self::marker::Set<self::members::Callback>;
-        type Description = State::Description;
         type Label = State::Label;
+        type Description = State::Description;
+        type Callback = self::marker::Set<self::members::Callback>;
     }
 
     mod members {

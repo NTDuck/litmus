@@ -1,6 +1,6 @@
 [package]
 name = "litmus"
-version = "0.5.3"
+version = "0.5.4"
 description = "a macro-free BDD test harness."
 edition = "2021"
 license = "BSD-3-Clause"
@@ -13,6 +13,7 @@ publish = true
 default = ["allow-natural", "libtest-mimic", "seahash", "num-cpus"]
 
 allow-natural = []
+allow-empty = []
 
 ahash = ["dep:ahash"]
 fxhash = ["dep:fxhash"]

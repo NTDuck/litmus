@@ -20,7 +20,7 @@ Add this to your `Cargo.toml`:
 # ./Cargo.toml
 
 [dev-dependencies]
-litmus = "0.5.3"
+litmus = "0.5.4"
 ```
 
 Disable the default harness for your test targets:
@@ -47,9 +47,6 @@ struct World {
 #[rustfmt::skip]
 fn main() -> ::std::process::ExitCode {
     ::litmus::Runner::new()
-        .include_ignored()
-        .color(::litmus::config::Color::Auto)
-        .format(::litmus::config::Format::Terse)
         .feature(::litmus::Feature::new()
             .description("Eating too much cucumbers may not be good for you")
             .scenario(::litmus::Scenario::<World>::new()
