@@ -36,10 +36,7 @@ pub struct ScenarioOutline<World, Example> {
     pub(crate) ignored: ::core::option::Option<bool>,
     pub(crate) tags: ::core::option::Option<Tags>,
 
-    pub(crate) given: ::std::vec::Vec<ScenarioOutlineGivenOrWhenStep<World, Example>>,
-    pub(crate) when: ::std::vec::Vec<ScenarioOutlineGivenOrWhenStep<World, Example>>,
-    pub(crate) then: ::std::vec::Vec<ScenarioOutlineThenStep<World, Example>>,
-
+    pub(crate) scenario: ::std::boxed::Box<dyn Fn(Example) -> Scenario<World>>,
     pub(crate) examples: ::std::vec::Vec<Example>,
 }
 

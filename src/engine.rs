@@ -528,6 +528,62 @@ where
     }
 }
 
+trait ScenarioOutlineGivenOrWhenStepsExt<World, Example> {
+    fn to_callback(&self) -> impl FnOnce(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
+
+    fn to_callback_with_context(&self, context: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2]) -> impl FnOnce(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
+}
+
+impl<World, Example> ScenarioOutlineGivenOrWhenStepsExt<World, Example> for ::std::vec::Vec<ScenarioOutlineGivenOrWhenStep<World, Example>>
+where
+    World: 'static,
+    Example: ::core::clone::Clone + 'static,
+{
+    fn to_callback(&self) -> impl FnOnce(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World, example: Example| self.iter().try_for_each(|step| (step.callback)(world, example.clone()))
+    }
+
+    fn to_callback_with_context(&self, [before_step_hooks, after_step_hooks]: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2]) -> impl FnOnce(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World, example: Example| {
+            self.iter().try_for_each(|step| {
+                (before_step_hooks.to_callback())(world)?;
+                (step.callback)(world, example.clone())?;
+                (after_step_hooks.to_callback())(world)?;
+
+                Ok(())
+            })
+        }
+    }
+}
+
+trait ScenarioOutlineThenStepsExt<World, Example> {
+    fn to_callback(&self) -> impl FnOnce(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
+
+    fn to_callback_with_context(&self, context: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2]) -> impl FnOnce(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
+}
+
+impl<World, Example> ScenarioOutlineThenStepsExt<World, Example> for ::std::vec::Vec<ScenarioOutlineThenStep<World, Example>>
+where
+    World: 'static,
+    Example: ::core::clone::Clone + 'static,
+{
+    fn to_callback(&self) -> impl FnOnce(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World, example: Example| self.iter().try_for_each(|step| (step.callback)(world, example.clone()))
+    }
+
+    fn to_callback_with_context(&self, [before_step_hooks, after_step_hooks]: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2]) -> impl FnOnce(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World, example: Example| {
+            self.iter().try_for_each(|step| {
+                (before_step_hooks.to_callback())(world)?;
+                (step.callback)(world, example.clone())?;
+                (after_step_hooks.to_callback())(world)?;
+
+                Ok(())
+            })
+        }
+    }
+}
+
 trait BackgroundGivenStepsExt<World> {
     fn to_callback(&self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 
