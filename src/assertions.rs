@@ -20,5 +20,14 @@ macro_rules! panic {
     };
 }
 
+/// Gives nice backticks
+#[macro_export]
+macro_rules! format {
+    ($fmt:literal $(, $arg:expr)* $(,)?) => {
+        ::std::format!($fmt $(, ::std::format!("`{}`", $arg))*)
+    };
+}
+
 pub use assert;
 pub use panic;
+pub use format;

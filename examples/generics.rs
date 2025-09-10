@@ -13,7 +13,7 @@ impl UserRepositoryFeature {
     #[allow(clippy::new_ret_no_self)]
     pub fn new<World>() -> impl ::litmus::IntoFeature<World>
     where
-        World: UserRepository,
+        World: UserRepository + 'static,
     {
         ::litmus::Feature::new()
             .scenario(::litmus::Scenario::<World>::new()
@@ -25,6 +25,16 @@ impl UserRepositoryFeature {
                 .when("inserting user `Bob` with ID `2`", |repo| repo.save(2, "Bob"))
                 .then("it contains `Bob`", |repo| ::litmus::assert!(repo.get(&2) == Some(&"Bob")))
                 .but("it does not contain `Alice`", |repo| ::litmus::assert!(repo.get(&2) != Some(&"Alice"))))
+            .scenario_outline(::litmus::ScenarioOutline::new()
+                .scenario(|(id, user)| ::litmus::Scenario::<World>::new()
+                    .given("an empty repository", |_| {})
+                    .when(::litmus::format!("inserting user {user} with ID {id}"), move |repo| repo.save(id, user))
+                    .then(::litmus::format!("it contains {user}"), move |repo| ::litmus::assert!(repo.get(&id) == Some(&user))))
+                .examples([
+                    (1, "Alice"),
+                    (2, "Bob"),
+                    (3, "Charlie"),
+                ]))
     }
 }
 

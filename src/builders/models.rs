@@ -162,6 +162,28 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
         }
     }
 
+    pub fn scenario_outline<Example>(
+        mut self, scenario_outline: impl IntoScenarioOutline<World, Example>,
+    ) -> FeatureBuilder<World, self::feature::SetScenarios<State>>
+    where
+        World: 'static,
+        Example: 'static,
+    {
+        self.scenarios.extend(scenario_outline.into_scenarios());
+
+        FeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
     pub fn rule(mut self, rule: impl IntoRule<World>) -> FeatureBuilder<World, self::feature::SetRules<State>> {
         self.rules.push(rule.into_rule());
 
@@ -548,6 +570,27 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
         T: IntoScenario<World>,
     {
         self.scenarios.extend(scenarios.into_iter().map(IntoScenario::into_scenario));
+
+        RuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenario_outline<Example>(
+        mut self, scenario_outline: impl IntoScenarioOutline<World, Example>,
+    ) -> RuleBuilder<World, self::rule::SetScenarios<State>>
+    where
+        World: 'static,
+        Example: 'static,
+    {
+        self.scenarios.extend(scenario_outline.into_scenarios());
 
         RuleBuilder {
             description: self.description,
@@ -1536,6 +1579,19 @@ mod scenario_outline {
 #[sealed]
 pub trait IntoScenarioOutline<World, Example> {
     fn into_scenario_outline(self) -> ScenarioOutline<World, Example>;
+
+    fn into_scenarios(self) -> impl IntoIterator<Item = Scenario<World>>
+    where
+        World: 'static,
+        Example: 'static,
+        Self: ::core::marker::Sized,
+    {
+        let scenario_outline = self.into_scenario_outline();
+
+        scenario_outline.examples
+            .into_iter()
+            .map(move |example| (scenario_outline.scenario)(example))
+    }
 }
 
 #[sealed]
@@ -2197,60 +2253,6 @@ where
 
         let callback = ::std::boxed::Box::new(move |world: &World| (callback)(world).into_fallible())
             as ::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-        Step::builder().label(label).description(description).callback(callback).build()
-    }
-}
-
-#[sealed]
-pub trait IntoScenarioOutlineGivenOrWhenStep<World, Example> {
-    #[allow(private_interfaces)]
-    fn into_step(self, label: StepLabel) -> ScenarioOutlineGivenOrWhenStep<World, Example>;
-}
-
-#[sealed]
-impl<World, Example, Description, Callback, Output> IntoScenarioOutlineGivenOrWhenStep<World, Example>
-    for (Description, Callback)
-where
-    Description: Into<aliases::string::String>,
-    Callback: Fn(&mut World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-    Output: IntoFallible,
-{
-    #[allow(private_interfaces)]
-    fn into_step(self, label: StepLabel) -> ScenarioOutlineGivenOrWhenStep<World, Example> {
-        let (description, callback) = self;
-
-        let callback = aliases::sync::Arc::new(move |world: &mut World, example: Example| {
-            (callback)(world, example).into_fallible()
-        })
-            as aliases::sync::Arc<dyn Fn(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
-
-        Step::builder().label(label).description(description).callback(callback).build()
-    }
-}
-
-#[sealed]
-pub trait IntoScenarioOutlineThenStep<World, Example> {
-    #[allow(private_interfaces)]
-    fn into_step(self, label: StepLabel) -> ScenarioOutlineThenStep<World, Example>;
-}
-
-#[sealed]
-impl<World, Example, Description, Callback, Output> IntoScenarioOutlineThenStep<World, Example>
-    for (Description, Callback)
-where
-    Description: Into<aliases::string::String>,
-    Callback: Fn(&World, Example) -> Output + ::core::marker::Send + ::core::marker::Sync + 'static,
-    Output: IntoFallible,
-{
-    #[allow(private_interfaces)]
-    fn into_step(self, label: StepLabel) -> ScenarioOutlineThenStep<World, Example> {
-        let (description, callback) = self;
-
-        let callback = aliases::sync::Arc::new(move |world: &World, example: Example| {
-            (callback)(world, example).into_fallible()
-        })
-            as aliases::sync::Arc<dyn Fn(&World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
 
         Step::builder().label(label).description(description).callback(callback).build()
     }

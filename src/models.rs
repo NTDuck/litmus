@@ -32,6 +32,7 @@ pub struct Scenario<World> {
 }
 
 pub struct ScenarioOutline<World, Example> {
+    #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<aliases::string::String>,
     pub(crate) ignored: ::core::option::Option<bool>,
     pub(crate) tags: ::core::option::Option<Tags>,
@@ -71,10 +72,6 @@ pub(crate) type ScenarioGivenOrWhenStep<World> =
     Step<::std::boxed::Box<dyn FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type ScenarioThenStep<World> =
     Step<::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
-pub(crate) type ScenarioOutlineGivenOrWhenStep<World, Example> =
-    Step<aliases::sync::Arc<dyn Fn(&mut World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
-pub(crate) type ScenarioOutlineThenStep<World, Example> =
-    Step<aliases::sync::Arc<dyn Fn(&World, Example) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type BackgroundGivenStep<World> =
     Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 
