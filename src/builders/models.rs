@@ -1590,7 +1590,22 @@ pub trait IntoScenarioOutline<World, Example> {
 
         scenario_outline.examples
             .into_iter()
-            .map(move |example| (scenario_outline.scenario)(example))
+            .map(move |example| {
+                let mut scenario = (scenario_outline.scenario)(example);
+
+                scenario_outline.ignored.as_ref()
+                    .copied()
+                    .map(|ignored| {
+                        let scenario_ignored = scenario.ignored.get_or_insert(true);
+                        *scenario_ignored = *scenario_ignored && ignored;
+                    });
+
+                scenario_outline.tags.as_ref()
+                    .cloned()
+                    .map(|tags| scenario.tags.get_or_insert_default().extend(tags));
+
+                scenario
+            })
     }
 }
 

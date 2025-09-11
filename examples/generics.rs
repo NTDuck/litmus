@@ -1,9 +1,10 @@
 pub type User = &'static str;
-pub type UserId = u64;
 
 pub trait UserRepository {
-    fn save(&mut self, id: UserId, user: User);
-    fn get(&self, id: &UserId) -> ::core::option::Option<&User>;
+    fn save(&mut self, user: User);
+    fn delete(&mut self, user: User);
+
+    fn contains(&self, user: User) -> bool;
 }
 
 pub struct UserRepositoryFeature;
@@ -18,29 +19,29 @@ impl UserRepositoryFeature {
         ::litmus::Feature::new()
             .scenario(::litmus::Scenario::<World>::new()
                 .given("an empty repository", |_| {})
-                .when("inserting user `Alice` with ID `1`", |repo| repo.save(1, "Alice"))
-                .then("it contains `Alice`", |repo| ::litmus::assert!(repo.get(&1) == Some(&"Alice"))))
+                .when("inserting user `Alice`", |repo| repo.save("Alice"))
+                .then("it contains `Alice`", |repo| ::litmus::assert!(repo.contains("Alice"))))
             .scenario(::litmus::Scenario::<World>::new()
-                .given("an empty repository", |_| {})
-                .when("inserting user `Bob` with ID `2`", |repo| repo.save(2, "Bob"))
-                .then("it contains `Bob`", |repo| ::litmus::assert!(repo.get(&2) == Some(&"Bob")))
-                .but("it does not contain `Alice`", |repo| ::litmus::assert!(repo.get(&2) != Some(&"Alice"))))
+                .given("a repository with user `Alice`", |repo| repo.save("Alice"))
+                .when("inserting user `Alice`", |repo| repo.save("Alice"))
+                .then("it contains `Alice`", |repo| ::litmus::assert!(repo.contains("Alice"))))
+            .scenario(::litmus::Scenario::<World>::new()
+                .given("a repository with user `Alice`", |repo| repo.save("Alice"))
+                .when("deleting user `Alice`", |repo| repo.delete("Alice"))
+                .then("it does not contain `Alice`", |repo| ::litmus::assert!(!repo.contains("Alice"))))
+
             .scenario_outline(::litmus::ScenarioOutline::new()
-                .scenario(|(id, user)| ::litmus::Scenario::<World>::new()
+                .scenario(|user| ::litmus::Scenario::<World>::new()
                     .given("an empty repository", |_| {})
-                    .when(::litmus::format!("inserting user {user} with ID {id}"), move |repo| repo.save(id, user))
-                    .then(::litmus::format!("it contains {user}"), move |repo| ::litmus::assert!(repo.get(&id) == Some(&user))))
-                .examples([
-                    (1, "Alice"),
-                    (2, "Bob"),
-                    (3, "Charlie"),
-                ]))
+                    .when(::litmus::format!("inserting user {}", user), move |repo| repo.save(user))
+                    .then(::litmus::format!("it contains {}", user), move |repo| ::litmus::assert!(repo.contains(user))))
+                .examples(["Alice", "Bob", "Charlie"]))
     }
 }
 
 #[derive(::core::default::Default)]
 pub struct UserDatabase {
-    users_by_ids: ::std::collections::HashMap<UserId, User>,
+    users_by_ids: ::std::collections::HashSet<User>,
     is_connected: bool,
 }
 
@@ -55,17 +56,23 @@ impl UserDatabase {
 }
 
 impl UserRepository for UserDatabase {
-    fn save(&mut self, id: UserId, user: User) {
+    fn save(&mut self, user: User) {
         if self.is_connected {
-            self.users_by_ids.insert(id, user);
+            self.users_by_ids.insert(user);
         }
     }
 
-    fn get(&self, id: &UserId) -> ::core::option::Option<&User> {
+    fn delete(&mut self, user: User) {
         if self.is_connected {
-            self.users_by_ids.get(id)
+            self.users_by_ids.remove(user);
+        }
+    }
+
+    fn contains(&self, user: User) -> bool {
+        if self.is_connected {
+            self.users_by_ids.contains(&user)
         } else {
-            None
+            false
         }
     }
 }

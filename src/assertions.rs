@@ -23,9 +23,21 @@ macro_rules! panic {
 /// Gives nice backticks
 #[macro_export]
 macro_rules! format {
-    ($fmt:literal $(, $arg:expr)* $(,)?) => {
-        ::std::format!($fmt $(, ::std::format!("`{}`", $arg))*)
+    ($fmt:literal $(, $arg:expr)+ $(,)?) => {
+        ::std::format!($fmt $(, $crate::assertions::__Backtick($arg))*)
     };
+}
+
+
+pub struct __Backtick<T>(pub T);
+
+impl<T> ::core::fmt::Display for __Backtick<T>
+where
+    T: ::core::fmt::Display,
+{
+    fn fmt(&self, formatter: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        ::core::write!(formatter, "`{}`", self.0)
+    }
 }
 
 pub use assert;
