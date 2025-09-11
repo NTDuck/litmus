@@ -28,7 +28,6 @@ macro_rules! format {
     };
 }
 
-
 pub struct __Backtick<T>(pub T);
 
 impl<T> ::core::fmt::Display for __Backtick<T>
@@ -41,5 +40,5 @@ where
 }
 
 pub use assert;
-pub use panic;
 pub use format;
+pub use panic;

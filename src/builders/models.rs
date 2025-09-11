@@ -163,7 +163,8 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
     }
 
     pub fn scenario_outline<Example>(
-        mut self, scenario_outline: impl IntoScenarioOutline<World, Example>,
+        mut self,
+        scenario_outline: impl IntoScenarioOutline<World, Example>,
     ) -> FeatureBuilder<World, self::feature::SetScenarios<State>>
     where
         World: 'static,
@@ -584,7 +585,8 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
     }
 
     pub fn scenario_outline<Example>(
-        mut self, scenario_outline: impl IntoScenarioOutline<World, Example>,
+        mut self,
+        scenario_outline: impl IntoScenarioOutline<World, Example>,
     ) -> RuleBuilder<World, self::rule::SetScenarios<State>>
     where
         World: 'static,
@@ -1302,7 +1304,11 @@ where
     }
 }
 
-pub struct ScenarioOutlineBuilder<World, Example, State: self::scenario_outline::BuilderState = self::scenario_outline::Empty> {
+pub struct ScenarioOutlineBuilder<
+    World,
+    Example,
+    State: self::scenario_outline::BuilderState = self::scenario_outline::Empty,
+> {
     description: ::core::option::Option<aliases::string::String>,
     ignored: ::core::option::Option<bool>,
     tags: ::core::option::Option<Tags>,
@@ -1335,12 +1341,15 @@ impl<World, Example> ScenarioOutline<World, Example> {
 }
 
 impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlineBuilder<World, Example, State> {
-    pub fn description(mut self, description: impl Into<aliases::string::String>) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetDescription<State>>
+    pub fn description(
+        mut self,
+        description: impl Into<aliases::string::String>,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetDescription<State>>
     where
         State::Description: self::marker::IsUnset,
     {
         self.description = ::core::option::Option::from(description.into());
-        
+
         ScenarioOutlineBuilder {
             description: self.description,
             ignored: self.ignored,
@@ -1353,7 +1362,10 @@ impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlin
         }
     }
 
-    pub fn ignored(mut self, ignored: impl Into<bool>) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetIgnored<State>>
+    pub fn ignored(
+        mut self,
+        ignored: impl Into<bool>,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetIgnored<State>>
     where
         State::Ignored: self::marker::IsUnset,
     {
@@ -1371,7 +1383,10 @@ impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlin
         }
     }
 
-    pub fn tags(mut self, tags: impl IntoTags) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetTags<State>>
+    pub fn tags(
+        mut self,
+        tags: impl IntoTags,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetTags<State>>
     where
         State::Tags: self::marker::IsUnset,
     {
@@ -1390,14 +1405,17 @@ impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlin
     }
 
     pub fn scenario<Output>(
-        mut self, scenario: impl Fn(Example) -> Output + 'static,
+        mut self,
+        scenario: impl Fn(Example) -> Output + 'static,
     ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetScenario<State>>
     where
         Output: IntoScenario<World> + 'static,
         State::Scenario: self::marker::IsUnset,
         State::Examples: self::marker::IsUnset,
     {
-        self.scenario = ::core::option::Option::from(::std::boxed::Box::new(move |example| scenario(example).into_scenario()) as ::std::boxed::Box<dyn Fn(Example) -> Scenario<World>>);
+        self.scenario =
+            ::core::option::Option::from(::std::boxed::Box::new(move |example| scenario(example).into_scenario())
+                as ::std::boxed::Box<dyn Fn(Example) -> Scenario<World>>);
 
         ScenarioOutlineBuilder {
             description: self.description,
@@ -1411,7 +1429,10 @@ impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlin
         }
     }
 
-    pub fn example(mut self, example: Example) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<State>>
+    pub fn example(
+        mut self,
+        example: Example,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<State>>
     where
         State::Scenario: self::marker::IsSet,
     {
@@ -1429,7 +1450,10 @@ impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlin
         }
     }
 
-    pub fn examples(mut self, examples: impl IntoIterator<Item = Example>) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<State>>
+    pub fn examples(
+        mut self,
+        examples: impl IntoIterator<Item = Example>,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<State>>
     where
         State::Scenario: self::marker::IsSet,
     {
@@ -1478,10 +1502,7 @@ mod scenario_outline {
     }
 
     #[sealed]
-    pub trait IsComplete:
-        BuilderState<Scenario: self::marker::IsSet, Examples: self::marker::IsSet>
-    {
-    }
+    pub trait IsComplete: BuilderState<Scenario: self::marker::IsSet, Examples: self::marker::IsSet> {}
 
     #[sealed]
     impl<State: BuilderState> IsComplete for State
@@ -1588,24 +1609,20 @@ pub trait IntoScenarioOutline<World, Example> {
     {
         let scenario_outline = self.into_scenario_outline();
 
-        scenario_outline.examples
-            .into_iter()
-            .map(move |example| {
-                let mut scenario = (scenario_outline.scenario)(example);
+        scenario_outline.examples.into_iter().map(move |example| {
+            let mut scenario = (scenario_outline.scenario)(example);
 
-                scenario_outline.ignored.as_ref()
-                    .copied()
-                    .map(|ignored| {
-                        let scenario_ignored = scenario.ignored.get_or_insert(true);
-                        *scenario_ignored = *scenario_ignored && ignored;
-                    });
+            if let Some(ignored) = scenario_outline.ignored.as_ref().cloned() {
+                let scenario_ignored = scenario.ignored.get_or_insert(true);
+                *scenario_ignored = *scenario_ignored && ignored;
+            }
 
-                scenario_outline.tags.as_ref()
-                    .cloned()
-                    .map(|tags| scenario.tags.get_or_insert_default().extend(tags));
+            if let Some(tags) = scenario_outline.tags.as_ref().cloned() {
+                scenario.tags.get_or_insert_default().extend(tags)
+            }
 
-                scenario
-            })
+            scenario
+        })
     }
 }
 
@@ -1618,7 +1635,8 @@ impl<World, Example> IntoScenarioOutline<World, Example> for ScenarioOutline<Wor
 
 #[cfg(feature = "allow-natural")]
 #[sealed]
-impl<World, Example, State: self::scenario_outline::BuilderState> IntoScenarioOutline<World, Example> for ScenarioOutlineBuilder<World, Example, State>
+impl<World, Example, State: self::scenario_outline::BuilderState> IntoScenarioOutline<World, Example>
+    for ScenarioOutlineBuilder<World, Example, State>
 where
     State: self::scenario_outline::IsComplete,
 {
