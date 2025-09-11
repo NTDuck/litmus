@@ -73,24 +73,23 @@ harness = false
 We recommend [cargo-nextest](https://nexte.st) for a better experience, although [cargo-test](https://doc.rust-lang.org/cargo/commands/cargo-test.html) is supported.
 ```bash
 $ cargo nextest run --example hello-world
-   Compiling litmus v0.5.5 (D:\root\dev\rs\litmus)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.80s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.14s
 ────────────
- Nextest run ID c544a979-c5f2-4302-8f59-a387d06e66bc with nextest profile: default
+ Nextest run ID 72000e08-3cd4-4b80-a32d-a50a382f1673 with nextest profile: default
     Starting 1 test across 1 binary
-     Running [ 00:00:00] 0/1: 0 running, 0 passed, 0 skipped
-        PASS [   0.025s] litmus::example/hello-world Eating a few isn't a problem
+        PASS [   0.007s] litmus::example/hello-world Eating a few isn't a problem
 ────────────
-     Summary [   0.027s] 1 test run: 1 passed, 0 skipped
+     Summary [   0.008s] 1 test run: 1 passed, 0 skipped
 ```
 ```bash
-$ cargo test run --example hello-world
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s
-     Running unittests examples\hello-world.rs (target\debug\examples\hello_world-149ad56ef15f2701.exe)
+$ cargo test --example hello-world
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s
+     Running unittests examples/hello-world.rs (target/debug/examples/hello_world-06cfa831d0c9efe7)
 
-running 0 tests
+running 1 test
+test Eating a few isn't a problem ... ok
 
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 ```
 
 More examples are available in the [`examples/`](./examples/) directory.
