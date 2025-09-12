@@ -31,6 +31,16 @@ pub struct Scenario<World> {
     pub(crate) then: ::std::vec::Vec<ScenarioThenStep<World>>,
 }
 
+pub struct ScenarioOutline<World, Example> {
+    #[allow(dead_code)]
+    pub(crate) description: ::core::option::Option<aliases::string::String>,
+    pub(crate) ignored: ::core::option::Option<bool>,
+    pub(crate) tags: ::core::option::Option<Tags>,
+
+    pub(crate) scenario: ::std::boxed::Box<dyn Fn(Example) -> Scenario<World>>,
+    pub(crate) examples: ::std::vec::Vec<Example>,
+}
+
 pub struct Background<World> {
     #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<aliases::string::String>,

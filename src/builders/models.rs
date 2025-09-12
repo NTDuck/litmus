@@ -162,6 +162,29 @@ impl<World, State: self::feature::BuilderState> FeatureBuilder<World, State> {
         }
     }
 
+    pub fn scenario_outline<Example>(
+        mut self,
+        scenario_outline: impl IntoScenarioOutline<World, Example>,
+    ) -> FeatureBuilder<World, self::feature::SetScenarios<State>>
+    where
+        World: 'static,
+        Example: 'static,
+    {
+        self.scenarios.extend(scenario_outline.into_scenarios());
+
+        FeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
     pub fn rule(mut self, rule: impl IntoRule<World>) -> FeatureBuilder<World, self::feature::SetRules<State>> {
         self.rules.push(rule.into_rule());
 
@@ -548,6 +571,28 @@ impl<World, State: self::rule::BuilderState> RuleBuilder<World, State> {
         T: IntoScenario<World>,
     {
         self.scenarios.extend(scenarios.into_iter().map(IntoScenario::into_scenario));
+
+        RuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenario_outline<Example>(
+        mut self,
+        scenario_outline: impl IntoScenarioOutline<World, Example>,
+    ) -> RuleBuilder<World, self::rule::SetScenarios<State>>
+    where
+        World: 'static,
+        Example: 'static,
+    {
+        self.scenarios.extend(scenario_outline.into_scenarios());
 
         RuleBuilder {
             description: self.description,
@@ -1149,8 +1194,8 @@ mod scenario {
         type Tags = self::marker::Unset<self::members::Tags>;
 
         type Given = self::marker::Unset<self::members::Given>;
-        type Then = self::marker::Unset<self::members::Then>;
         type When = self::marker::Unset<self::members::When>;
+        type Then = self::marker::Unset<self::members::Then>;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1161,8 +1206,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = State::Given;
-        type Then = State::Then;
         type When = State::When;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1173,8 +1218,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = State::Given;
-        type Then = State::Then;
         type When = State::When;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1185,8 +1230,8 @@ mod scenario {
         type Tags = self::marker::Set<self::members::Tags>;
 
         type Given = State::Given;
-        type Then = State::Then;
         type When = State::When;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1197,8 +1242,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = self::marker::Set<self::members::Given>;
-        type Then = State::Then;
         type When = State::When;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1209,8 +1254,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = State::Given;
-        type Then = State::Then;
         type When = self::marker::Set<self::members::When>;
+        type Then = State::Then;
     }
 
     #[rustfmt::skip] // `reorder_impl_items`
@@ -1221,8 +1266,8 @@ mod scenario {
         type Tags = State::Tags;
 
         type Given = State::Given;
-        type Then = self::marker::Set<self::members::Then>;
         type When = State::When;
+        type Then = self::marker::Set<self::members::Then>;
     }
 
     mod members {
@@ -1255,6 +1300,347 @@ where
     State: self::scenario::IsComplete,
 {
     fn into_scenario(self) -> Scenario<World> {
+        self.build()
+    }
+}
+
+pub struct ScenarioOutlineBuilder<
+    World,
+    Example,
+    State: self::scenario_outline::BuilderState = self::scenario_outline::Empty,
+> {
+    description: ::core::option::Option<aliases::string::String>,
+    ignored: ::core::option::Option<bool>,
+    tags: ::core::option::Option<Tags>,
+
+    scenario: ::core::option::Option<::std::boxed::Box<dyn Fn(Example) -> Scenario<World>>>,
+    examples: ::std::vec::Vec<Example>,
+
+    __phantom: aliases::marker::PhantomCovariant<State>,
+}
+
+impl<World, Example> ScenarioOutline<World, Example> {
+    #[cfg(feature = "allow-natural")]
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> ScenarioOutlineBuilder<World, Example> {
+        Self::builder()
+    }
+
+    pub fn builder() -> ScenarioOutlineBuilder<World, Example> {
+        ScenarioOutlineBuilder {
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+            tags: ::core::default::Default::default(),
+
+            scenario: ::core::default::Default::default(),
+            examples: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlineBuilder<World, Example, State> {
+    pub fn description(
+        mut self,
+        description: impl Into<aliases::string::String>,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetDescription<State>>
+    where
+        State::Description: self::marker::IsUnset,
+    {
+        self.description = ::core::option::Option::from(description.into());
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn ignored(
+        mut self,
+        ignored: impl Into<bool>,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetIgnored<State>>
+    where
+        State::Ignored: self::marker::IsUnset,
+    {
+        self.ignored = ::core::option::Option::from(ignored.into());
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn tags(
+        mut self,
+        tags: impl IntoTags,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetTags<State>>
+    where
+        State::Tags: self::marker::IsUnset,
+    {
+        self.tags = ::core::option::Option::from(tags.into_tags());
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenario<Output>(
+        mut self,
+        scenario: impl Fn(Example) -> Output + 'static,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetScenario<State>>
+    where
+        Output: IntoScenario<World> + 'static,
+        State::Scenario: self::marker::IsUnset,
+        State::Examples: self::marker::IsUnset,
+    {
+        self.scenario =
+            ::core::option::Option::from(::std::boxed::Box::new(move |example| scenario(example).into_scenario())
+                as ::std::boxed::Box<dyn Fn(Example) -> Scenario<World>>);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn example(
+        mut self,
+        example: Example,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<State>>
+    where
+        State::Scenario: self::marker::IsSet,
+    {
+        self.examples.push(example);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn examples(
+        mut self,
+        examples: impl IntoIterator<Item = Example>,
+    ) -> ScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<State>>
+    where
+        State::Scenario: self::marker::IsSet,
+    {
+        self.examples.extend(examples);
+
+        ScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, State: self::scenario_outline::BuilderState> ScenarioOutlineBuilder<World, Example, State>
+where
+    State: self::scenario_outline::IsComplete,
+{
+    pub fn build(self) -> ScenarioOutline<World, Example> {
+        ScenarioOutline {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: unsafe { self.scenario.unwrap_unchecked() },
+            examples: self.examples,
+        }
+    }
+}
+
+mod scenario_outline {
+    pub(super) use super::*;
+
+    #[sealed]
+    pub trait BuilderState: ::core::marker::Sized {
+        type Description;
+        type Ignored;
+        type Tags;
+
+        type Scenario;
+        type Examples;
+    }
+
+    #[sealed]
+    pub trait IsComplete: BuilderState<Scenario: self::marker::IsSet, Examples: self::marker::IsSet> {}
+
+    #[sealed]
+    impl<State: BuilderState> IsComplete for State
+    where
+        State::Scenario: self::marker::IsSet,
+        State::Examples: self::marker::IsSet,
+    {
+    }
+
+    pub struct Empty;
+
+    pub struct SetDescription<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetIgnored<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetTags<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+
+    pub struct SetScenario<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+    pub struct SetExamples<State: BuilderState = Empty>(aliases::marker::PhantomCovariant<State>);
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl BuilderState for Empty {
+        type Description = self::marker::Unset<self::members::Description>;
+        type Ignored = self::marker::Unset<self::members::Ignored>;
+        type Tags = self::marker::Unset<self::members::Tags>;
+
+        type Scenario = self::marker::Unset<self::members::Scenario>;
+        type Examples = self::marker::Unset<self::members::Examples>;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetDescription<State> {
+        type Description = self::marker::Set<self::members::Description>;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Scenario = State::Scenario;
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetIgnored<State> {
+        type Description = State::Description;
+        type Ignored = self::marker::Set<self::members::Ignored>;
+        type Tags = State::Tags;
+
+        type Scenario = State::Scenario;
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetTags<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = self::marker::Set<self::members::Tags>;
+
+        type Scenario = State::Scenario;
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetScenario<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+
+        type Scenario = self::marker::Set<self::members::Scenario>;
+        type Examples = State::Examples;
+    }
+
+    #[rustfmt::skip] // `reorder_impl_items`
+    #[sealed]
+    impl<State: BuilderState> BuilderState for SetExamples<State> {
+        type Description = State::Description;
+        type Ignored = State::Ignored;
+        type Tags = State::Tags;
+        
+        type Scenario = State::Scenario;
+        type Examples = self::marker::Set<self::members::Examples>;
+    }
+
+    mod members {
+        pub struct Description;
+        pub struct Ignored;
+        pub struct Tags;
+
+        pub struct Scenario;
+        pub struct Examples;
+    }
+}
+
+#[sealed]
+pub trait IntoScenarioOutline<World, Example> {
+    fn into_scenario_outline(self) -> ScenarioOutline<World, Example>;
+
+    fn into_scenarios(self) -> impl IntoIterator<Item = Scenario<World>>
+    where
+        World: 'static,
+        Example: 'static,
+        Self: ::core::marker::Sized,
+    {
+        let scenario_outline = self.into_scenario_outline();
+
+        scenario_outline.examples.into_iter().map(move |example| {
+            let mut scenario = (scenario_outline.scenario)(example);
+
+            if let Some(ignored) = scenario_outline.ignored.as_ref().cloned() {
+                let scenario_ignored = scenario.ignored.get_or_insert(true);
+                *scenario_ignored = *scenario_ignored && ignored;
+            }
+
+            if let Some(tags) = scenario_outline.tags.as_ref().cloned() {
+                scenario.tags.get_or_insert_default().extend(tags)
+            }
+
+            scenario
+        })
+    }
+}
+
+#[sealed]
+impl<World, Example> IntoScenarioOutline<World, Example> for ScenarioOutline<World, Example> {
+    fn into_scenario_outline(self) -> ScenarioOutline<World, Example> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, Example, State: self::scenario_outline::BuilderState> IntoScenarioOutline<World, Example>
+    for ScenarioOutlineBuilder<World, Example, State>
+where
+    State: self::scenario_outline::IsComplete,
+{
+    fn into_scenario_outline(self) -> ScenarioOutline<World, Example> {
         self.build()
     }
 }
