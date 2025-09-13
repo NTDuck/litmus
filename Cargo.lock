@@ -648,6 +648,7 @@ dependencies = [
  "ahash",
  "async-trait",
  "cucumber",
+ "futures",
  "fxhash",
  "libtest-mimic",
  "metrohash",

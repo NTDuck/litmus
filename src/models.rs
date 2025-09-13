@@ -11,6 +11,17 @@ pub struct Feature<World> {
     pub(crate) rules: ::std::vec::Vec<Rule<World>>,
 }
 
+pub struct AsyncFeature<World> {
+    #[allow(dead_code)]
+    pub(crate) description: ::core::option::Option<aliases::string::String>,
+    pub(crate) ignored: ::core::option::Option<bool>,
+    pub(crate) tags: ::core::option::Option<Tags>,
+
+    pub(crate) background: ::core::option::Option<AsyncBackground<World>>,
+    pub(crate) scenarios: ::std::vec::Vec<AsyncScenario<World>>,
+    pub(crate) rules: ::std::vec::Vec<AsyncRule<World>>,
+}
+
 pub struct Rule<World> {
     #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<aliases::string::String>,
@@ -19,6 +30,16 @@ pub struct Rule<World> {
 
     pub(crate) background: ::core::option::Option<Background<World>>,
     pub(crate) scenarios: ::std::vec::Vec<Scenario<World>>,
+}
+
+pub struct AsyncRule<World> {
+    #[allow(dead_code)]
+    pub(crate) description: ::core::option::Option<aliases::string::String>,
+    pub(crate) ignored: ::core::option::Option<bool>,
+    pub(crate) tags: ::core::option::Option<Tags>,
+
+    pub(crate) background: ::core::option::Option<AsyncBackground<World>>,
+    pub(crate) scenarios: ::std::vec::Vec<AsyncScenario<World>>,
 }
 
 pub struct Scenario<World> {
@@ -31,6 +52,16 @@ pub struct Scenario<World> {
     pub(crate) then: ::std::vec::Vec<ScenarioThenStep<World>>,
 }
 
+pub struct AsyncScenario<World> {
+    pub(crate) description: ::core::option::Option<aliases::string::String>,
+    pub(crate) ignored: ::core::option::Option<bool>,
+    pub(crate) tags: ::core::option::Option<Tags>,
+
+    pub(crate) given: ::std::vec::Vec<AsyncScenarioGivenOrWhenStep<World>>,
+    pub(crate) when: ::std::vec::Vec<AsyncScenarioGivenOrWhenStep<World>>,
+    pub(crate) then: ::std::vec::Vec<AsyncScenarioThenStep<World>>,
+}
+
 pub struct ScenarioOutline<World, Example> {
     #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<aliases::string::String>,
@@ -41,12 +72,30 @@ pub struct ScenarioOutline<World, Example> {
     pub(crate) examples: ::std::vec::Vec<Example>,
 }
 
+pub struct AsyncScenarioOutline<World, Example> {
+    #[allow(dead_code)]
+    pub(crate) description: ::core::option::Option<aliases::string::String>,
+    pub(crate) ignored: ::core::option::Option<bool>,
+    pub(crate) tags: ::core::option::Option<Tags>,
+
+    pub(crate) scenario: ::std::boxed::Box<dyn Fn(Example) -> AsyncScenario<World>>,
+    pub(crate) examples: ::std::vec::Vec<Example>,
+}
+
 pub struct Background<World> {
     #[allow(dead_code)]
     pub(crate) description: ::core::option::Option<aliases::string::String>,
     pub(crate) ignored: ::core::option::Option<bool>,
 
     pub(crate) given: ::std::vec::Vec<BackgroundGivenStep<World>>,
+}
+
+pub struct AsyncBackground<World> {
+    #[allow(dead_code)]
+    pub(crate) description: ::core::option::Option<aliases::string::String>,
+    pub(crate) ignored: ::core::option::Option<bool>,
+
+    pub(crate) given: ::std::vec::Vec<AsyncBackgroundGivenStep<World>>,
 }
 
 #[derive(::core::clone::Clone)]
@@ -59,6 +108,11 @@ pub(crate) type ScenarioOrStepHook<World> =
     Hook<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type GlobalHook =
     Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+
+pub(crate) type AsyncScenarioOrStepHook<World> =
+    Hook<aliases::sync::Arc<dyn Fn(&mut World) -> ::futures::future::BoxFuture<'_, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type AsyncGlobalHook =
+    Hook<::std::boxed::Box<dyn FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
 
 #[derive(::core::clone::Clone)]
 pub(crate) struct Step<Callback> {
@@ -74,6 +128,13 @@ pub(crate) type ScenarioThenStep<World> =
     Step<::std::boxed::Box<dyn FnOnce(&World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type BackgroundGivenStep<World> =
     Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
+
+pub(crate) type AsyncScenarioGivenOrWhenStep<World> =
+    Step<::std::boxed::Box<dyn FnOnce(&mut World) -> ::futures::future::BoxFuture<'_, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type AsyncScenarioThenStep<World> =
+    Step<::std::boxed::Box<dyn FnOnce(&World) -> ::futures::future::BoxFuture<'_, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
+pub(crate) type AsyncBackgroundGivenStep<World> =
+    Step<aliases::sync::Arc<dyn Fn(&mut World) -> ::futures::future::BoxFuture<'_, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
 
 pub type Tags = ::std::collections::HashSet<aliases::string::String, aliases::hash::BuildHasher>;
 
