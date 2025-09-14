@@ -1148,6 +1148,434 @@ where
     }
 }
 
+#[sealed]
+pub trait IntoScenario<World> {
+    fn into_scenario(self) -> Scenario<World>;
+}
+
+#[sealed]
+impl<World> IntoScenario<World> for Scenario<World> {
+    fn into_scenario(self) -> Scenario<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::scenario::BuilderState> IntoScenario<World> for ScenarioBuilder<World, State>
+where
+    State: self::scenario::IsComplete,
+{
+    fn into_scenario(self) -> Scenario<World> {
+        self.build()
+    }
+}
+
+pub struct AsyncScenarioBuilder<World, State: self::scenario::BuilderState = self::scenario::Empty> {
+    description: ::core::option::Option<aliases::string::String>,
+    ignored: ::core::option::Option<bool>,
+    tags: ::core::option::Option<Tags>,
+
+    pub(crate) given: ::std::vec::Vec<AsyncScenarioGivenOrWhenStep<World>>,
+    pub(crate) when: ::std::vec::Vec<AsyncScenarioGivenOrWhenStep<World>>,
+    pub(crate) then: ::std::vec::Vec<AsyncScenarioThenStep<World>>,
+
+    __phantom: aliases::marker::PhantomCovariant<State>,
+}
+
+impl<World> AsyncScenario<World> {
+    #[cfg(feature = "allow-natural")]
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> AsyncScenarioBuilder<World> {
+        Self::builder()
+    }
+
+    pub fn builder() -> AsyncScenarioBuilder<World> {
+        AsyncScenarioBuilder {
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+            tags: ::core::default::Default::default(),
+
+            given: ::core::default::Default::default(),
+            when: ::core::default::Default::default(),
+            then: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::scenario::BuilderState> AsyncScenarioBuilder<World, State>
+where
+    State::Given: self::marker::IsUnset,
+    State::When: self::marker::IsUnset,
+    State::Then: self::marker::IsUnset,
+{
+    pub fn description(
+        mut self,
+        description: impl Into<aliases::string::String>,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetDescription<State>>
+    where
+        State::Description: self::marker::IsUnset,
+    {
+        self.description = ::core::option::Option::from(description.into());
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn ignored(mut self, ignored: impl Into<bool>) -> AsyncScenarioBuilder<World, self::scenario::SetIgnored<State>>
+    where
+        State::Ignored: self::marker::IsUnset,
+    {
+        self.ignored = ::core::option::Option::from(ignored.into());
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn tags(mut self, tags: impl IntoTags) -> AsyncScenarioBuilder<World, self::scenario::SetTags<State>>
+    where
+        State::Tags: self::marker::IsUnset,
+    {
+        self.tags = ::core::option::Option::from(tags.into_tags());
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn given<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetGiven<State>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::Given);
+        self.given.push(step);
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, InnerState: self::scenario::BuilderState> AsyncScenarioBuilder<World, self::scenario::SetGiven<InnerState>>
+where
+    <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::Given: self::marker::IsSet,
+    <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::When: self::marker::IsUnset,
+    <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
+{
+    pub fn and<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::And);
+        self.given.push(step);
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn but<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetGiven<self::scenario::SetGiven<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::But);
+        self.given.push(step);
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn when<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetWhen<self::scenario::SetGiven<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::When);
+        self.when.push(step);
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, InnerState: self::scenario::BuilderState> AsyncScenarioBuilder<World, self::scenario::SetWhen<InnerState>>
+where
+    <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::Given: self::marker::IsSet,
+    <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
+    <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
+{
+    pub fn and<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::And);
+        self.when.push(step);
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn but<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetWhen<self::scenario::SetWhen<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::But);
+        self.when.push(step);
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn then<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetThen<self::scenario::SetWhen<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncScenarioThenStep::into_step((description, callback), StepLabel::Then);
+        self.then.push(step);
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, InnerState: self::scenario::BuilderState> AsyncScenarioBuilder<World, self::scenario::SetThen<InnerState>>
+where
+    <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::Given: self::marker::IsSet,
+    <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
+    <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsSet,
+{
+    pub fn and<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetThen<self::scenario::SetThen<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncScenarioThenStep::into_step((description, callback), StepLabel::And);
+        self.then.push(step);
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn but<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncScenarioBuilder<World, self::scenario::SetThen<self::scenario::SetThen<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncScenarioThenStep::into_step((description, callback), StepLabel::But);
+        self.then.push(step);
+
+        AsyncScenarioBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::scenario::BuilderState> AsyncScenarioBuilder<World, State>
+where
+    State: self::scenario::IsComplete,
+{
+    pub fn build(self) -> AsyncScenario<World> {
+        AsyncScenario {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            given: self.given,
+            when: self.when,
+            then: self.then,
+        }
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncScenario<World> {
+    fn into_scenario(self) -> AsyncScenario<World>;
+}
+
+#[sealed]
+impl<World> IntoAsyncScenario<World> for AsyncScenario<World> {
+    fn into_scenario(self) -> AsyncScenario<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::scenario::BuilderState> IntoAsyncScenario<World> for AsyncScenarioBuilder<World, State>
+where
+    State: self::scenario::IsComplete,
+{
+    fn into_scenario(self) -> AsyncScenario<World> {
+        self.build()
+    }
+}
+
 mod scenario {
     pub(super) use super::*;
 
@@ -1279,29 +1707,6 @@ mod scenario {
         pub struct Given;
         pub struct When;
         pub struct Then;
-    }
-}
-
-#[sealed]
-pub trait IntoScenario<World> {
-    fn into_scenario(self) -> Scenario<World>;
-}
-
-#[sealed]
-impl<World> IntoScenario<World> for Scenario<World> {
-    fn into_scenario(self) -> Scenario<World> {
-        self
-    }
-}
-
-#[cfg(feature = "allow-natural")]
-#[sealed]
-impl<World, State: self::scenario::BuilderState> IntoScenario<World> for ScenarioBuilder<World, State>
-where
-    State: self::scenario::IsComplete,
-{
-    fn into_scenario(self) -> Scenario<World> {
-        self.build()
     }
 }
 
