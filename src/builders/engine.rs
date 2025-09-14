@@ -743,6 +743,219 @@ where
     }
 }
 
+#[sealed]
+pub trait IntoSuite<World> {
+    fn into_suite(self) -> Suite<World>;
+}
+
+#[sealed]
+impl<World> IntoSuite<World> for Suite<World> {
+    fn into_suite(self) -> Suite<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::suite::BuilderState> IntoSuite<World> for SuiteBuilder<World, State>
+where
+    State: self::suite::IsComplete,
+{
+    fn into_suite(self) -> Suite<World> {
+        self.build()
+    }
+}
+
+pub struct AsyncSuiteBuilder<World, State: self::suite::BuilderState = self::suite::Empty> {
+    before_scenario_hooks: ::std::vec::Vec<AsyncScenarioOrStepHook<World>>,
+    after_scenario_hooks: ::std::vec::Vec<AsyncScenarioOrStepHook<World>>,
+
+    before_step_hooks: ::std::vec::Vec<AsyncScenarioOrStepHook<World>>,
+    after_step_hooks: ::std::vec::Vec<AsyncScenarioOrStepHook<World>>,
+
+    features: ::std::vec::Vec<AsyncFeature<World>>,
+
+    __phantom: aliases::marker::PhantomCovariant<State>,
+}
+
+impl<World> AsyncSuite<World> {
+    #[cfg(feature = "allow-natural")]
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> AsyncSuiteBuilder<World> {
+        Self::builder()
+    }
+
+    pub fn builder() -> AsyncSuiteBuilder<World> {
+        AsyncSuiteBuilder {
+            before_scenario_hooks: ::core::default::Default::default(),
+            after_scenario_hooks: ::core::default::Default::default(),
+
+            before_step_hooks: ::core::default::Default::default(),
+            after_step_hooks: ::core::default::Default::default(),
+
+            features: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::suite::BuilderState> AsyncSuiteBuilder<World, State> {
+    pub fn before_scenario(
+        mut self,
+        hook: impl IntoAsyncScenarioOrStepHook<World>,
+    ) -> AsyncSuiteBuilder<World, self::suite::SetHooks<State>> {
+        self.before_scenario_hooks.push(hook.into_hook());
+
+        AsyncSuiteBuilder {
+            before_scenario_hooks: self.before_scenario_hooks,
+            after_scenario_hooks: self.after_scenario_hooks,
+
+            before_step_hooks: self.before_step_hooks,
+            after_step_hooks: self.after_step_hooks,
+
+            features: self.features,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn after_scenario(
+        mut self,
+        hook: impl IntoAsyncScenarioOrStepHook<World>,
+    ) -> AsyncSuiteBuilder<World, self::suite::SetHooks<State>> {
+        self.after_scenario_hooks.push(hook.into_hook());
+
+        AsyncSuiteBuilder {
+            before_scenario_hooks: self.before_scenario_hooks,
+            after_scenario_hooks: self.after_scenario_hooks,
+
+            before_step_hooks: self.before_step_hooks,
+            after_step_hooks: self.after_step_hooks,
+
+            features: self.features,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn before_step(
+        mut self,
+        hook: impl IntoAsyncScenarioOrStepHook<World>,
+    ) -> AsyncSuiteBuilder<World, self::suite::SetHooks<State>> {
+        self.before_step_hooks.push(hook.into_hook());
+
+        AsyncSuiteBuilder {
+            before_scenario_hooks: self.before_scenario_hooks,
+            after_scenario_hooks: self.after_scenario_hooks,
+
+            before_step_hooks: self.before_step_hooks,
+            after_step_hooks: self.after_step_hooks,
+
+            features: self.features,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn after_step(
+        mut self,
+        hook: impl IntoAsyncScenarioOrStepHook<World>,
+    ) -> AsyncSuiteBuilder<World, self::suite::SetHooks<State>> {
+        self.after_step_hooks.push(hook.into_hook());
+
+        AsyncSuiteBuilder {
+            before_scenario_hooks: self.before_scenario_hooks,
+            after_scenario_hooks: self.after_scenario_hooks,
+
+            before_step_hooks: self.before_step_hooks,
+            after_step_hooks: self.after_step_hooks,
+
+            features: self.features,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn feature(mut self, feature: impl IntoAsyncFeature<World>) -> AsyncSuiteBuilder<World, self::suite::SetFeatures<State>> {
+        self.features.push(feature.into_feature());
+
+        AsyncSuiteBuilder {
+            before_scenario_hooks: self.before_scenario_hooks,
+            after_scenario_hooks: self.after_scenario_hooks,
+
+            before_step_hooks: self.before_step_hooks,
+            after_step_hooks: self.after_step_hooks,
+
+            features: self.features,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn features<T>(
+        mut self,
+        features: impl IntoIterator<Item = T>,
+    ) -> AsyncSuiteBuilder<World, self::suite::SetFeatures<State>>
+    where
+        T: IntoAsyncFeature<World>,
+    {
+        self.features.extend(features.into_iter().map(IntoAsyncFeature::into_feature));
+
+        AsyncSuiteBuilder {
+            before_scenario_hooks: self.before_scenario_hooks,
+            after_scenario_hooks: self.after_scenario_hooks,
+
+            before_step_hooks: self.before_step_hooks,
+            after_step_hooks: self.after_step_hooks,
+
+            features: self.features,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::suite::BuilderState> AsyncSuiteBuilder<World, State>
+where
+    State: self::suite::IsComplete,
+{
+    pub fn build(self) -> AsyncSuite<World> {
+        AsyncSuite {
+            before_scenario_hooks: self.before_scenario_hooks,
+            after_scenario_hooks: self.after_scenario_hooks,
+
+            before_step_hooks: self.before_step_hooks,
+            after_step_hooks: self.after_step_hooks,
+
+            features: self.features,
+        }
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncSuite<World> {
+    fn into_suite(self) -> AsyncSuite<World>;
+}
+
+#[sealed]
+impl<World> IntoAsyncSuite<World> for AsyncSuite<World> {
+    fn into_suite(self) -> AsyncSuite<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::suite::BuilderState> IntoAsyncSuite<World> for AsyncSuiteBuilder<World, State>
+where
+    State: self::suite::IsComplete,
+{
+    fn into_suite(self) -> AsyncSuite<World> {
+        self.build()
+    }
+}
+
 mod suite {
     pub(super) use super::*;
 
@@ -802,28 +1015,5 @@ mod suite {
     mod members {
         pub struct Hooks;
         pub struct Features;
-    }
-}
-
-#[sealed]
-pub trait IntoSuite<World> {
-    fn into_suite(self) -> Suite<World>;
-}
-
-#[sealed]
-impl<World> IntoSuite<World> for Suite<World> {
-    fn into_suite(self) -> Suite<World> {
-        self
-    }
-}
-
-#[cfg(feature = "allow-natural")]
-#[sealed]
-impl<World, State: self::suite::BuilderState> IntoSuite<World> for SuiteBuilder<World, State>
-where
-    State: self::suite::IsComplete,
-{
-    fn into_suite(self) -> Suite<World> {
-        self.build()
     }
 }

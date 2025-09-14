@@ -22,6 +22,16 @@ pub struct Suite<World> {
     pub(crate) features: ::std::vec::Vec<Feature<World>>,
 }
 
+pub struct AsyncSuite<World> {
+    pub(crate) before_scenario_hooks: ::std::vec::Vec<AsyncScenarioOrStepHook<World>>,
+    pub(crate) after_scenario_hooks: ::std::vec::Vec<AsyncScenarioOrStepHook<World>>,
+
+    pub(crate) before_step_hooks: ::std::vec::Vec<AsyncScenarioOrStepHook<World>>,
+    pub(crate) after_step_hooks: ::std::vec::Vec<AsyncScenarioOrStepHook<World>>,
+
+    pub(crate) features: ::std::vec::Vec<AsyncFeature<World>>,
+}
+
 pub mod configurations {
     pub(super) use super::*;
 
