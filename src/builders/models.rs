@@ -1802,6 +1802,211 @@ where
     }
 }
 
+#[sealed]
+pub trait IntoBackground<World> {
+    fn into_background(self) -> Background<World>;
+}
+
+#[sealed]
+impl<World> IntoBackground<World> for Background<World> {
+    fn into_background(self) -> Background<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::background::BuilderState> IntoBackground<World> for BackgroundBuilder<World, State>
+where
+    State: self::background::IsComplete,
+{
+    fn into_background(self) -> Background<World> {
+        self.build()
+    }
+}
+
+pub struct AsyncBackgroundBuilder<World, State: self::background::BuilderState = self::background::Empty> {
+    description: ::core::option::Option<aliases::string::String>,
+    ignored: ::core::option::Option<bool>,
+
+    given: ::std::vec::Vec<AsyncBackgroundGivenStep<World>>,
+
+    __phantom: aliases::marker::PhantomCovariant<State>,
+}
+
+impl<World> AsyncBackground<World> {
+    #[cfg(feature = "allow-natural")]
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> AsyncBackgroundBuilder<World> {
+        Self::builder()
+    }
+
+    pub fn builder() -> AsyncBackgroundBuilder<World> {
+        AsyncBackgroundBuilder {
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+
+            given: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::background::BuilderState> AsyncBackgroundBuilder<World, State>
+where
+    State::Given: self::marker::IsUnset,
+{
+    pub fn description(
+        mut self,
+        description: impl Into<aliases::string::String>,
+    ) -> AsyncBackgroundBuilder<World, self::background::SetDescription<State>>
+    where
+        State::Description: self::marker::IsUnset,
+    {
+        self.description = ::core::option::Option::from(description.into());
+
+        AsyncBackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+
+            given: self.given,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn ignored(mut self, ignored: impl Into<bool>) -> AsyncBackgroundBuilder<World, self::background::SetIgnored<State>>
+    where
+        State::Ignored: self::marker::IsUnset,
+    {
+        self.ignored = ::core::option::Option::from(ignored.into());
+
+        AsyncBackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+
+            given: self.given,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn given<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncBackgroundBuilder<World, self::background::SetGiven<State>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncBackgroundGivenStep::into_step((description, callback), StepLabel::Given);
+        self.given.push(step);
+
+        AsyncBackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+
+            given: self.given,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, InnerState: self::background::BuilderState> AsyncBackgroundBuilder<World, self::background::SetGiven<InnerState>>
+where
+    <self::background::SetGiven<InnerState> as self::background::BuilderState>::Given: self::marker::IsSet,
+{
+    pub fn and<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncBackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncBackgroundGivenStep::into_step((description, callback), StepLabel::And);
+        self.given.push(step);
+
+        AsyncBackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+
+            given: self.given,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn but<Description, Callback, Output>(
+        mut self,
+        description: Description,
+        callback: Callback,
+    ) -> AsyncBackgroundBuilder<World, self::background::SetGiven<self::background::SetGiven<InnerState>>>
+    where
+        World: ::core::marker::Send + ::core::marker::Sync,
+        Description: Into<aliases::string::String>,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+        Output: IntoFallible,
+    {
+        let step = IntoAsyncBackgroundGivenStep::into_step((description, callback), StepLabel::But);
+        self.given.push(step);
+
+        AsyncBackgroundBuilder {
+            description: self.description,
+            ignored: self.ignored,
+
+            given: self.given,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::background::BuilderState> AsyncBackgroundBuilder<World, State>
+where
+    State: self::background::IsComplete,
+{
+    pub fn build(self) -> AsyncBackground<World> {
+        AsyncBackground {
+            description: self.description,
+            ignored: self.ignored,
+
+            given: self.given,
+        }
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncBackground<World> {
+    fn into_background(self) -> AsyncBackground<World>;
+}
+
+#[sealed]
+impl<World> IntoAsyncBackground<World> for AsyncBackground<World> {
+    fn into_background(self) -> AsyncBackground<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::background::BuilderState> IntoAsyncBackground<World> for AsyncBackgroundBuilder<World, State>
+where
+    State: self::background::IsComplete,
+{
+    fn into_background(self) -> AsyncBackground<World> {
+        self.build()
+    }
+}
+
 mod background {
     pub(super) use super::*;
 
@@ -1860,29 +2065,6 @@ mod background {
         pub struct Description;
         pub struct Ignored;
         pub struct Given;
-    }
-}
-
-#[sealed]
-pub trait IntoBackground<World> {
-    fn into_background(self) -> Background<World>;
-}
-
-#[sealed]
-impl<World> IntoBackground<World> for Background<World> {
-    fn into_background(self) -> Background<World> {
-        self
-    }
-}
-
-#[cfg(feature = "allow-natural")]
-#[sealed]
-impl<World, State: self::background::BuilderState> IntoBackground<World> for BackgroundBuilder<World, State>
-where
-    State: self::background::IsComplete,
-{
-    fn into_background(self) -> Background<World> {
-        self.build()
     }
 }
 
