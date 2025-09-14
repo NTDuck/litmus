@@ -110,7 +110,7 @@ pub(crate) type GlobalHook =
     Hook<::std::boxed::Box<dyn FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 
 pub(crate) type AsyncScenarioOrStepHook<World> =
-    Hook<aliases::sync::Arc<dyn Fn(&mut World) -> ::futures::future::BoxFuture<'_, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
+    Hook<aliases::sync::Arc<dyn for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type AsyncGlobalHook =
     Hook<::std::boxed::Box<dyn FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
 
@@ -130,11 +130,11 @@ pub(crate) type BackgroundGivenStep<World> =
     Step<aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>>;
 
 pub(crate) type AsyncScenarioGivenOrWhenStep<World> =
-    Step<::std::boxed::Box<dyn FnOnce(&mut World) -> ::futures::future::BoxFuture<'_, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
+    Step<::std::boxed::Box<dyn for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type AsyncScenarioThenStep<World> =
-    Step<::std::boxed::Box<dyn FnOnce(&World) -> ::futures::future::BoxFuture<'_, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
+    Step<::std::boxed::Box<dyn for<'a> FnOnce(&'a World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
 pub(crate) type AsyncBackgroundGivenStep<World> =
-    Step<aliases::sync::Arc<dyn Fn(&mut World) -> ::futures::future::BoxFuture<'_, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
+    Step<aliases::sync::Arc<dyn for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync>>;
 
 pub type Tags = ::std::collections::HashSet<aliases::string::String, aliases::hash::BuildHasher>;
 

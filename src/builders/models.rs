@@ -1,3 +1,4 @@
+use futures::FutureExt;
 use ::sealed::sealed;
 
 use crate::builders::*;
@@ -2090,6 +2091,112 @@ where
     }
 }
 
+#[sealed]
+pub trait IntoAsyncScenarioOrStepHook<World> {
+    #[allow(private_interfaces)]
+    fn into_hook(self) -> AsyncScenarioOrStepHook<World>;
+}
+
+#[sealed]
+impl<World> IntoAsyncScenarioOrStepHook<World> for AsyncScenarioOrStepHook<World> {
+    #[allow(private_interfaces)]
+    fn into_hook(self) -> AsyncScenarioOrStepHook<World> {
+        self
+    }
+}
+
+#[sealed]
+impl<World, Callback, Output> IntoAsyncScenarioOrStepHook<World> for Callback
+where
+    World: ::core::marker::Send + ::core::marker::Sync,
+    Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    #[allow(private_interfaces)]
+    fn into_hook(self) -> AsyncScenarioOrStepHook<World> {
+        let callback: aliases::sync::Arc<dyn for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync + 'static> =
+            aliases::sync::Arc::new(move |world: &mut World| {
+                let callback = self.clone();
+                ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() })
+            });
+
+        Hook::builder().callback(callback).build()
+    }
+}
+
+#[sealed]
+pub trait AsyncScenarioOrStepHookCallbackExt<World> {
+    fn tags(self, tags: impl IntoTags) -> impl IntoAsyncScenarioOrStepHook<World>;
+}
+
+#[sealed]
+impl<World, Callback, Output> AsyncScenarioOrStepHookCallbackExt<World> for Callback
+where
+    World: ::core::marker::Send + ::core::marker::Sync,
+    Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    fn tags(self, tags: impl IntoTags) -> impl IntoAsyncScenarioOrStepHook<World> {
+        let tags = tags.into_tags();
+        let callback: aliases::sync::Arc<dyn for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync> =
+            aliases::sync::Arc::new(move |world: &mut World| {
+                let callback = self.clone();
+                ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() })
+            });
+
+        Hook::builder().tags(tags).callback(callback).build()
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncGlobalHook {
+    #[allow(private_interfaces)]
+    fn into_hook(self) -> AsyncGlobalHook;
+}
+
+#[sealed]
+impl IntoAsyncGlobalHook for AsyncGlobalHook {
+    #[allow(private_interfaces)]
+    fn into_hook(self) -> AsyncGlobalHook {
+        self
+    }
+}
+
+#[sealed]
+impl<Callback, Output> IntoAsyncGlobalHook for Callback
+where
+    Callback: FnOnce() -> ::futures::future::BoxFuture<'static, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    #[allow(private_interfaces)]
+    fn into_hook(self) -> AsyncGlobalHook {
+        let callback: ::std::boxed::Box<dyn FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync> =
+            ::std::boxed::Box::new(move || ::std::boxed::Box::pin(async move { (self)().await.into_fallible() }));
+
+        Hook::builder().callback(callback).build()
+    }
+}
+
+#[sealed]
+pub trait AsyncGlobalHookCallbackExt {
+    fn tags(self, tags: impl IntoTags) -> impl IntoAsyncGlobalHook;
+}
+
+#[sealed]
+impl<Callback, Output> AsyncGlobalHookCallbackExt for Callback
+where
+    Callback: FnOnce() -> ::futures::future::BoxFuture<'static, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    fn tags(self, tags: impl IntoTags) -> impl IntoAsyncGlobalHook {
+        let tags = tags.into_tags();
+        let callback: ::std::boxed::Box<dyn FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync> =
+            ::std::boxed::Box::new(move || ::std::boxed::Box::pin(async move { (self)().await.into_fallible() }));
+
+        Hook::builder().tags(tags).callback(callback).build()
+    }
+}
+
 struct StepBuilder<Callback, State: self::step::BuilderState = self::step::Empty> {
     label: ::core::option::Option<StepLabel>,
     description: ::core::option::Option<aliases::string::String>,
@@ -2310,6 +2417,84 @@ where
 
         let callback = aliases::sync::Arc::new(move |world: &mut World| (callback)(world).into_fallible())
             as aliases::sync::Arc<dyn Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync>;
+
+        Step::builder().label(label).description(description).callback(callback).build()
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncScenarioGivenOrWhenStep<World> {
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> AsyncScenarioGivenOrWhenStep<World>;
+}
+
+#[sealed]
+impl<World, Description, Callback, Output> IntoAsyncScenarioGivenOrWhenStep<World> for (Description, Callback)
+where
+    World: ::core::marker::Send + ::core::marker::Sync,
+    Description: Into<aliases::string::String>,
+    Callback: for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> AsyncScenarioGivenOrWhenStep<World> {
+        let (description, callback) = self;
+
+        let callback: ::std::boxed::Box<dyn for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync + 'static> =
+            ::std::boxed::Box::new(move |world: &mut World| ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() }));
+
+        Step::builder().label(label).description(description).callback(callback).build()
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncScenarioThenStep<World> {
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> AsyncScenarioThenStep<World>;
+}
+
+#[sealed]
+impl<World, Description, Callback, Output> IntoAsyncScenarioThenStep<World> for (Description, Callback)
+where
+    World: ::core::marker::Send + ::core::marker::Sync,
+    Description: Into<aliases::string::String>,
+    Callback: for<'a> Fn(&'a World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> AsyncScenarioThenStep<World> {
+        let (description, callback) = self;
+
+        let callback: ::std::boxed::Box<dyn for<'a> FnOnce(&'a World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync + 'static> =
+            ::std::boxed::Box::new(move |world: &World| ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() }));
+
+        Step::builder().label(label).description(description).callback(callback).build()
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncBackgroundGivenStep<World> {
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> AsyncBackgroundGivenStep<World>;
+}
+
+#[sealed]
+impl<World, Description, Callback, Output> IntoAsyncBackgroundGivenStep<World> for (Description, Callback)
+where
+    World: ::core::marker::Send + ::core::marker::Sync,
+    Description: Into<aliases::string::String>,
+    Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
+    Output: IntoFallible,
+{
+    #[allow(private_interfaces)]
+    fn into_step(self, label: StepLabel) -> AsyncBackgroundGivenStep<World> {
+        let (description, callback) = self;
+
+        let callback: aliases::sync::Arc<dyn for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync> =
+            aliases::sync::Arc::new(move |world: &mut World| {
+                let callback = callback.clone();
+                ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() })
+            });
 
         Step::builder().label(label).description(description).callback(callback).build()
     }
