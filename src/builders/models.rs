@@ -1,4 +1,3 @@
-use futures::FutureExt;
 use ::sealed::sealed;
 
 use crate::builders::*;
@@ -259,6 +258,306 @@ where
     }
 }
 
+#[sealed]
+pub trait IntoFeature<World> {
+    fn into_feature(self) -> Feature<World>;
+}
+
+#[sealed]
+impl<World> IntoFeature<World> for Feature<World> {
+    fn into_feature(self) -> Feature<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::feature::BuilderState> IntoFeature<World> for FeatureBuilder<World, State>
+where
+    State: self::feature::IsComplete,
+{
+    fn into_feature(self) -> Feature<World> {
+        self.build()
+    }
+}
+
+pub struct AsyncFeatureBuilder<World, State: self::feature::BuilderState = self::feature::Empty> {
+    description: ::core::option::Option<aliases::string::String>,
+    ignored: ::core::option::Option<bool>,
+    tags: ::core::option::Option<Tags>,
+
+    background: ::core::option::Option<AsyncBackground<World>>,
+    scenarios: ::std::vec::Vec<AsyncScenario<World>>,
+    rules: ::std::vec::Vec<AsyncRule<World>>,
+
+    __phantom: aliases::marker::PhantomCovariant<State>,
+}
+
+impl<World> AsyncFeature<World> {
+    #[cfg(feature = "allow-natural")]
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> AsyncFeatureBuilder<World> {
+        Self::builder()
+    }
+
+    pub fn builder() -> AsyncFeatureBuilder<World> {
+        AsyncFeatureBuilder {
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+            tags: ::core::default::Default::default(),
+
+            background: ::core::default::Default::default(),
+            scenarios: ::core::default::Default::default(),
+            rules: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::feature::BuilderState> AsyncFeatureBuilder<World, State> {
+    pub fn description(
+        mut self,
+        description: impl Into<aliases::string::String>,
+    ) -> AsyncFeatureBuilder<World, self::feature::SetDescription<State>>
+    where
+        State::Description: self::marker::IsUnset,
+    {
+        self.description = ::core::option::Option::from(description.into());
+
+        AsyncFeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn ignored(mut self, ignored: impl Into<bool>) -> AsyncFeatureBuilder<World, self::feature::SetIgnored<State>>
+    where
+        State::Ignored: self::marker::IsUnset,
+    {
+        self.ignored = ::core::option::Option::from(ignored.into());
+
+        AsyncFeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn tags(mut self, tags: impl IntoTags) -> AsyncFeatureBuilder<World, self::feature::SetTags<State>>
+    where
+        State::Tags: self::marker::IsUnset,
+    {
+        self.tags = ::core::option::Option::from(tags.into_tags());
+
+        AsyncFeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn background(
+        mut self,
+        background: impl IntoAsyncBackground<World>,
+    ) -> AsyncFeatureBuilder<World, self::feature::SetBackground<State>>
+    where
+        State::Background: self::marker::IsUnset,
+    {
+        self.background = ::core::option::Option::from(background.into_background());
+
+        AsyncFeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenario(
+        mut self,
+        scenario: impl IntoAsyncScenario<World>,
+    ) -> AsyncFeatureBuilder<World, self::feature::SetScenarios<State>> {
+        self.scenarios.push(scenario.into_scenario());
+
+        AsyncFeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenarios<T>(
+        mut self,
+        scenarios: impl IntoIterator<Item = T>,
+    ) -> AsyncFeatureBuilder<World, self::feature::SetScenarios<State>>
+    where
+        T: IntoAsyncScenario<World>,
+    {
+        self.scenarios.extend(scenarios.into_iter().map(IntoAsyncScenario::into_scenario));
+
+        AsyncFeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenario_outline<Example>(
+        mut self,
+        scenario_outline: impl IntoAsyncScenarioOutline<World, Example>,
+    ) -> AsyncFeatureBuilder<World, self::feature::SetScenarios<State>>
+    where
+        World: 'static,
+        Example: 'static,
+    {
+        self.scenarios.extend(scenario_outline.into_scenarios());
+
+        AsyncFeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn rule(mut self, rule: impl IntoAsyncRule<World>) -> AsyncFeatureBuilder<World, self::feature::SetRules<State>> {
+        self.rules.push(rule.into_rule());
+
+        AsyncFeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn rules<T>(
+        mut self,
+        rules: impl IntoIterator<Item = T>,
+    ) -> AsyncFeatureBuilder<World, self::feature::SetRules<State>>
+    where
+        T: IntoAsyncRule<World>,
+    {
+        self.rules.extend(rules.into_iter().map(IntoAsyncRule::into_rule));
+
+        AsyncFeatureBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::feature::BuilderState> AsyncFeatureBuilder<World, State>
+where
+    State: self::feature::IsComplete,
+{
+    pub fn build(mut self) -> AsyncFeature<World> {
+        self.propagate_ignored();
+        self.propagate_tags();
+
+        AsyncFeature {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+            rules: self.rules,
+        }
+    }
+
+    fn propagate_ignored(&mut self) {
+        if let Some(ignored) = self.ignored.as_ref() {
+            self.scenarios.iter_mut().for_each(|scenario| scenario.ignored = ::core::option::Option::from(*ignored))
+        }
+    }
+
+    /// See also: [Tag inheritance](https://cucumber.io/docs/cucumber/api/#tag-inheritance)
+    fn propagate_tags(&mut self) {
+        if let Some(tags) = self.tags.as_ref() {
+            self.scenarios.iter_mut().for_each(|scenario| scenario.tags.get_or_insert_default().extend(tags.clone()));
+            self.rules.iter_mut().for_each(|rule| rule.tags.get_or_insert_default().extend(tags.clone()));
+        }
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncFeature<World> {
+    fn into_feature(self) -> AsyncFeature<World>;
+}
+
+#[sealed]
+impl<World> IntoAsyncFeature<World> for AsyncFeature<World> {
+    fn into_feature(self) -> AsyncFeature<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::feature::BuilderState> IntoAsyncFeature<World> for AsyncFeatureBuilder<World, State>
+where
+    State: self::feature::IsComplete,
+{
+    fn into_feature(self) -> AsyncFeature<World> {
+        self.build()
+    }
+}
+
 mod feature {
     pub(super) use super::*;
 
@@ -409,29 +708,6 @@ mod feature {
         pub struct Rules;
 
         pub struct ScenariosOrRules;
-    }
-}
-
-#[sealed]
-pub trait IntoFeature<World> {
-    fn into_feature(self) -> Feature<World>;
-}
-
-#[sealed]
-impl<World> IntoFeature<World> for Feature<World> {
-    fn into_feature(self) -> Feature<World> {
-        self
-    }
-}
-
-#[cfg(feature = "allow-natural")]
-#[sealed]
-impl<World, State: self::feature::BuilderState> IntoFeature<World> for FeatureBuilder<World, State>
-where
-    State: self::feature::IsComplete,
-{
-    fn into_feature(self) -> Feature<World> {
-        self.build()
     }
 }
 
@@ -640,6 +916,257 @@ where
     }
 }
 
+#[sealed]
+pub trait IntoRule<World> {
+    fn into_rule(self) -> Rule<World>;
+}
+
+#[sealed]
+impl<World> IntoRule<World> for Rule<World> {
+    fn into_rule(self) -> Rule<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::rule::BuilderState> IntoRule<World> for RuleBuilder<World, State>
+where
+    State: self::rule::IsComplete,
+{
+    fn into_rule(self) -> Rule<World> {
+        self.build()
+    }
+}
+
+pub struct AsyncRuleBuilder<World, State: self::rule::BuilderState = self::rule::Empty> {
+    description: ::core::option::Option<aliases::string::String>,
+    ignored: ::core::option::Option<bool>,
+    tags: ::core::option::Option<Tags>,
+
+    background: ::core::option::Option<AsyncBackground<World>>,
+    scenarios: ::std::vec::Vec<AsyncScenario<World>>,
+
+    __phantom: aliases::marker::PhantomCovariant<State>,
+}
+
+impl<World> AsyncRule<World> {
+    #[cfg(feature = "allow-natural")]
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> AsyncRuleBuilder<World> {
+        Self::builder()
+    }
+
+    pub fn builder() -> AsyncRuleBuilder<World> {
+        AsyncRuleBuilder {
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+            tags: ::core::default::Default::default(),
+
+            background: ::core::default::Default::default(),
+            scenarios: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::rule::BuilderState> AsyncRuleBuilder<World, State> {
+    pub fn description(
+        mut self,
+        description: impl Into<aliases::string::String>,
+    ) -> AsyncRuleBuilder<World, self::rule::SetDescription<State>>
+    where
+        State::Description: self::marker::IsUnset,
+    {
+        self.description = ::core::option::Option::from(description.into());
+
+        AsyncRuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn ignored(mut self, ignored: impl Into<bool>) -> AsyncRuleBuilder<World, self::rule::SetIgnored<State>>
+    where
+        State::Ignored: self::marker::IsUnset,
+    {
+        self.ignored = ::core::option::Option::from(ignored.into());
+
+        AsyncRuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn tags(mut self, tags: impl IntoTags) -> AsyncRuleBuilder<World, self::rule::SetTags<State>>
+    where
+        State::Tags: self::marker::IsUnset,
+    {
+        self.tags = ::core::option::Option::from(tags.into_tags());
+
+        AsyncRuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn background(
+        mut self,
+        background: impl IntoAsyncBackground<World>,
+    ) -> AsyncRuleBuilder<World, self::rule::SetBackground<State>>
+    where
+        State::Background: self::marker::IsUnset,
+    {
+        self.background = ::core::option::Option::from(background.into_background());
+
+        AsyncRuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenario(
+        mut self,
+        scenario: impl IntoAsyncScenario<World>,
+    ) -> AsyncRuleBuilder<World, self::rule::SetScenarios<State>> {
+        self.scenarios.push(scenario.into_scenario());
+
+        AsyncRuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenarios<T>(
+        mut self,
+        scenarios: impl IntoIterator<Item = T>,
+    ) -> AsyncRuleBuilder<World, self::rule::SetScenarios<State>>
+    where
+        T: IntoAsyncScenario<World>,
+    {
+        self.scenarios.extend(scenarios.into_iter().map(IntoAsyncScenario::into_scenario));
+
+        AsyncRuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenario_outline<Example>(
+        mut self,
+        scenario_outline: impl IntoAsyncScenarioOutline<World, Example>,
+    ) -> AsyncRuleBuilder<World, self::rule::SetScenarios<State>>
+    where
+        World: 'static,
+        Example: 'static,
+    {
+        self.scenarios.extend(scenario_outline.into_scenarios());
+
+        AsyncRuleBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, State: self::rule::BuilderState> AsyncRuleBuilder<World, State>
+where
+    State: self::rule::IsComplete,
+{
+    pub fn build(mut self) -> AsyncRule<World> {
+        self.propagate_ignored();
+        self.propagate_tags();
+
+        AsyncRule {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            background: self.background,
+            scenarios: self.scenarios,
+        }
+    }
+
+    fn propagate_ignored(&mut self) {
+        if let Some(ignored) = self.ignored.as_ref() {
+            self.scenarios.iter_mut().for_each(|scenario| scenario.ignored = ::core::option::Option::from(*ignored));
+        }
+    }
+
+    /// See also: [Tag inheritance](https://cucumber.io/docs/cucumber/api/#tag-inheritance)
+    fn propagate_tags(&mut self) {
+        if let Some(tags) = self.tags.as_ref() {
+            self.scenarios.iter_mut().for_each(|scenario| scenario.tags.get_or_insert_default().extend(tags.clone()));
+        }
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncRule<World> {
+    fn into_rule(self) -> AsyncRule<World>;
+}
+
+#[sealed]
+impl<World> IntoAsyncRule<World> for AsyncRule<World> {
+    fn into_rule(self) -> AsyncRule<World> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, State: self::rule::BuilderState> IntoAsyncRule<World> for AsyncRuleBuilder<World, State>
+where
+    State: self::rule::IsComplete,
+{
+    fn into_rule(self) -> AsyncRule<World> {
+        self.build()
+    }
+}
+
 mod rule {
     pub(super) use super::*;
 
@@ -749,29 +1276,6 @@ mod rule {
 
         pub struct Background;
         pub struct Scenarios;
-    }
-}
-
-#[sealed]
-pub trait IntoRule<World> {
-    fn into_rule(self) -> Rule<World>;
-}
-
-#[sealed]
-impl<World> IntoRule<World> for Rule<World> {
-    fn into_rule(self) -> Rule<World> {
-        self
-    }
-}
-
-#[cfg(feature = "allow-natural")]
-#[sealed]
-impl<World, State: self::rule::BuilderState> IntoRule<World> for RuleBuilder<World, State>
-where
-    State: self::rule::IsComplete,
-{
-    fn into_rule(self) -> Rule<World> {
-        self.build()
     }
 }
 
@@ -1894,6 +2398,286 @@ where
     }
 }
 
+#[sealed]
+pub trait IntoScenarioOutline<World, Example> {
+    fn into_scenario_outline(self) -> ScenarioOutline<World, Example>;
+
+    fn into_scenarios(self) -> impl IntoIterator<Item = Scenario<World>>
+    where
+        World: 'static,
+        Example: 'static,
+        Self: ::core::marker::Sized,
+    {
+        let scenario_outline = self.into_scenario_outline();
+
+        scenario_outline.examples.into_iter().map(move |example| {
+            let mut scenario = (scenario_outline.scenario)(example);
+
+            if let Some(ignored) = scenario_outline.ignored.as_ref().cloned() {
+                let scenario_ignored = scenario.ignored.get_or_insert(true);
+                *scenario_ignored = *scenario_ignored && ignored;
+            }
+
+            if let Some(tags) = scenario_outline.tags.as_ref().cloned() {
+                scenario.tags.get_or_insert_default().extend(tags)
+            }
+
+            scenario
+        })
+    }
+}
+
+#[sealed]
+impl<World, Example> IntoScenarioOutline<World, Example> for ScenarioOutline<World, Example> {
+    fn into_scenario_outline(self) -> ScenarioOutline<World, Example> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, Example, State: self::scenario_outline::BuilderState> IntoScenarioOutline<World, Example>
+    for ScenarioOutlineBuilder<World, Example, State>
+where
+    State: self::scenario_outline::IsComplete,
+{
+    fn into_scenario_outline(self) -> ScenarioOutline<World, Example> {
+        self.build()
+    }
+}
+
+pub struct AsyncScenarioOutlineBuilder<
+    World,
+    Example,
+    State: self::scenario_outline::BuilderState = self::scenario_outline::Empty,
+> {
+    description: ::core::option::Option<aliases::string::String>,
+    ignored: ::core::option::Option<bool>,
+    tags: ::core::option::Option<Tags>,
+
+    scenario: ::core::option::Option<::std::boxed::Box<dyn Fn(Example) -> AsyncScenario<World>>>,
+    examples: ::std::vec::Vec<Example>,
+
+    __phantom: aliases::marker::PhantomCovariant<State>,
+}
+
+impl<World, Example> AsyncScenarioOutline<World, Example> {
+    #[cfg(feature = "allow-natural")]
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> AsyncScenarioOutlineBuilder<World, Example> {
+        Self::builder()
+    }
+
+    pub fn builder() -> AsyncScenarioOutlineBuilder<World, Example> {
+        AsyncScenarioOutlineBuilder {
+            description: ::core::default::Default::default(),
+            ignored: ::core::default::Default::default(),
+            tags: ::core::default::Default::default(),
+
+            scenario: ::core::default::Default::default(),
+            examples: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, State: self::scenario_outline::BuilderState> AsyncScenarioOutlineBuilder<World, Example, State> {
+    pub fn description(
+        mut self,
+        description: impl Into<aliases::string::String>,
+    ) -> AsyncScenarioOutlineBuilder<World, Example, self::scenario_outline::SetDescription<State>>
+    where
+        State::Description: self::marker::IsUnset,
+    {
+        self.description = ::core::option::Option::from(description.into());
+
+        AsyncScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn ignored(
+        mut self,
+        ignored: impl Into<bool>,
+    ) -> AsyncScenarioOutlineBuilder<World, Example, self::scenario_outline::SetIgnored<State>>
+    where
+        State::Ignored: self::marker::IsUnset,
+    {
+        self.ignored = ::core::option::Option::from(ignored.into());
+
+        AsyncScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn tags(
+        mut self,
+        tags: impl IntoTags,
+    ) -> AsyncScenarioOutlineBuilder<World, Example, self::scenario_outline::SetTags<State>>
+    where
+        State::Tags: self::marker::IsUnset,
+    {
+        self.tags = ::core::option::Option::from(tags.into_tags());
+
+        AsyncScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn scenario<Output>(
+        mut self,
+        scenario: impl Fn(Example) -> Output + 'static,
+    ) -> AsyncScenarioOutlineBuilder<World, Example, self::scenario_outline::SetScenario<State>>
+    where
+        Output: IntoAsyncScenario<World> + 'static,
+        State::Scenario: self::marker::IsUnset,
+        State::Examples: self::marker::IsUnset,
+    {
+        self.scenario =
+            ::core::option::Option::from(::std::boxed::Box::new(move |example| scenario(example).into_scenario())
+                as ::std::boxed::Box<dyn Fn(Example) -> AsyncScenario<World>>);
+
+        AsyncScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn example(
+        mut self,
+        example: Example,
+    ) -> AsyncScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<State>>
+    where
+        State::Scenario: self::marker::IsSet,
+    {
+        self.examples.push(example);
+
+        AsyncScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn examples(
+        mut self,
+        examples: impl IntoIterator<Item = Example>,
+    ) -> AsyncScenarioOutlineBuilder<World, Example, self::scenario_outline::SetExamples<State>>
+    where
+        State::Scenario: self::marker::IsSet,
+    {
+        self.examples.extend(examples);
+
+        AsyncScenarioOutlineBuilder {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: self.scenario,
+            examples: self.examples,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<World, Example, State: self::scenario_outline::BuilderState> AsyncScenarioOutlineBuilder<World, Example, State>
+where
+    State: self::scenario_outline::IsComplete,
+{
+    pub fn build(self) -> AsyncScenarioOutline<World, Example> {
+        AsyncScenarioOutline {
+            description: self.description,
+            ignored: self.ignored,
+            tags: self.tags,
+
+            scenario: unsafe { self.scenario.unwrap_unchecked() },
+            examples: self.examples,
+        }
+    }
+}
+
+#[sealed]
+pub trait IntoAsyncScenarioOutline<World, Example> {
+    fn into_scenario_outline(self) -> AsyncScenarioOutline<World, Example>;
+
+    fn into_scenarios(self) -> impl IntoIterator<Item = AsyncScenario<World>>
+    where
+        World: 'static,
+        Example: 'static,
+        Self: ::core::marker::Sized,
+    {
+        let scenario_outline = self.into_scenario_outline();
+
+        scenario_outline.examples.into_iter().map(move |example| {
+            let mut scenario = (scenario_outline.scenario)(example);
+
+            if let Some(ignored) = scenario_outline.ignored.as_ref().cloned() {
+                let scenario_ignored = scenario.ignored.get_or_insert(true);
+                *scenario_ignored = *scenario_ignored && ignored;
+            }
+
+            if let Some(tags) = scenario_outline.tags.as_ref().cloned() {
+                scenario.tags.get_or_insert_default().extend(tags)
+            }
+
+            scenario
+        })
+    }
+}
+
+#[sealed]
+impl<World, Example> IntoAsyncScenarioOutline<World, Example> for AsyncScenarioOutline<World, Example> {
+    fn into_scenario_outline(self) -> AsyncScenarioOutline<World, Example> {
+        self
+    }
+}
+
+#[cfg(feature = "allow-natural")]
+#[sealed]
+impl<World, Example, State: self::scenario_outline::BuilderState> IntoAsyncScenarioOutline<World, Example>
+    for AsyncScenarioOutlineBuilder<World, Example, State>
+where
+    State: self::scenario_outline::IsComplete,
+{
+    fn into_scenario_outline(self) -> AsyncScenarioOutline<World, Example> {
+        self.build()
+    }
+}
+
 mod scenario_outline {
     pub(super) use super::*;
 
@@ -2000,54 +2784,6 @@ mod scenario_outline {
 
         pub struct Scenario;
         pub struct Examples;
-    }
-}
-
-#[sealed]
-pub trait IntoScenarioOutline<World, Example> {
-    fn into_scenario_outline(self) -> ScenarioOutline<World, Example>;
-
-    fn into_scenarios(self) -> impl IntoIterator<Item = Scenario<World>>
-    where
-        World: 'static,
-        Example: 'static,
-        Self: ::core::marker::Sized,
-    {
-        let scenario_outline = self.into_scenario_outline();
-
-        scenario_outline.examples.into_iter().map(move |example| {
-            let mut scenario = (scenario_outline.scenario)(example);
-
-            if let Some(ignored) = scenario_outline.ignored.as_ref().cloned() {
-                let scenario_ignored = scenario.ignored.get_or_insert(true);
-                *scenario_ignored = *scenario_ignored && ignored;
-            }
-
-            if let Some(tags) = scenario_outline.tags.as_ref().cloned() {
-                scenario.tags.get_or_insert_default().extend(tags)
-            }
-
-            scenario
-        })
-    }
-}
-
-#[sealed]
-impl<World, Example> IntoScenarioOutline<World, Example> for ScenarioOutline<World, Example> {
-    fn into_scenario_outline(self) -> ScenarioOutline<World, Example> {
-        self
-    }
-}
-
-#[cfg(feature = "allow-natural")]
-#[sealed]
-impl<World, Example, State: self::scenario_outline::BuilderState> IntoScenarioOutline<World, Example>
-    for ScenarioOutlineBuilder<World, Example, State>
-where
-    State: self::scenario_outline::IsComplete,
-{
-    fn into_scenario_outline(self) -> ScenarioOutline<World, Example> {
-        self.build()
     }
 }
 
