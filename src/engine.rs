@@ -199,6 +199,72 @@ impl<World> RetainByIgnorePolicy for Rule<World> {
     }
 }
 
+impl<World> RetainByIgnorePolicy for AsyncSuite<World> {
+    fn retain(&mut self, policy: self::configurations::IgnorePolicy) {
+        match policy {
+            self::configurations::IgnorePolicy::RetainIgnored =>
+                self.features.retain(|features| features.ignored.as_ref().is_some_and(|ignored| *ignored)),
+            self::configurations::IgnorePolicy::RetainUnignored =>
+                self.features.retain(|features| features.ignored.as_ref().is_none_or(|ignored| !ignored)),
+            _ => {},
+        }
+
+        self.features.iter_mut().for_each(|feature| RetainByIgnorePolicy::retain(feature, policy));
+    }
+}
+
+impl<World> RetainByIgnorePolicy for AsyncFeature<World> {
+    fn retain(&mut self, policy: self::configurations::IgnorePolicy) {
+        match policy {
+            self::configurations::IgnorePolicy::RetainIgnored => {
+                self.background = self
+                    .background
+                    .take()
+                    .filter(|background| background.ignored.as_ref().is_some_and(|ignored| *ignored));
+                self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_some_and(|ignored| *ignored));
+                self.rules.retain(|rule| rule.ignored.as_ref().is_some_and(|ignored| *ignored));
+            },
+
+            self::configurations::IgnorePolicy::RetainUnignored => {
+                self.background = self
+                    .background
+                    .take()
+                    .filter(|background| background.ignored.as_ref().is_none_or(|ignored| !ignored));
+                self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_none_or(|ignored| !ignored));
+                self.rules.retain(|rule| rule.ignored.as_ref().is_none_or(|ignored| !ignored));
+            },
+
+            _ => {},
+        }
+
+        self.rules.iter_mut().for_each(|rule| RetainByIgnorePolicy::retain(rule, policy));
+    }
+}
+
+impl<World> RetainByIgnorePolicy for AsyncRule<World> {
+    fn retain(&mut self, policy: self::configurations::IgnorePolicy) {
+        match policy {
+            self::configurations::IgnorePolicy::RetainIgnored => {
+                self.background = self
+                    .background
+                    .take()
+                    .filter(|background| background.ignored.as_ref().is_some_and(|ignored| *ignored));
+                self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_some_and(|ignored| *ignored));
+            },
+
+            self::configurations::IgnorePolicy::RetainUnignored => {
+                self.background = self
+                    .background
+                    .take()
+                    .filter(|background| background.ignored.as_ref().is_none_or(|ignored| !ignored));
+                self.scenarios.retain(|scenario| scenario.ignored.as_ref().is_none_or(|ignored| !ignored));
+            },
+
+            _ => {},
+        }
+    }
+}
+
 trait RetainByTagsFilter {
     fn retain<Callback>(&mut self, filter: impl ::std::ops::Deref<Target = Callback> + ::core::clone::Clone)
     where
@@ -242,6 +308,45 @@ impl<World> RetainByTagsFilter for Rule<World> {
         self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(&*filter));
     }
 }
+
+impl<World> RetainByTagsFilter for AsyncSuite<World> {
+    fn retain<Callback>(&mut self, filter: impl ::std::ops::Deref<Target = Callback> + ::core::clone::Clone)
+    where
+        Callback: Fn(&Tags) -> bool,
+    {
+        self.features.retain(|feature| feature.tags.as_ref().is_some_and(&*filter));
+
+        self.features.iter_mut().for_each(|feature| RetainByTagsFilter::retain(feature, filter.clone()));
+
+        self.before_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(&*filter));
+        self.after_scenario_hooks.retain(|hook| hook.tags.as_ref().is_some_and(&*filter));
+
+        self.before_step_hooks.retain(|hook| hook.tags.as_ref().is_some_and(&*filter));
+        self.after_step_hooks.retain(|hook| hook.tags.as_ref().is_some_and(&*filter));
+    }
+}
+
+impl<World> RetainByTagsFilter for AsyncFeature<World> {
+    fn retain<Callback>(&mut self, filter: impl ::std::ops::Deref<Target = Callback> + ::core::clone::Clone)
+    where
+        Callback: Fn(&Tags) -> bool,
+    {
+        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(&*filter));
+        self.rules.retain(|rule| rule.tags.as_ref().is_some_and(&*filter));
+
+        self.rules.iter_mut().for_each(|rule| RetainByTagsFilter::retain(rule, filter.clone()));
+    }
+}
+
+impl<World> RetainByTagsFilter for AsyncRule<World> {
+    fn retain<Callback>(&mut self, filter: impl ::std::ops::Deref<Target = Callback> + ::core::clone::Clone)
+    where
+        Callback: Fn(&Tags) -> bool,
+    {
+        self.scenarios.retain(|scenario| scenario.tags.as_ref().is_some_and(&*filter));
+    }
+}
+
 trait IntoTrials {
     fn into_trials(self) -> ::std::vec::Vec<::libtest_mimic::Trial>;
 }
@@ -422,6 +527,30 @@ fn into_trial(
     trial
 }
 
+#[cfg(not(any(feature = "tokio")))]
+fn into_trial_async(
+    description: impl Into<::std::borrow::Cow<'static, str>>,
+    tags: ::core::option::Option<impl Into<Tags>>,
+    callback: impl FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync + 'static,
+) -> ::libtest_mimic::Trial {
+    let callback = move || ::futures::executor::block_on((callback)());
+
+    into_trial(description, tags, callback)
+}
+
+#[cfg(feature = "tokio")]
+fn into_trial_async(
+    description: impl Into<::std::borrow::Cow<'static, str>>,
+    tags: ::core::option::Option<impl Into<Tags>>,
+    callback: impl FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync + 'static,
+) -> ::libtest_mimic::Trial {
+    let handle = ::tokio::runtime::Handle::current();
+
+    let callback = move || handle.block_on((callback)());
+
+    into_trial(description, tags, callback)
+}
+
 trait ToDescription {
     fn to_description(&self) -> ::std::borrow::Cow<'static, str>;
 }
@@ -472,7 +601,7 @@ impl ToDescription for StepLabel {
     }
 }
 
-trait ScenarioGivenOrWhenStepsExt<World> {
+trait ScenarioStepsExt<World> {
     fn into_callback(self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 
     fn into_callback_with_context(
@@ -481,7 +610,7 @@ trait ScenarioGivenOrWhenStepsExt<World> {
     ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
-impl<World> ScenarioGivenOrWhenStepsExt<World> for ::std::vec::Vec<ScenarioGivenOrWhenStep<World>>
+impl<World> ScenarioStepsExt<World> for ::std::vec::Vec<ScenarioGivenOrWhenStep<World>>
 where
     World: 'static,
 {
@@ -505,16 +634,7 @@ where
     }
 }
 
-trait ScenarioThenStepsExt<World> {
-    fn into_callback(self) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
-
-    fn into_callback_with_context(
-        self,
-        context: [::std::vec::Vec<ScenarioOrStepHook<World>>; 2],
-    ) -> impl FnOnce(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
-}
-
-impl<World> ScenarioThenStepsExt<World> for ::std::vec::Vec<ScenarioThenStep<World>>
+impl<World> ScenarioStepsExt<World> for ::std::vec::Vec<ScenarioThenStep<World>>
 where
     World: 'static,
 {
@@ -571,6 +691,130 @@ where
     }
 }
 
+trait AsyncScenarioGivenOrWhenStepsExt<World> {
+    fn into_callback(self) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync;
+
+    fn into_callback_with_context(
+        self,
+        context: [::std::vec::Vec<AsyncScenarioOrStepHook<World>>; 2],
+    ) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync;
+}
+
+impl<World> AsyncScenarioGivenOrWhenStepsExt<World> for ::std::vec::Vec<AsyncScenarioGivenOrWhenStep<World>>
+where
+    World: ::core::marker::Send + ::core::marker::Sync + 'static,
+{
+    fn into_callback(self) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| ::std::boxed::Box::pin(async move {
+            let step_callbacks = self.into_iter().map(|step| step.callback);
+
+            for step_callback in step_callbacks {
+                (step_callback)(world).await?;
+            }
+
+            Ok(())
+        })
+    }
+
+    fn into_callback_with_context(
+        self,
+        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<AsyncScenarioOrStepHook<World>>; 2],
+    ) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| ::std::boxed::Box::pin(async move {
+            let step_callbacks = self.into_iter().map(|step| step.callback);
+
+            for step_callback in step_callbacks {
+                (before_step_hooks.to_callback())(world).await?;
+                (step_callback)(world).await?;
+                (after_step_hooks.to_callback())(world).await?;
+            }
+
+            Ok(())
+        })
+    }
+}
+
+impl<World> AsyncScenarioGivenOrWhenStepsExt<World> for ::std::vec::Vec<AsyncScenarioThenStep<World>>
+where
+    World: ::core::marker::Send + ::core::marker::Sync + 'static,
+{
+    fn into_callback(self) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| ::std::boxed::Box::pin(async move {
+            let step_callbacks = self.into_iter().map(|step| step.callback);
+
+            for step_callback in step_callbacks {
+                (step_callback)(world).await?;
+            }
+
+            Ok(())
+        })
+    }
+
+    fn into_callback_with_context(
+        self,
+        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<AsyncScenarioOrStepHook<World>>; 2],
+    ) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| ::std::boxed::Box::pin(async move {
+            let step_callbacks = self.into_iter().map(|step| step.callback);
+
+            for step_callback in step_callbacks {
+                (before_step_hooks.to_callback())(world).await?;
+                (step_callback)(world).await?;
+                (after_step_hooks.to_callback())(world).await?;
+            }
+
+            Ok(())
+        })
+    }
+}
+
+trait AsyncBackgroundGivenStepsExt<World> {
+    fn to_callback(&self) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync;
+
+    fn to_callback_with_context(
+        &self,
+        context: [::std::vec::Vec<AsyncScenarioOrStepHook<World>>; 2],
+    ) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync;
+}
+
+impl<World> AsyncBackgroundGivenStepsExt<World> for ::std::vec::Vec<AsyncBackgroundGivenStep<World>>
+where
+    World: ::core::marker::Send + ::core::marker::Sync + 'static,
+{
+    fn to_callback(&self) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| {
+            let step_callbacks = self.iter().map(|step| step.callback.clone()).collect::<::std::vec::Vec<_>>();
+
+            ::std::boxed::Box::pin(async move {
+                for step_callback in step_callbacks {
+                    (step_callback)(world).await?;
+                }
+
+                Ok(())
+            })
+        }
+    }
+
+    fn to_callback_with_context(
+        &self,
+        [before_step_hooks, after_step_hooks]: [::std::vec::Vec<AsyncScenarioOrStepHook<World>>; 2],
+    ) -> impl for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync {
+        move |world: &mut World| {
+            let step_callbacks = self.iter().map(|step| step.callback.clone()).collect::<::std::vec::Vec<_>>();
+
+            ::std::boxed::Box::pin(async move {
+                for step_callback in step_callbacks {
+                    (before_step_hooks.to_callback())(world).await?;
+                    (step_callback)(world).await?;
+                    (after_step_hooks.to_callback())(world).await?;
+                }
+
+                Ok(())
+            })
+        }
+    }
+}
+
 trait ScenarioOrStepHooksExt<World> {
     fn to_callback(&self) -> impl Fn(&mut World) -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
@@ -585,12 +829,56 @@ where
 }
 
 trait GlobalHooksExt {
-    fn to_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync;
+    fn into_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync;
 }
 
 impl GlobalHooksExt for ::std::vec::Vec<GlobalHook> {
-    fn to_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync {
+    fn into_callback(self) -> impl FnOnce() -> Fallible + ::core::marker::Send + ::core::marker::Sync {
         move || self.into_iter().try_for_each(|hook| (hook.callback)())
+    }
+}
+
+trait AsyncScenarioOrStepHooksExt<World> {
+    fn to_callback(&self) -> impl for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync;
+}
+
+impl<World> AsyncScenarioOrStepHooksExt<World> for ::std::vec::Vec<AsyncScenarioOrStepHook<World>>
+where
+    World: ::core::marker::Send + ::core::marker::Sync + 'static,
+{
+    fn to_callback(&self) -> impl for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync + '_ {
+        move |world: &mut World| {
+            let hook_callbacks = self.iter()
+                .map(|hook| hook.callback.clone())
+                .collect::<::std::vec::Vec<_>>();
+
+            ::std::boxed::Box::pin(async move {
+                for hook_callback in hook_callbacks {
+                    (hook_callback)(world).await?
+                }
+
+                Ok(())
+            })
+        }
+    }
+}
+
+trait AsyncGlobalHooksExt {
+    fn into_callback(self) -> impl FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync;
+}
+
+impl AsyncGlobalHooksExt for ::std::vec::Vec<AsyncGlobalHook> {
+    fn into_callback(self) -> impl FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync {
+        move || ::std::boxed::Box::pin(async move {
+            let hook_callbacks = self.into_iter()
+                .map(|hook| hook.callback);
+
+            for hook_callback in hook_callbacks {
+                (hook_callback)().await?
+            }
+
+            Ok(())
+        })
     }
 }
 
@@ -605,12 +893,12 @@ impl Runner {
         let mut args = ::libtest_mimic::Arguments::from_args();
         self.configurations.update(&mut args);
 
-        let _ = self.before_global_hooks.to_callback()();
+        let _ = self.before_global_hooks.into_callback()();
 
         let conclusion = ::libtest_mimic::run(&args, trials);
         let exit_code = conclusion.exit_code();
 
-        let _ = self.after_global_hooks.to_callback()();
+        let _ = self.after_global_hooks.into_callback()();
 
         exit_code
     }
