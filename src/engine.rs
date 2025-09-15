@@ -12,6 +12,15 @@ pub struct Runner {
     pub(crate) trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrialsWithConfigurations>>,
 }
 
+pub struct AsyncRunner {
+    pub(crate) configurations: self::configurations::RunnerConfigurations,
+
+    pub(crate) before_global_hooks: ::std::vec::Vec<AsyncGlobalHook>,
+    pub(crate) after_global_hooks: ::std::vec::Vec<AsyncGlobalHook>,
+
+    pub(crate) trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrialsWithConfigurations>>,
+}
+
 pub struct Suite<World> {
     pub(crate) before_scenario_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
     pub(crate) after_scenario_hooks: ::std::vec::Vec<ScenarioOrStepHook<World>>,
@@ -1066,6 +1075,28 @@ impl Runner {
         let exit_code = conclusion.exit_code();
 
         let _ = self.after_global_hooks.into_callback()();
+
+        exit_code
+    }
+}
+
+impl AsyncRunner {
+    pub async fn run(self) -> ::std::process::ExitCode {
+        let trials = self
+            .trials
+            .into_iter()
+            .flat_map(|trials| trials.into_trials_with_configurations(&self.configurations))
+            .collect();
+
+        let mut args = ::libtest_mimic::Arguments::from_args();
+        self.configurations.update(&mut args);
+
+        let _ = self.before_global_hooks.into_callback()().await;
+
+        let conclusion = ::libtest_mimic::run(&args, trials);
+        let exit_code = conclusion.exit_code();
+
+        let _ = self.after_global_hooks.into_callback()().await;
 
         exit_code
     }

@@ -34,7 +34,7 @@ metrohash = { version = "1.0.7", optional = true }
 num_cpus = { version = "1.17.0", optional = true }
 seahash = { version = "4.1.0", optional = true }
 sealed = "0.6.0"
-tokio = { version = "*", features = ["rt"], optional = true }
+tokio = { version = "1.47.1", features = ["rt"], optional = true }
 triomphe = { version = "0.1.14", optional = true }
 
 [dev-dependencies]
@@ -64,4 +64,9 @@ harness = false
 [[example]]
 name = "user-repo"
 path = "./examples/user-repo.rs"
+harness = false
+
+[[example]]
+name = "user-repo-async"
+path = "./examples/user-repo-async.rs"
 harness = false

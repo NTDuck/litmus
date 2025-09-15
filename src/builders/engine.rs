@@ -294,6 +294,295 @@ where
     }
 }
 
+pub struct AsyncRunnerBuilder<State: self::runner::BuilderState = self::runner::Empty> {
+    configurations: self::configurations::RunnerConfigurations,
+
+    before_global_hooks: ::std::vec::Vec<AsyncGlobalHook>,
+    after_global_hooks: ::std::vec::Vec<AsyncGlobalHook>,
+
+    trials: ::std::vec::Vec<::std::boxed::Box<dyn IntoTrialsWithConfigurations>>,
+
+    __phantom: aliases::marker::PhantomCovariant<State>,
+}
+
+impl AsyncRunner {
+    #[cfg(feature = "allow-natural")]
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> AsyncRunnerBuilder {
+        Self::builder()
+    }
+
+    pub fn builder() -> AsyncRunnerBuilder {
+        AsyncRunnerBuilder {
+            configurations: ::core::default::Default::default(),
+
+            before_global_hooks: ::core::default::Default::default(),
+            after_global_hooks: ::core::default::Default::default(),
+
+            trials: ::core::default::Default::default(),
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<State: self::runner::BuilderState> AsyncRunnerBuilder<State> {
+    pub fn include_only_ignored(mut self) -> AsyncRunnerBuilder<self::runner::SetIgnorePolicy<State>>
+    where
+        State::IgnorePolicy: self::marker::IsUnset,
+    {
+        self.configurations.ignore_policy = self::configurations::IgnorePolicy::RetainIgnored;
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn include_ignored(mut self) -> AsyncRunnerBuilder<self::runner::SetIgnorePolicy<State>>
+    where
+        State::IgnorePolicy: self::marker::IsUnset,
+    {
+        self.configurations.ignore_policy = self::configurations::IgnorePolicy::None;
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn filter(mut self, filter: impl IntoTagsFilter) -> AsyncRunnerBuilder<self::runner::SetTagsFilter<State>>
+    where
+        State::TagsFilter: self::marker::IsUnset,
+    {
+        self.configurations.tags_filter = ::core::option::Option::from(
+            ::std::boxed::Box::new(filter.into_filter()) as self::configurations::TagsFilter
+        );
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn and(mut self, filter: impl IntoTagsFilter) -> AsyncRunnerBuilder<self::runner::SetTagsFilter<State>>
+    where
+        State::TagsFilter: self::marker::IsSet,
+        State::InTagsFilterChain: self::marker::IsSet,
+    {
+        let filter = unsafe { self.configurations.tags_filter.unwrap_unchecked() }.and(filter);
+
+        self.configurations.tags_filter =
+            ::core::option::Option::from(::std::boxed::Box::new(filter) as self::configurations::TagsFilter);
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn or(mut self, filter: impl IntoTagsFilter) -> AsyncRunnerBuilder<self::runner::SetTagsFilter<State>>
+    where
+        State::TagsFilter: self::marker::IsSet,
+        State::InTagsFilterChain: self::marker::IsSet,
+    {
+        let filter = unsafe { self.configurations.tags_filter.unwrap_unchecked() }.or(filter);
+
+        self.configurations.tags_filter =
+            ::core::option::Option::from(::std::boxed::Box::new(filter) as self::configurations::TagsFilter);
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn format(mut self, format: self::configurations::Format) -> AsyncRunnerBuilder<self::runner::SetFormat<State>>
+    where
+        State::Format: self::marker::IsUnset,
+    {
+        self.configurations.format = format;
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn color(mut self, color: self::configurations::Color) -> AsyncRunnerBuilder<self::runner::SetColor<State>>
+    where
+        State::Color: self::marker::IsUnset,
+    {
+        self.configurations.color = color;
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn threads(
+        mut self,
+        threads: impl Into<self::configurations::ThreadsCount>,
+    ) -> AsyncRunnerBuilder<self::runner::SetThreads<State>>
+    where
+        State::Threads: self::marker::IsUnset,
+    {
+        self.configurations.threads = ::core::option::Option::from(threads.into());
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn logfile(mut self, logfile: impl Into<aliases::path::Path>) -> AsyncRunnerBuilder<self::runner::SetLogFile<State>>
+    where
+        State::LogFile: self::marker::IsUnset,
+    {
+        self.configurations.logfile = ::core::option::Option::from(logfile.into());
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn before_all(mut self, hook: impl IntoAsyncGlobalHook) -> AsyncRunnerBuilder<self::runner::SetHooks<State>> {
+        self.before_global_hooks.push(hook.into_hook());
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn after_all(mut self, hook: impl IntoAsyncGlobalHook) -> AsyncRunnerBuilder<self::runner::SetHooks<State>> {
+        self.after_global_hooks.push(hook.into_hook());
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+
+    pub fn suite<World>(self, suite: impl IntoAsyncSuite<World>) -> AsyncRunnerBuilder<self::runner::SetTrials<State>>
+    where
+        World: ::core::default::Default + ::core::marker::Send + ::core::marker::Sync + 'static,
+    {
+        self.add(suite.into_suite())
+    }
+
+    pub fn feature<World>(self, feature: impl IntoAsyncFeature<World>) -> AsyncRunnerBuilder<self::runner::SetTrials<State>>
+    where
+        World: ::core::default::Default + ::core::marker::Send + ::core::marker::Sync + 'static,
+    {
+        self.add(feature.into_feature())
+    }
+
+    fn add(mut self, trials: impl IntoTrialsWithConfigurations) -> AsyncRunnerBuilder<self::runner::SetTrials<State>> {
+        self.trials.push(::std::boxed::Box::new(trials));
+
+        AsyncRunnerBuilder {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+
+            __phantom: ::core::default::Default::default(),
+        }
+    }
+}
+
+impl<State: self::runner::BuilderState> AsyncRunnerBuilder<State>
+where
+    State: self::runner::IsComplete,
+{
+    pub fn build(self) -> AsyncRunner {
+        AsyncRunner {
+            configurations: self.configurations,
+
+            before_global_hooks: self.before_global_hooks,
+            after_global_hooks: self.after_global_hooks,
+
+            trials: self.trials,
+        }
+    }
+
+    #[cfg(feature = "allow-natural")]
+    pub async fn run(self) -> ::std::process::ExitCode {
+        self.build().run().await
+    }
+}
+
 mod runner {
     pub(super) use super::*;
 
