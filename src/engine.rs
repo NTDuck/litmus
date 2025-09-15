@@ -433,6 +433,88 @@ where
     }
 }
 
+impl<World> IntoTrials for AsyncSuite<World>
+where
+    World: ::core::default::Default + ::core::marker::Send + ::core::marker::Sync + 'static,
+{
+    fn into_trials(self) -> ::std::vec::Vec<::libtest_mimic::Trial> {
+        self.features
+            .into_iter()
+            .zip(::core::iter::repeat([
+                self.before_scenario_hooks.clone(),
+                self.after_scenario_hooks.clone(),
+                self.before_step_hooks.clone(),
+                self.after_step_hooks.clone(),
+            ]))
+            .flat_map(|(feature, hooks)| {
+                ::core::iter::Iterator::chain(
+                    feature
+                        .scenarios
+                        .into_iter()
+                        .zip(::core::iter::repeat((hooks.clone(), [feature
+                            .background
+                            .as_ref()
+                            .map(|background| background.given.clone())])))
+                        .map(|(scenario, context)| scenario.into_trial_with_context(context)),
+                    feature
+                        .rules
+                        .into_iter()
+                        .map(|rule| (rule.scenarios, rule.background))
+                        .map(move |(rule_scenarios, rule_background)| {
+                            (
+                                rule_scenarios,
+                                (hooks.clone(), [
+                                    feature.background.as_ref().map(|background| background.given.clone()),
+                                    rule_background.as_ref().map(|background| background.given.clone()),
+                                ]),
+                            )
+                        })
+                        .flat_map(|(rule_scenarios, context)| {
+                            rule_scenarios
+                                .into_iter()
+                                .zip(::core::iter::repeat(context))
+                                .map(|(scenario, context)| scenario.into_trial_with_context(context))
+                        }),
+                )
+            })
+            .collect()
+    }
+}
+
+impl<World> IntoTrials for AsyncFeature<World>
+where
+    World: ::core::default::Default + ::core::marker::Send + ::core::marker::Sync + 'static,
+{
+    fn into_trials(self) -> ::std::vec::Vec<::libtest_mimic::Trial> {
+        let feature = self;
+
+        ::core::iter::Iterator::chain(
+            feature
+                .scenarios
+                .into_iter()
+                .zip(::core::iter::repeat([feature.background.as_ref().map(|background| background.given.clone())]))
+                .map(|(scenario, context)| scenario.into_trial_with_context(context)),
+            feature
+                .rules
+                .into_iter()
+                .map(|rule| (rule.scenarios, rule.background))
+                .map(move |(rule_scenarios, rule_background)| {
+                    (rule_scenarios, [
+                        feature.background.as_ref().map(|background| background.given.clone()),
+                        rule_background.as_ref().map(|background| background.given.clone()),
+                    ])
+                })
+                .flat_map(|(rule_scenarios, context)| {
+                    rule_scenarios
+                        .into_iter()
+                        .zip(::core::iter::repeat(context))
+                        .map(|(scenario, context)| scenario.into_trial_with_context(context))
+                }),
+        )
+        .collect()
+    }
+}
+
 trait ScenarioExt<Context> {
     fn into_trial_with_context(self, context: Context) -> ::libtest_mimic::Trial;
 }
@@ -527,6 +609,76 @@ fn into_trial(
     trial
 }
 
+impl<const N: usize, World>
+    ScenarioExt<(
+        [::std::vec::Vec<AsyncScenarioOrStepHook<World>>; 4],
+        [::core::option::Option<::std::vec::Vec<AsyncBackgroundGivenStep<World>>>; N],
+    )> for AsyncScenario<World>
+where
+    World: ::core::default::Default + ::core::marker::Send + ::core::marker::Sync + 'static,
+{
+    fn into_trial_with_context(
+        self,
+        ([before_scenario_hooks, after_scenario_hooks, before_step_hooks, after_step_hooks], backgrounds): (
+            [::std::vec::Vec<AsyncScenarioOrStepHook<World>>; 4],
+            [::core::option::Option<::std::vec::Vec<AsyncBackgroundGivenStep<World>>>; N],
+        ),
+    ) -> ::libtest_mimic::Trial {
+        let description = self.to_description();
+
+        let context = [before_step_hooks.clone(), after_step_hooks.clone()];
+
+        let callback = move || ::std::boxed::Box::pin(async move {
+            let mut world = ::core::default::Default::default();
+
+            before_scenario_hooks.to_callback()(&mut world).await?;
+
+            for background in backgrounds.into_iter().flatten() {
+                background.to_callback_with_context(context.clone())(&mut world).await?;
+            }
+
+            self.given.into_callback_with_context(context.clone())(&mut world).await?;
+            self.when.into_callback_with_context(context.clone())(&mut world).await?;
+            self.then.into_callback_with_context(context.clone())(&mut world).await?;
+
+            after_scenario_hooks.to_callback()(&mut world).await?;
+
+            Ok(())
+        }) as ::futures::future::BoxFuture<'_, Fallible>;
+
+        into_trial_async(description, self.tags, callback)
+    }
+}
+
+impl<const N: usize, World> ScenarioExt<[::core::option::Option<::std::vec::Vec<AsyncBackgroundGivenStep<World>>>; N]>
+    for AsyncScenario<World>
+where
+    World: ::core::default::Default + ::core::marker::Send + ::core::marker::Sync + 'static,
+{
+    fn into_trial_with_context(
+        self,
+        backgrounds: [::core::option::Option<::std::vec::Vec<AsyncBackgroundGivenStep<World>>>; N],
+    ) -> ::libtest_mimic::Trial {
+        let description = self.to_description();
+
+        let callback = move || ::std::boxed::Box::pin(async move {
+            let mut world = ::core::default::Default::default();
+
+            for background in backgrounds.into_iter().flatten() {
+                background.to_callback()(&mut world).await?;
+            }
+
+            self.given.into_callback()(&mut world).await?;
+            self.when.into_callback()(&mut world).await?;
+            self.then.into_callback()(&mut world).await?;
+
+            Ok(())
+        }) as ::futures::future::BoxFuture<'_, Fallible>;
+
+        into_trial_async(description, self.tags, callback)
+    }
+}
+
 #[cfg(not(any(feature = "tokio")))]
 fn into_trial_async(
     description: impl Into<::std::borrow::Cow<'static, str>>,
@@ -556,6 +708,21 @@ trait ToDescription {
 }
 
 impl<World> ToDescription for Scenario<World> {
+    fn to_description(&self) -> ::std::borrow::Cow<'static, str> {
+        match self.description {
+            Some(ref description) => description.clone(),
+            None => ::std::format!(
+                "{}; {}; {}",
+                self.given.to_description(),
+                self.when.to_description(),
+                self.then.to_description()
+            )
+            .into(),
+        }
+    }
+}
+
+impl<World> ToDescription for AsyncScenario<World> {
     fn to_description(&self) -> ::std::borrow::Cow<'static, str> {
         match self.description {
             Some(ref description) => description.clone(),
