@@ -1022,7 +1022,7 @@ impl<World> AsyncScenarioOrStepHooksExt<World> for ::std::vec::Vec<AsyncScenario
 where
     World: ::core::marker::Send + ::core::marker::Sync + 'static,
 {
-    fn to_callback(&self) -> impl for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync + '_ {
+    fn to_callback(&self) -> impl for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync {
         move |world: &mut World| {
             let hook_callbacks = self.iter()
                 .map(|hook| hook.callback.clone())

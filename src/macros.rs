@@ -9,7 +9,7 @@ macro_rules! assert {
     }};
 
     ($expr:expr) => {
-        $crate::assertions::assert!($expr, ::std::stringify!($expr))
+        $crate::macros::assert!($expr, ::std::stringify!($expr))
     };
 }
 
@@ -24,7 +24,18 @@ macro_rules! panic {
 #[macro_export]
 macro_rules! format {
     ($fmt:literal $(, $arg:expr)+ $(,)?) => {
-        ::std::format!($fmt $(, $crate::assertions::__Backtick($arg))*)
+        ::std::format!($fmt $(, $crate::macros::__Backtick($arg))*)
+    };
+}
+
+#[macro_export]
+macro_rules! r#async {
+    () => {
+        $crate::macros::r#async!({ ::core::result::Result::Ok(()) })
+    };
+    
+    ($expr:expr) => {
+        ::futures::future::FutureExt::boxed(async move { $expr })
     };
 }
 
@@ -42,3 +53,4 @@ where
 pub use assert;
 pub use format;
 pub use panic;
+pub use r#async;

@@ -14,6 +14,7 @@ pub struct UserRepositoryFeature;
 
 impl UserRepositoryFeature {
     #[rustfmt::skip]
+    #[allow(unused_braces)]
     #[allow(clippy::new_ret_no_self)]
     pub fn new<World>() -> impl ::litmus::IntoAsyncFeature<World>
     where
@@ -21,23 +22,23 @@ impl UserRepositoryFeature {
     {
         ::litmus::AsyncFeature::new()
             .scenario(::litmus::AsyncScenario::<World>::new()
-                .given("an empty repository", |_| async {})
-                .when("inserting user `Alice`", |repo| async { repo.save("Alice").await; })
-                .then("it contains `Alice`", |repo| async { ::litmus::assert!(repo.contains("Alice").await) }))
+                .given("an empty repository", |_| ::litmus::r#async!())
+                .when("inserting user `Alice`", |repo| ::litmus::r#async!({ repo.save("Alice").await; }))
+                .then("it contains `Alice`", |repo| ::litmus::r#async!({ ::litmus::assert!(repo.contains("Alice").await) })))
             .scenario(::litmus::AsyncScenario::<World>::new()
-                .given("a repository with user `Alice`", |repo| async { repo.save("Alice").await; })
-                .when("inserting user `Alice`", |repo| async { repo.save("Alice").await; })
-                .then("it contains `Alice`", |repo| async { ::litmus::assert!(repo.contains("Alice").await) }))
+                .given("a repository with user `Alice`", |repo| ::litmus::r#async!({ repo.save("Alice").await; }))
+                .when("inserting user `Alice`", |repo| ::litmus::r#async!({ repo.save("Alice").await; }))
+                .then("it contains `Alice`", |repo| ::litmus::r#async!({ ::litmus::assert!(repo.contains("Alice").await) })))
             .scenario(::litmus::AsyncScenario::<World>::new()
-                .given("a repository with user `Alice`", |repo| async { repo.save("Alice").await; })
-                .when("deleting user `Alice`", |repo| async { repo.delete("Alice").await; })
-                .then("it does not contain `Alice`", |repo| async { ::litmus::assert!(!repo.contains("Alice").await) }))
+                .given("a repository with user `Alice`", |repo| ::litmus::r#async!({ repo.save("Alice").await; }))
+                .when("deleting user `Alice`", |repo| ::litmus::r#async!({ repo.delete("Alice").await; }))
+                .then("it does not contain `Alice`", |repo| ::litmus::r#async!({ ::litmus::assert!(!repo.contains("Alice").await) })))
 
             .scenario_outline(::litmus::AsyncScenarioOutline::new()
                 .scenario(|user| ::litmus::AsyncScenario::<World>::new()
-                    .given("an empty repository", |_| async {})
-                    .when(::litmus::format!("inserting user {}", user), move |repo| async move { repo.save(user).await; })
-                    .then(::litmus::format!("it contains {}", user), move |repo| async move { ::litmus::assert!(repo.contains(user).await) }))
+                    .given("an empty repository", |_| ::litmus::r#async!())
+                    .when(::litmus::format!("inserting user {}", user), move |repo| ::litmus::r#async!({ repo.save(user).await; }))
+                    .then(::litmus::format!("it contains {}", user), move |repo| ::litmus::r#async!({ ::litmus::assert!(repo.contains(user).await) })))
                 .examples(["Alice", "Bob", "Charlie"]))
     }
 }
@@ -89,8 +90,8 @@ impl UserDatabaseSuite {
     pub fn new() -> impl ::litmus::IntoAsyncSuite<UserDatabase> {
         ::litmus::AsyncSuite::new()
             .feature(UserRepositoryFeature::new())
-            .before_scenario(|db: &mut UserDatabase| async { db.connect().await; })
-            .after_scenario(|db: &mut UserDatabase| async { db.disconnect().await; })
+            .before_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.connect().await; }))
+            .after_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.disconnect().await; }))
     }
 }
 

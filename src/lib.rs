@@ -6,10 +6,10 @@
 ))]
 ::core::compile_error!("The following feature flags are mutually exclusive: `ahash`, `fxhash`, `metrohash`, `seahash`");
 
-pub mod assertions;
 pub mod builders;
 #[cfg(feature = "libtest-mimic")]
 pub mod engine;
+pub mod macros;
 pub mod models;
 pub mod prelude;
 

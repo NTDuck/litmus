@@ -1775,7 +1775,7 @@ where
         }
     }
 
-    pub fn given<Description, Callback, Future, Output>(
+    pub fn given<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -1783,8 +1783,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: FnOnce(&mut World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::Given);
@@ -1810,7 +1809,7 @@ where
     <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::When: self::marker::IsUnset,
     <self::scenario::SetGiven<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
 {
-    pub fn and<Description, Callback, Future, Output>(
+    pub fn and<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -1818,8 +1817,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: FnOnce(&mut World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::And);
@@ -1838,7 +1836,7 @@ where
         }
     }
 
-    pub fn but<Description, Callback, Future, Output>(
+    pub fn but<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -1846,8 +1844,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: FnOnce(&mut World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::But);
@@ -1866,7 +1863,7 @@ where
         }
     }
 
-    pub fn when<Description, Callback, Future, Output>(
+    pub fn when<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -1874,8 +1871,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: FnOnce(&mut World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::When);
@@ -1901,7 +1897,7 @@ where
     <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
     <self::scenario::SetWhen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsUnset,
 {
-    pub fn and<Description, Callback, Future, Output>(
+    pub fn and<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -1909,8 +1905,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: FnOnce(&mut World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::And);
@@ -1929,7 +1924,7 @@ where
         }
     }
 
-    pub fn but<Description, Callback, Future, Output>(
+    pub fn but<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -1937,8 +1932,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: FnOnce(&mut World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncScenarioGivenOrWhenStep::into_step((description, callback), StepLabel::But);
@@ -1957,7 +1951,7 @@ where
         }
     }
 
-    pub fn then<Description, Callback, Future, Output>(
+    pub fn then<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -1965,8 +1959,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: FnOnce(&World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> FnOnce(&'a World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncScenarioThenStep::into_step((description, callback), StepLabel::Then);
@@ -1992,7 +1985,7 @@ where
     <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::When: self::marker::IsSet,
     <self::scenario::SetThen<InnerState> as self::scenario::BuilderState>::Then: self::marker::IsSet,
 {
-    pub fn and<Description, Callback, Future, Output>(
+    pub fn and<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -2000,8 +1993,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: FnOnce(&World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> FnOnce(&'a World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncScenarioThenStep::into_step((description, callback), StepLabel::And);
@@ -2020,7 +2012,7 @@ where
         }
     }
 
-    pub fn but<Description, Callback, Future, Output>(
+    pub fn but<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -2028,8 +2020,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: FnOnce(&World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> FnOnce(&'a World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncScenarioThenStep::into_step((description, callback), StepLabel::But);
@@ -3042,7 +3033,7 @@ where
         }
     }
 
-    pub fn given<Description, Callback, Future, Output>(
+    pub fn given<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -3050,8 +3041,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: Fn(&mut World) -> Future + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncBackgroundGivenStep::into_step((description, callback), StepLabel::Given);
@@ -3072,7 +3062,7 @@ impl<World, InnerState: self::background::BuilderState> AsyncBackgroundBuilder<W
 where
     <self::background::SetGiven<InnerState> as self::background::BuilderState>::Given: self::marker::IsSet,
 {
-    pub fn and<Description, Callback, Future, Output>(
+    pub fn and<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -3080,8 +3070,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: Fn(&mut World) -> Future + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncBackgroundGivenStep::into_step((description, callback), StepLabel::And);
@@ -3097,7 +3086,7 @@ where
         }
     }
 
-    pub fn but<Description, Callback, Future, Output>(
+    pub fn but<Description, Callback, Output>(
         mut self,
         description: Description,
         callback: Callback,
@@ -3105,8 +3094,7 @@ where
     where
         World: ::core::marker::Send + ::core::marker::Sync,
         Description: Into<aliases::string::String>,
-        Callback: Fn(&mut World) -> Future + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
-        Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+        Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
         Output: IntoFallible,
     {
         let step = IntoAsyncBackgroundGivenStep::into_step((description, callback), StepLabel::But);
@@ -3441,11 +3429,10 @@ impl<World> IntoAsyncScenarioOrStepHook<World> for AsyncScenarioOrStepHook<World
 }
 
 #[sealed]
-impl<World, Callback, Future, Output> IntoAsyncScenarioOrStepHook<World> for Callback
+impl<World, Callback, Output> IntoAsyncScenarioOrStepHook<World> for Callback
 where
     World: ::core::marker::Send + ::core::marker::Sync,
-    Callback: Fn(&mut World) -> Future + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
-    Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+    Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
     #[allow(private_interfaces)]
@@ -3453,7 +3440,7 @@ where
         let callback: aliases::sync::Arc<dyn for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync + 'static> =
             aliases::sync::Arc::new(move |world: &mut World| {
                 let callback = self.clone();
-                ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() })
+                ::futures::future::FutureExt::boxed(async move { (callback)(world).await.into_fallible() })
             });
 
         Hook::builder().callback(callback).build()
@@ -3466,11 +3453,10 @@ pub trait AsyncScenarioOrStepHookCallbackExt<World> {
 }
 
 #[sealed]
-impl<World, Callback, Future, Output> AsyncScenarioOrStepHookCallbackExt<World> for Callback
+impl<World, Callback, Output> AsyncScenarioOrStepHookCallbackExt<World> for Callback
 where
     World: ::core::marker::Send + ::core::marker::Sync,
-    Callback: Fn(&mut World) -> Future + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
-    Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+    Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
     fn tags(self, tags: impl IntoTags) -> impl IntoAsyncScenarioOrStepHook<World> {
@@ -3478,7 +3464,7 @@ where
         let callback: aliases::sync::Arc<dyn for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync> =
             aliases::sync::Arc::new(move |world: &mut World| {
                 let callback = self.clone();
-                ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() })
+                ::futures::future::FutureExt::boxed(async move { (callback)(world).await.into_fallible() })
             });
 
         Hook::builder().tags(tags).callback(callback).build()
@@ -3500,16 +3486,15 @@ impl IntoAsyncGlobalHook for AsyncGlobalHook {
 }
 
 #[sealed]
-impl<Callback, Future, Output> IntoAsyncGlobalHook for Callback
+impl<Callback, Output> IntoAsyncGlobalHook for Callback
 where
-    Callback: FnOnce() -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-    Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+    Callback: FnOnce() -> ::futures::future::BoxFuture<'static, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
     #[allow(private_interfaces)]
     fn into_hook(self) -> AsyncGlobalHook {
         let callback: ::std::boxed::Box<dyn FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync> =
-            ::std::boxed::Box::new(move || ::std::boxed::Box::pin(async move { (self)().await.into_fallible() }));
+            ::std::boxed::Box::new(move || ::futures::future::FutureExt::boxed(async move { (self)().await.into_fallible() }));
 
         Hook::builder().callback(callback).build()
     }
@@ -3521,16 +3506,15 @@ pub trait AsyncGlobalHookCallbackExt {
 }
 
 #[sealed]
-impl<Callback, Future, Output> AsyncGlobalHookCallbackExt for Callback
+impl<Callback, Output> AsyncGlobalHookCallbackExt for Callback
 where
-    Callback: FnOnce() -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-    Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+    Callback: FnOnce() -> ::futures::future::BoxFuture<'static, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
     fn tags(self, tags: impl IntoTags) -> impl IntoAsyncGlobalHook {
         let tags = tags.into_tags();
         let callback: ::std::boxed::Box<dyn FnOnce() -> ::futures::future::BoxFuture<'static, Fallible> + ::core::marker::Send + ::core::marker::Sync> =
-            ::std::boxed::Box::new(move || ::std::boxed::Box::pin(async move { (self)().await.into_fallible() }));
+            ::std::boxed::Box::new(move || ::futures::future::FutureExt::boxed(async move { (self)().await.into_fallible() }));
 
         Hook::builder().tags(tags).callback(callback).build()
     }
@@ -3768,12 +3752,11 @@ pub trait IntoAsyncScenarioGivenOrWhenStep<World> {
 }
 
 #[sealed]
-impl<World, Description, Callback, Future, Output> IntoAsyncScenarioGivenOrWhenStep<World> for (Description, Callback)
+impl<World, Description, Callback, Output> IntoAsyncScenarioGivenOrWhenStep<World> for (Description, Callback)
 where
     World: ::core::marker::Send + ::core::marker::Sync,
     Description: Into<aliases::string::String>,
-    Callback: FnOnce(&mut World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-    Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+    Callback: for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
     #[allow(private_interfaces)]
@@ -3781,7 +3764,7 @@ where
         let (description, callback) = self;
 
         let callback: ::std::boxed::Box<dyn for<'a> FnOnce(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync + 'static> =
-            ::std::boxed::Box::new(move |world: &mut World| ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() }));
+            ::std::boxed::Box::new(move |world: &mut World| ::futures::future::FutureExt::boxed(async move { (callback)(world).await.into_fallible() }));
 
         Step::builder().label(label).description(description).callback(callback).build()
     }
@@ -3794,12 +3777,11 @@ pub trait IntoAsyncScenarioThenStep<World> {
 }
 
 #[sealed]
-impl<World, Description, Callback, Future, Output> IntoAsyncScenarioThenStep<World> for (Description, Callback)
+impl<World, Description, Callback, Output> IntoAsyncScenarioThenStep<World> for (Description, Callback)
 where
     World: ::core::marker::Send + ::core::marker::Sync,
     Description: Into<aliases::string::String>,
-    Callback: FnOnce(&World) -> Future + ::core::marker::Send + ::core::marker::Sync + 'static,
-    Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+    Callback: for<'a> FnOnce(&'a World) -> ::futures::future::BoxFuture<'a, Output> + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
     #[allow(private_interfaces)]
@@ -3807,7 +3789,7 @@ where
         let (description, callback) = self;
 
         let callback: ::std::boxed::Box<dyn for<'a> FnOnce(&'a World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync + 'static> =
-            ::std::boxed::Box::new(move |world: &World| ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() }));
+            ::std::boxed::Box::new(move |world: &World| ::futures::future::FutureExt::boxed(async move { (callback)(world).await.into_fallible() }));
 
         Step::builder().label(label).description(description).callback(callback).build()
     }
@@ -3820,12 +3802,11 @@ pub trait IntoAsyncBackgroundGivenStep<World> {
 }
 
 #[sealed]
-impl<World, Description, Callback, Future, Output> IntoAsyncBackgroundGivenStep<World> for (Description, Callback)
+impl<World, Description, Callback, Output> IntoAsyncBackgroundGivenStep<World> for (Description, Callback)
 where
     World: ::core::marker::Send + ::core::marker::Sync,
     Description: Into<aliases::string::String>,
-    Callback: Fn(&mut World) -> Future + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
-    Future: ::futures::future::Future<Output = Output> + ::core::marker::Send,
+    Callback: for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Output> + ::core::clone::Clone + ::core::marker::Send + ::core::marker::Sync + 'static,
     Output: IntoFallible,
 {
     #[allow(private_interfaces)]
@@ -3835,11 +3816,23 @@ where
         let callback: aliases::sync::Arc<dyn for<'a> Fn(&'a mut World) -> ::futures::future::BoxFuture<'a, Fallible> + ::core::marker::Send + ::core::marker::Sync> =
             aliases::sync::Arc::new(move |world: &mut World| {
                 let callback = callback.clone();
-                ::std::boxed::Box::pin(async move { (callback)(world).await.into_fallible() })
+                ::futures::future::FutureExt::boxed(async move { (callback)(world).await.into_fallible() })
             });
 
         Step::builder().label(label).description(description).callback(callback).build()
     }
+}
+
+#[sealed]
+pub trait FutureWithLifetime<'a, Output>: ::futures::future::Future<Output = Output> + ::core::marker::Send + ::core::marker::Sync + 'a
+{
+}
+
+#[sealed]
+impl<'a, Future, Output> FutureWithLifetime<'a, Output> for Future
+where
+    Future: ::futures::future::Future<Output = Output> + ::core::marker::Send + ::core::marker::Sync + 'a,
+{
 }
 
 #[sealed]
