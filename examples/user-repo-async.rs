@@ -51,30 +51,30 @@ pub struct UserDatabase {
 
 impl UserDatabase {
     pub async fn connect(&mut self) {
-        self.is_connected.store(true, ::std::sync::atomic::Ordering::SeqCst);
+        // self.is_connected.store(true, ::std::sync::atomic::Ordering::SeqCst);
     }
 
     pub async fn disconnect(&mut self) {
-        self.is_connected.store(false, ::std::sync::atomic::Ordering::SeqCst);
+        // self.is_connected.store(false, ::std::sync::atomic::Ordering::SeqCst);
     }
 }
 
 #[async_trait]
 impl UserRepository for UserDatabase {
     async fn save(&mut self, user: User) {
-        if self.is_connected.load(::std::sync::atomic::Ordering::SeqCst) {
+        if !self.is_connected.load(::std::sync::atomic::Ordering::SeqCst) {
             self.users_by_ids.lock().await.insert(user);
         }
     }
 
     async fn delete(&mut self, user: User) {
-        if self.is_connected.load(::std::sync::atomic::Ordering::SeqCst) {
+        if !self.is_connected.load(::std::sync::atomic::Ordering::SeqCst) {
             self.users_by_ids.lock().await.remove(user);
         }
     }
 
     async fn contains(&self, user: User) -> bool {
-        if self.is_connected.load(::std::sync::atomic::Ordering::SeqCst) {
+        if !self.is_connected.load(::std::sync::atomic::Ordering::SeqCst) {
             self.users_by_ids.lock().await.contains(&user)
         } else {
             false
@@ -82,23 +82,24 @@ impl UserRepository for UserDatabase {
     }
 }
 
-pub struct UserDatabaseSuite;
+// pub struct UserDatabaseSuite;
 
-impl UserDatabaseSuite {
-    #[rustfmt::skip]
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new() -> impl ::litmus::IntoAsyncSuite<UserDatabase> {
-        ::litmus::AsyncSuite::new()
-            .feature(UserRepositoryFeature::new())
-            // .before_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.connect().await; }))
-            // .after_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.disconnect().await; }))
-    }
-}
+// impl UserDatabaseSuite {
+//     #[rustfmt::skip]
+//     #[allow(clippy::new_ret_no_self)]
+//     pub fn new() -> impl ::litmus::IntoAsyncSuite<UserDatabase> {
+//         ::litmus::AsyncSuite::new()
+//             .feature(UserRepositoryFeature::new())
+//             .before_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.connect().await; }))
+//             .after_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.disconnect().await; }))
+//     }
+// }
 
 #[rustfmt::skip]
 #[::tokio::main]
 async fn main() -> ::std::process::ExitCode {
     ::litmus::AsyncRunner::new()
-        .suite(UserDatabaseSuite::new())
+        // .suite(UserDatabaseSuite::new())
+        .feature(UserRepositoryFeature::new::<UserDatabase>())
         .run().await
 }
