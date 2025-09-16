@@ -90,8 +90,8 @@ impl UserDatabaseSuite {
     pub fn new() -> impl ::litmus::IntoAsyncSuite<UserDatabase> {
         ::litmus::AsyncSuite::new()
             .feature(UserRepositoryFeature::new())
-            .before_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.connect().await; }))
-            .after_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.disconnect().await; }))
+            // .before_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.connect().await; }))
+            // .after_scenario(|db: &mut UserDatabase| ::litmus::r#async!({ db.disconnect().await; }))
     }
 }
 

@@ -10,7 +10,7 @@ categories = ["development-tools::testing"]
 publish = true
 
 [features]
-default = ["async", "allow-natural", "libtest-mimic", "seahash", "num-cpus", "tokio"]
+default = ["async", "allow-natural", "allow-empty", "libtest-mimic", "seahash", "num-cpus", "tokio"]
 
 async = ["dep:futures"]
 allow-natural = []
